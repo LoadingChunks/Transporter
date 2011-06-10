@@ -79,13 +79,22 @@ public class LocalGate extends Gate {
         String parts[] = item.split(":");
         if (parts.length > 2) return null;
         try {
-            Material material = Material.valueOf(parts[0]);
-        } catch (IllegalArgumentException e) {
-            return null;
+            int typeId = Integer.parseInt(parts[0]);
+            Material material = Material.getMaterial(typeId);
+            if (material == null) return null;
+            item = material.toString();
+        } catch (NumberFormatException nfe) {
+            try {
+                Material material = Material.valueOf(parts[0]);
+                item = material.toString();
+            } catch (IllegalArgumentException iae) {
+                return null;
+            }
         }
         if (parts.length > 1)
             try {
-                Short.parseShort(parts[1]);
+                short dura = Short.parseShort(parts[1]);
+                item += ":" + dura;
             } catch (NumberFormatException e) {
                 return null;
             }

@@ -38,13 +38,13 @@ public class ServerCommand extends TrpCommandProcessor {
     @Override
     public String getUsage(Context ctx) {
         return
-               super.getUsage(ctx) + " list\n" +
                super.getUsage(ctx) + " set minecraft <address>[,<pat>]\n" +
                super.getUsage(ctx) + " get minecraft\n" +
                super.getUsage(ctx) + " set listen <address>\n" +
                super.getUsage(ctx) + " get listen\n" +
                super.getUsage(ctx) + " set key <key>\n" +
                super.getUsage(ctx) + " get key\n" +
+               super.getUsage(ctx) + " list\n" +
                super.getUsage(ctx) + " add <name> <address> <key>\n" +
                super.getUsage(ctx) + " connect <server>\n" +
                super.getUsage(ctx) + " disconnect <server>\n" +
@@ -229,7 +229,7 @@ public class ServerCommand extends TrpCommandProcessor {
             server.change(args.get(1), args.get(2));
             Global.servers.saveAll(ctx);
             ctx.sendLog("changed server '%s'", server.getName());
-            ctx.sendLog("servers must be reloaded for change to take effect");
+            ctx.sendLog("server must be reconnected for change to take effect");
             return;
         }
         

@@ -42,7 +42,7 @@ public class GateCommand extends TrpCommandProcessor {
     public String getUsage(Context ctx) {
         return
                 super.getUsage(ctx) + " list\n" +
-                super.getUsage(ctx) + " select [<gate>]\n" +
+                super.getUsage(ctx) + " select <gate>\n" +
                 super.getUsage(ctx) + " info [<gate>]\n" +
                 super.getUsage(ctx) + " open [<gate>]\n" +
                 super.getUsage(ctx) + " close [<gate>]\n" +
