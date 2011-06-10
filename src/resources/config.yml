@@ -1,0 +1,21 @@
+
+minecraftAddress: localhost       # the address and port of the MC server outsiders connect to
+listenAddress: 0.0.0.0            # the address and port the plugin listens on
+serverKey: none                   # the key we present to other servers when trying to connect
+bannedAddresses:                  # list if regular expressions to match against addresses we won't accept connections from
+#  - ^10\..*
+#  - ^192\.168\..*
+reconnectInterval: 60000          # time, in millis, to wait between connection attempts
+reconnectSkew: 10000              # time, in millis, to randomly skew the reconnect interval
+arrivalWindow: 20000              # time, in millis, within which a teleporing player must arive
+
+allowBuild: true
+allowLinkLocal: true
+allowLinkWorld: true
+allowLinkServer: true
+
+useGatePermissions: false
+exportedGatesFile: overviewer/gates.json
+
+usePermissions: false
+useIConomy: false
