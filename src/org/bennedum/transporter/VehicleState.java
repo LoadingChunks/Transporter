@@ -68,7 +68,7 @@ public final class VehicleState extends EntityState {
             inventory = new ItemStack[inv.size()];
             for (int slot = 0; slot < inv.size(); slot++)
                 inventory[slot] = decodeItemStack(inv.get(slot));
-        }        
+        }
         if (in.containsKey("passenger"))
             passengerState = EntityState.extractState(in.getMessage("passenger"));
     }
@@ -97,17 +97,17 @@ public final class VehicleState extends EntityState {
 
     @Override
     public String getName() {
-        return type.toString();
+        return type.toString() + "/" + entityId;
     }
 
     public ItemStack[] getInventory() {
         return inventory;
     }
-    
+
     public EntityState getPassengerState() {
         return passengerState;
     }
-    
+
     @Override
     public Entity restore(Location location, Player player) {
         Entity entity;
@@ -143,7 +143,7 @@ public final class VehicleState extends EntityState {
                 inv.setItem(slot, inventory[slot]);
         }
     }
-    
+
     private enum Type {
         MINECART,
         POWERED_MINECART,

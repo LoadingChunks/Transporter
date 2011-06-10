@@ -40,7 +40,7 @@ public abstract class EntityState {
         else
             return null;
     }
-    
+
     public static EntityState extractState(Entity entity) {
         if (entity instanceof Vehicle)
             return new VehicleState((Vehicle)entity);
@@ -48,8 +48,8 @@ public abstract class EntityState {
             return new PlayerState((Player)entity);
         throw new IllegalArgumentException("unable to extract state from " + entity.getClass().getName());
     }
-    
-    private int entityId;
+
+    protected int entityId;
     private float pitch;
     private float yaw;
     private int fireTicks;
@@ -94,7 +94,7 @@ public abstract class EntityState {
     public int getEntityId() {
         return entityId;
     }
-    
+
     public float getYaw() {
         return yaw;
     }
@@ -114,11 +114,11 @@ public abstract class EntityState {
     public boolean isPlayer() {
         return false;
     }
-    
+
     public Entity restore(Location location, Player player) {
         return null;
     }
-    
+
     protected void applyTo(Entity entity) {
         entity.setFireTicks(fireTicks);
         entity.setVelocity(new Vector(velX, velY, velZ));
@@ -149,5 +149,5 @@ public abstract class EntityState {
         }
         return stack;
     }
-    
+
 }

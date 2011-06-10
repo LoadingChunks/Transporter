@@ -37,6 +37,7 @@ public abstract class Gate {
 
     public static String makeLocalName(String globalName) {
         String parts[] = globalName.split("\\.");
+        if (parts.length == 2) return globalName;
         if (parts.length == 3) return parts[1] + "." + parts[2];
         throw new IllegalArgumentException("expected global name");
     }

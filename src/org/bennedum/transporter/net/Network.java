@@ -247,7 +247,7 @@ public final class Network extends Thread {
             saveBannedAddresses();
         }
     }
-    
+
     // called from synchronized block
     private void saveBannedAddresses() {
         List<String> bannedAddresses = new ArrayList<String>(banned.size());
@@ -340,6 +340,7 @@ System.out.println("kill " + conn.getName());
                         }
                     }
                 }
+                if ((state == State.STOPPING) && channels.isEmpty()) break;
 
                 // Open connections that are waiting
                 synchronized (opening) {

@@ -123,7 +123,7 @@ public class GateCollection {
             Utils.warning("unable to write %s: %s", file.getAbsolutePath(), ioe.getMessage());
         }
     }
-    
+
     public void add(Gate gate) throws GateException {
         String name = gate.getFullName();
         if (gates.containsKey(name))
@@ -244,7 +244,7 @@ public class GateCollection {
             name = ctx.getPlayer().getWorld().getName() + "." + name;
         }
         return getLocalGate(name);
-        
+
     }
 
     public LocalGate getLocalGate(String name) {
@@ -260,9 +260,9 @@ public class GateCollection {
                 }
             }
         }
-        return gate.isSameServer() ? (LocalGate)gate : null;
+        return ((gate != null) && gate.isSameServer()) ? (LocalGate)gate : null;
     }
-    
+
     public List<Gate> getAll() {
         return new ArrayList<Gate>(gates.values());
     }

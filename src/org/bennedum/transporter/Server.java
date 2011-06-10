@@ -18,6 +18,7 @@ package org.bennedum.transporter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -365,8 +366,8 @@ public final class Server {
         message.put("toGate", toGateName);
         message.put("entity", entityState.encode());
         connection.sendMessage(message, true);
-    }    
-    
+    }
+
     // used to tell the sending side we didn't receive the entity
     // fromGate can be null if the player is being sent directly
     public void doCancelArrival(EntityState entityState, String fromGateName, String toGateName) {
@@ -377,7 +378,7 @@ public final class Server {
         message.put("entity", entityState.encode());
         connection.sendMessage(message, true);
     }
-    
+
     public void doRelayChat(Player player, String msg, Set<RemoteGate> toGates) {
         if (! isConnected()) return;
         Message message = createMessage("relayChat");
@@ -472,8 +473,6 @@ Utils.debug("received command '%s' from %s", command, getName());
                 response.remove("requestId");
             }
             connection.sendMessage(response, true);
-            if (response.containsKey("error"))
-                disconnect(true);
         }
     }
 
@@ -552,10 +551,13 @@ Utils.debug("received command '%s' from %s", command, getName());
         String toName = message.getString("to");
         if (toName == null)
             throw new ServerException("missing toName");
+        toName = Gate.makeLocalName(toName);
+
         String fromName = message.getString("from");
         if (fromName == null)
             throw new ServerException("missing fromName");
         fromName = Gate.makeFullName(this, fromName);
+
         Gate toGate = Global.gates.get(toName);
         if (toGate == null)
             throw new ServerException("unknown to gate '%s'", toName);
@@ -573,10 +575,13 @@ Utils.debug("received command '%s' from %s", command, getName());
         String toName = message.getString("to");
         if (toName == null)
             throw new ServerException("missing toName");
+        toName = Gate.makeLocalName(toName);
+
         String fromName = message.getString("from");
         if (fromName == null)
             throw new ServerException("missing fromName");
         fromName = Gate.makeFullName(this, fromName);
+
         Gate toGate = Global.gates.get(toName);
         if (toGate == null)
             throw new ServerException("unknown to gate '%s'", toName);
@@ -598,6 +603,7 @@ Utils.debug("received command '%s' from %s", command, getName());
         String toGate = message.getString("toGate");
         if (toGate == null)
             throw new ServerException("missing toGate");
+        toGate = Gate.makeLocalName(toGate);
 
         String fromGateDirectionStr = message.getString("fromGateDirection");
         BlockFace fromGateDirection = null;
@@ -614,7 +620,7 @@ Utils.debug("received command '%s' from %s", command, getName());
         EntityState entityState = EntityState.extractState(message.getMessage("entity"));
         if (entityState == null)
             throw new ServerException("invalid entity");
-                
+
         try {
             Teleport.expect(entityState, this, fromGate, toGate, fromGateDirection);
         } catch (TeleportException te) {
@@ -625,6 +631,9 @@ Utils.debug("received command '%s' from %s", command, getName());
 
     private void handleCancelArrival(Message message) throws ServerException {
         String fromGate = message.getString("fromGate");
+        if (fromGate != null)
+            fromGate = Gate.makeLocalName(fromGate);
+
         String toGate = message.getString("toGate");
         if (toGate == null)
             throw new ServerException("missing toGate");
@@ -645,6 +654,9 @@ Utils.debug("received command '%s' from %s", command, getName());
 
     private void handleConfirmArrival(Message message) throws ServerException {
         String fromGate = message.getString("fromGate");
+        if (fromGate != null)
+            fromGate = Gate.makeLocalName(fromGate);
+
         String toGate = message.getString("toGate");
         if (toGate == null)
             throw new ServerException("missing toGate");
@@ -679,6 +691,9 @@ Utils.debug("received command '%s' from %s", command, getName());
         List<String> toGates = message.getStringList("toGates");
         if ((toGates == null) || toGates.isEmpty())
             throw new ServerException("missing toGates");
+
+        for (int i = 0; i < toGates.size(); i++)
+            toGates.set(i, Gate.makeLocalName(toGates.get(i)));
 
         Teleport.receiveChat(player, displayName, name, msg, toGates);
     }

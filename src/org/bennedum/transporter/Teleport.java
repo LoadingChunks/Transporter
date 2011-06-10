@@ -396,6 +396,11 @@ public final class Teleport {
         if (! toGate.getServer().isConnected())
             throw new TeleportException("server '%s' is offline", toGate.getServer().getName());
 
+        if (player == null)
+            Utils.info("teleporting entity '%d' to '%s'...", entity.getEntityId(), toGate.getFullName());
+        else
+            Utils.info("teleporting player '%s' to '%s'...", player.getName(), toGate.getFullName());
+
         // tell other side to check things
         // if we get a positive response, do our half of the teleport
         Utils.worker(new Runnable() {
@@ -409,10 +414,8 @@ public final class Teleport {
                     Utils.fire(new Runnable() {
                         @Override
                         public void run() {
-                            if (player == null) {
-                                Utils.info("teleporting entity '%d' to '%s'...", entity.getEntityId(), toGate.getFullName());
-                            } else {
-                                ctx.sendLog(ChatColor.GOLD + "teleporting to '%s'...", toGate.getName(ctx));
+                            if (player != null) {
+                                ctx.send(ChatColor.GOLD + "teleporting to '%s'...", toGate.getName(ctx));
 
                                 // charge funds
                                 if (fromGate != null) {
@@ -511,7 +514,7 @@ public final class Teleport {
     // fromGateName and fromGateDirection can be null if the player is being sent directly
     public static void expect(final EntityState entityState, Server fromServer, String fromGateName, String toGateName, final BlockFace fromGateDirection) throws TeleportException {
         Gate gate;
-        RemoteGate fromGate = null;
+        final RemoteGate fromGate;
 
         if (fromGateName != null) {
             gate = Global.gates.get(fromGateName);
@@ -520,7 +523,8 @@ public final class Teleport {
             if (gate.isSameServer())
                 throw new TeleportException("fromGate must be a remote gate");
             fromGate = (RemoteGate)gate;
-        }
+        } else
+            fromGate = null;
 
         gate = Global.gates.get(toGateName);
         if (gate == null)
@@ -576,15 +580,24 @@ public final class Teleport {
             }
         }
 
+        Utils.fire(new Runnable() {
+            @Override
+            public void run() {
+                Utils.info("expecting '%s' from '%s'...", entityState.getName(), fromGate.getFullName());
+            }
+        });
+
         if (playerState == null) {
             // there's no player coming, so let the other side know and instantiate the entity now
             fromServer.doConfirmArrival(entityState, fromGateName, toGateName);
             Utils.fire(new Runnable() {
                 @Override
                 public void run() {
+                    Utils.info("sent confirmation of arrival of '%s' from '%s'...", entityState.getName(), fromGate.getFullName());
                     Location location = prepareSpawnLocation(entityState.getPitch(), entityState.getYaw(), fromGateDirection, toGate);
                     Entity entity = entityState.restore(location, null);
                     if (entity != null) {
+                        addGateLock(entity);
                         if (filterInventory(entity, toGate))
                             Utils.info("some inventory items where filtered by the remote gate");
                         Utils.info("teleported '%s' to '%s'", entityState.getName(), toGate.getFullName());
@@ -634,7 +647,7 @@ public final class Teleport {
         Utils.fire(new Runnable() {
             @Override
             public void run() {
-                Utils.warning("received a cancellation of arrival of '%s' to '%s'", entityState.getName(), toGateName);
+                Utils.warning("received a cancellation of arrival of '%s' at '%s'", entityState.getName(), toGateName);
             }
         });
     }
@@ -697,12 +710,12 @@ public final class Teleport {
         return location;
     }
 
-    // called after a player has successfully been received by a remote server
+    // called after an entity has successfully been received by a remote server
     public static void confirm(final EntityState entityState, final String fromGateName, final String toGateName) throws TeleportException {
         Utils.fire(new Runnable() {
             @Override
             public void run() {
-                Utils.info("received confirmation of arrival of '%s' to '%s'", entityState.getName(), toGateName);
+                Utils.info("received confirmation of arrival of '%s' at '%s'", entityState.getName(), toGateName);
 
                 // if the entity isn't a player, we have to destroy it on this side
                 if ((! entityState.isPlayer()) && (fromGateName != null)) {
@@ -710,7 +723,7 @@ public final class Teleport {
                     if (gate == null) return;
                     for (Entity entity : gate.getWorld().getEntities())
                         if (entity.getEntityId() == entityState.getEntityId()) {
-                            // this needs to change if decide the handle nested entities
+                            // this needs to change if we decide the handle nested entities
                             entity.remove();
                             break;
                         }
