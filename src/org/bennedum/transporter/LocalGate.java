@@ -317,13 +317,13 @@ public class LocalGate extends Gate {
             conf.setProperty("links", links);
         }
         synchronized (pins) {
-            conf.setProperty("pins", new ArrayList(pins));
+            conf.setProperty("pins", new ArrayList<String>(pins));
         }
         synchronized (bannedItems) {
-            conf.setProperty("bannedItems", new ArrayList(bannedItems));
+            conf.setProperty("bannedItems", new ArrayList<String>(bannedItems));
         }
         synchronized (allowedItems) {
-            conf.setProperty("allowedItems", new ArrayList(allowedItems));
+            conf.setProperty("allowedItems", new ArrayList<String>(allowedItems));
         }
         synchronized (replaceItems) {
             conf.setProperty("replaceItems", replaceItems);
@@ -794,7 +794,7 @@ public class LocalGate extends Gate {
 
     public List<String> getLinks() {
         synchronized (links) {
-            return new ArrayList(links);
+            return new ArrayList<String>(links);
         }
     }
 
