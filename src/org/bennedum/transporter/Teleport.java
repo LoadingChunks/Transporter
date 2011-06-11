@@ -210,6 +210,8 @@ public final class Teleport {
 
         // this is necessary so minecarts don't sink into the ground
         // it also gives them a little push out of the gate
+        if (! (entity instanceof Player))
+            newLocation.setY(newLocation.getY() + 0.5);
         Vector velocity = entity.getVelocity();
         velocity.multiply(2);
         velocity.setY(0);
@@ -262,82 +264,6 @@ public final class Teleport {
 
         return newLocation;
     }
-
-    // called when a player on our server is being sent to another server
-    /*
-    private static void send(final Player player, final LocalGate fromGate, final RemoteGate toGate) throws TeleportException {
-        String pin = getPin(player);
-        final Context ctx = new Context(player);
-
-        // check permissions on our side
-        try {
-            ctx.requireAllPermissions("trp.use." + fromGate.getName());
-            if (Global.config.getBoolean("useGatePermissions", false)) {
-                Permissions.requirePermissions(fromGate.getWorldName(), fromGate.getName(), true, "trp.send." + toGate.getGlobalName());
-            }
-        } catch (PermissionsException pe) {
-            throw new TeleportException(pe.getMessage());
-        }
-
-        // check pin
-        if (fromGate.getRequirePin()) {
-            if (pin == null)
-                throw new TeleportException("pin is required");
-            if (! fromGate.isValidPin(pin))
-                throw new TeleportException("pin rejected");
-        }
-
-        // check funds
-        try {
-            ctx.requireFunds(fromGate.getSendServerCost());
-        } catch (FundsException fe) {
-            throw new TeleportException(fe.getMessage());
-        }
-
-        // check connection
-        if (! toGate.getServer().isConnected())
-            throw new TeleportException("server '%s' is offline", toGate.getServer().getName());
-
-        // tell other side to check things. if we get a positive response, do our half of the teleport
-        Utils.worker(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    // this call will block until we get a response
-                    toGate.getServer().doExpectPlayer(player, fromGate, toGate);
-                    // remote side is ready to receive, so clean up here
-                    Utils.fire(new Runnable() {
-                        @Override
-                        public void run() {
-                            ctx.sendLog(ChatColor.GOLD + "teleporting to '%s'...", toGate.getName(ctx));
-
-                            // charge funds
-                            try {
-                                ctx.chargeFunds(fromGate.getSendServerCost(), "debited $$ for off-server transmission");
-                            } catch (FundsException fe) {
-                                // ignore this?
-                            }
-                            Utils.info("sending player '%s' to '%s'", player.getName(), toGate.getServer().getMinecraftAddress());
-
-                            // TODO: change this when our own client patcher is available
-
-                            player.kickPlayer("[Serverport] please reconnect to: " + toGate.getServer().getMinecraftAddress());
-
-                            // we'll do more things when we receive notification from the other side they received the player
-                        }
-                    });
-                } catch (final ServerException e) {
-                    Utils.fire(new Runnable() {
-                        @Override
-                        public void run() {
-                            ctx.warnLog("server '%s' complained: %s", toGate.getServer().getName(), e.getMessage());
-                        }
-                    });
-                }
-            }
-        });
-    }
-*/
 
     // called when an entity on our server is being sent to another server
     // fromGate can be null if the player is being sent directly
@@ -446,68 +372,6 @@ public final class Teleport {
             }
         });
     }
-
-    // called when another server is sending a player our way
-    /*
-    public static void expect(PlayerState player, String fromGateName, String toGateName, BlockFace fromGateDirection) throws TeleportException {
-        Gate gate;
-
-        gate = Global.gates.get(fromGateName);
-        if (gate == null)
-            throw new TeleportException("unknown gate '%s'", fromGateName);
-        if (gate.isSameServer())
-            throw new TeleportException("fromGate must be a remote gate");
-        RemoteGate fromGate = (RemoteGate)gate;
-
-        gate = Global.gates.get(toGateName);
-        if (gate == null)
-            throw new TeleportException("unknown gate '%s'", toGateName);
-        if (! gate.isSameServer())
-            throw new TeleportException("toGate must be a local gate");
-        LocalGate toGate = (LocalGate)gate;
-
-        // check permissions on our side
-        try {
-            Permissions.requirePermissions(toGate.getWorldName(), player.getName(), true, "trp.use." + toGate.getName());
-            if (Global.config.getBoolean("useGatePermissions", false)) {
-                Permissions.requirePermissions(toGate.getWorldName(), toGate.getName(), true, "trp.receive." + fromGate.getGlobalName());
-            }
-        } catch (PermissionsException pe) {
-            throw new TeleportException(pe.getMessage());
-        }
-
-        // check pin
-        if (toGate.getRequirePin()) {
-            String pin = player.getPin();
-            if (pin == null)
-                throw new TeleportException("pin is required");
-            if ((! toGate.isValidPin(pin)) && toGate.getRequireValidPin())
-                throw new TeleportException("pin rejected");
-        }
-
-        // check funds
-        try {
-            Utils.deductFunds(player.getName(), toGate.getReceiveServerCost(), true);
-        } catch (FundsException fe) {
-            throw new TeleportException(fe.getMessage());
-        }
-
-        // save the info away and wait the player to connect
-        final ExpectedPlayer expectedPlayer = new ExpectedPlayer(player, fromGateName, toGateName, fromGateDirection);
-        synchronized (expectedPlayers) {
-            expectedPlayers.put(player.getName(), expectedPlayer);
-        }
-
-        // set up a delayed task to cancel the arrival if they never arrive
-        Utils.fireDelayed(new Runnable() {
-            @Override
-            public void run() {
-                cancel(expectedPlayer);
-            }
-        }, Global.config.getInt("arrivalWindow", DEFAULT_ARRIVAL_WINDOW));
-
-    }
-*/
 
     // called when another server is sending an entity our way, with or without a player
     // throw an exception, which will be returned to the sender, if we won't accept the entity
@@ -804,7 +668,7 @@ public final class Teleport {
         GateBlock block = toGate.getSpawnBlocks().randomBlock();
         Location location = block.getLocation().clone();
         location.setX(location.getX() + 0.5);
-        location.setY(location.getY() + 0.5); // does this work for players?
+        location.setY(location.getY());
         location.setZ(location.getZ() + 0.5);
         location.setPitch(fromPitch);
         if (fromGateDirection == null)
