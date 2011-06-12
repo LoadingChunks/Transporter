@@ -36,12 +36,9 @@ import org.bukkit.plugin.PluginManager;
 // TODO: add client patching
 
 // TODO: wiki pages:
-// Commands, ServerToServer, GateDesign, FAQ, HowToUseAGate, Permissions, GlobalConfiguration
-// DirectoryStructure
+// ServerToServer, GateDesign, FAQ, HowToUseAGate, Permissions
 
 // TODO: TEST: fix phantom connection issues
-// TODO: TEST: remote teleport entities
-// TODO: TEST: make sure new designs are installed
 // TODO: TEST: add go command
 
 /**
@@ -74,7 +71,7 @@ public class Transporter extends JavaPlugin {
         Utils.copyFileFromJar("/resources/LICENSE.txt", new File(dataFolder, "LICENSE.txt"), true);
         Utils.copyFileFromJar("/resources/README.txt", new File(dataFolder, "README.txt"), true);
         Utils.copyFileFromJar("/resources/materials.txt", new File(dataFolder, "materials.txt"), true);
-        
+
         if (Utils.copyFileFromJar("/resources/config.yml", new File(dataFolder, "config.yml"), false))
             ctx.sendLog("installed default configuration");
         if (Utils.copyFileFromJar("/resources/permissions.properties", new File(dataFolder, "permissions.properties"), false))

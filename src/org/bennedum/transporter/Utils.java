@@ -72,7 +72,7 @@ public class Utils {
 
     public static void debug(String msg, Object ... args) {
         msg = ChatColor.stripColor(String.format(msg, args));
-        logger.log(Level.INFO, String.format("[DEBUG] %s", msg));
+//        logger.log(Level.INFO, String.format("[DEBUG] %s", msg));
     }
 
     public static String blockCoords(Location loc) {

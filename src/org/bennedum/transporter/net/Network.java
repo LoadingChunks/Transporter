@@ -269,7 +269,7 @@ public final class Network extends Thread {
 
     // called from selection thread
     private void kill(Connection conn) {
-System.out.println("kill " + conn.getName());
+Utils.debug("kill %s", conn);
         SocketChannel channel = conn.getChannel();
         if (channel != null) {
             SelectionKey key = channel.keyFor(selector);
@@ -467,7 +467,7 @@ System.out.println("kill " + conn.getName());
                 conn.onException(e);
                 return;
             }
-System.out.println("read " + numRead);
+Utils.debug("read %d from %s", numRead, conn);
             if (numRead <= 0) break;
             conn.onReadData(Arrays.copyOfRange(buffer.array(), 0, numRead));
             if (numRead < READ_BUFFER_SIZE) break;
@@ -503,7 +503,7 @@ System.out.println("read " + numRead);
                 conn.onException(e);
                 return;
             }
-System.out.println("wrote " + numWrote);
+Utils.debug("wrote %d to %s", numWrote, conn);
             if (numWrote == data.length) continue;
             conn.onPutWriteData(Arrays.copyOfRange(data, numWrote, data.length - 1));
             break;

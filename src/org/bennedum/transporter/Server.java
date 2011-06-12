@@ -18,7 +18,6 @@ package org.bennedum.transporter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -56,6 +55,7 @@ public final class Server {
     private Connection connection = null;
     private boolean allowReconnect = true;
     private String minecraftAddress = null;
+    private String version = null;
     private int reconnectTask = -1;
     private boolean connected = false;
 
@@ -301,35 +301,6 @@ public final class Server {
     }
 
     // blocks until acknowledgement from remote server is received
-    /*
-    public void doExpectPlayer(Player player, LocalGate fromGate, RemoteGate toGate) throws ServerException {
-        if (! isConnected())
-            throw new ServerException("server '%s' is offline", name);
-
-        Message message = createMessage("expectPlayer");
-        message.put("fromGate", fromGate.getFullName());
-        message.put("toGate", Gate.makeLocalName(toGate.getGlobalName()));
-        message.put("fromGateDirection", fromGate.getDirection().toString());
-
-        EntityState state = new EntityState(player);
-        message.put("player", state.encode());
-
-        Result futureResult = connection.sendRequest(message, true);
-        try {
-            Message result = futureResult.get();
-            if (result.getBoolean("success")) return;
-            throw new ServerException(result.getString("error"));
-        } catch (CancellationException e) {
-            throw new ServerException("server '%s' went offline during teleportaion", name);
-        } catch (InterruptedException e) {
-            throw new ServerException("server '%s' was interrupted during teleportaion", name);
-        } catch (TimeoutException e) {
-            throw new ServerException("request to server '%s' timed out during teleportaion", name);
-        }
-    }
-     */
-
-    // blocks until acknowledgement from remote server is received
     // fromGate can be null if the player is being sent directly
     public void doExpectEntity(Entity entity, LocalGate fromGate, RemoteGate toGate) throws ServerException {
         if (! isConnected())
@@ -487,6 +458,7 @@ Utils.debug("received command '%s' from %s", command, getName());
         Message out = createMessage("setInfo");
         String addr = Global.network.getMinecraftAddress(connection.getChannel().socket().getInetAddress());
         out.put("minecraftAddress", addr);
+        out.put("version", Global.pluginVersion);
         List<Message> gates = new ArrayList<Message>();
         for (LocalGate gate : Global.gates.getLocalGates()) {
             Message m = new Message();
@@ -506,7 +478,7 @@ Utils.debug("received command '%s' from %s", command, getName());
         Collection<Message> gates = message.getMessageList("gates");
         if (gates == null)
             throw new ServerException("missing gates");
-
+        version = message.getString("version");
         minecraftAddress = addr;
         Global.gates.remove(this);
         for (Message m : gates) {
@@ -516,6 +488,7 @@ Utils.debug("received command '%s' from %s", command, getName());
                 Utils.warning("received bad gate from '%s'", getName());
             }
         }
+        Utils.info("received information from '%s', running v%s", name, version);
     }
 
     private void handleAddGate(Message message) throws GateException {

@@ -42,7 +42,7 @@ public final class Connection {
 
     private static final byte ENCRYPTED_FLAG = 0x01;
     private static final int CIPHER_PAD_SIZE = 256;
-    
+
     private Network network;
     private SocketChannel channel;
     private String name = null;
@@ -89,6 +89,10 @@ public final class Connection {
         return name;
     }
 
+    @Override
+    public String toString() {
+        return getName();
+    }
 
     // Called from Network
 
@@ -115,6 +119,7 @@ public final class Connection {
         // send the handshake message
         Message message = new Message();
         message.put("protocol", PROTOCOL_VERSION);
+        message.put("version", Global.pluginVersion);
         try {
             MessageDigest dig = MessageDigest.getInstance("SHA1");
             Formatter f = new Formatter();
@@ -125,7 +130,7 @@ public final class Connection {
         } catch (NoSuchAlgorithmException e) {
             Utils.severe(e, "unable to create handshake message");
         } catch (UnsupportedEncodingException e) {}
-        
+
         server.onConnected();
     }
 
@@ -361,5 +366,5 @@ public final class Connection {
         ESTABLISHED,
         CLOSED;
     }
-    
+
 }
