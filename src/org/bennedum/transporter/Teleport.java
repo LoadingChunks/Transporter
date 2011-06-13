@@ -354,7 +354,7 @@ public final class Teleport {
 
                                 // TODO: change this when our own client patcher is available
 
-                                player.kickPlayer("[Serverport] please reconnect to: " + toGate.getServer().getMinecraftAddress());
+                                player.kickPlayer("[" + Global.pluginName + "] please reconnect to: " + toGate.getServer().getMinecraftAddress());
                             }
                         }
                     });
