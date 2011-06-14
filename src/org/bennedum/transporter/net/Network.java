@@ -93,11 +93,15 @@ public final class Network extends Thread {
                         throw new NetworkException("invalid pattern '%s'", parts[i]);
                     }
                 }
-            try {
-                makeAddress(parts[0], defaultPort);
-            } catch (NetworkException e) {
-                throw new NetworkException("address '%s': %s", parts[0], e.getMessage());
-            }
+            String addrParts[] = parts[0].split("/");
+            if (addrParts.length > 2)
+                throw new NetworkException("address '%s' has too many parts", parts[0]);
+            for (int i = 0; i < addrParts.length; i++)
+                try {
+                    makeAddress(addrParts[i], defaultPort);
+                } catch (NetworkException e) {
+                    throw new NetworkException("address '%s': %s", addrParts[i], e.getMessage());
+                }
             map.put(parts[0], patterns);
         }
         return map;

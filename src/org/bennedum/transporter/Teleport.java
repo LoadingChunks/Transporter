@@ -350,11 +350,21 @@ public final class Teleport {
                                     } catch (FundsException fe) {}
                                 }
 
-                                Utils.info("sending player '%s' to '%s'", player.getName(), toGate.getServer().getMinecraftAddress());
-
-                                // TODO: change this when our own client patcher is available
-
-                                player.kickPlayer("[" + Global.pluginName + "] please reconnect to: " + toGate.getServer().getMinecraftAddress());
+                                String mcAddress = toGate.getServer().getMinecraftAddress();
+                                if (mcAddress == null) {
+                                    Utils.warning("minecraft address for '%s' is null?", toGate.getServer().getName());
+                                    return;
+                                }
+                                String[] addrParts = mcAddress.split("/");
+                                if (addrParts.length == 1) {
+                                    // this is a client based reconnect
+                                    Utils.info("sending player '%s' to '%s' via client reconnect", player.getName(), addrParts[0]);
+                                    player.kickPlayer("[" + Global.pluginName + " Client] please reconnect to: " + addrParts[0]);
+                                } else {
+                                    // this is a proxy based reconnect
+                                    Utils.info("sending player '%s' to '%s,%s' via proxy reconnect", player.getName(), addrParts[0], addrParts[1]);
+                                    player.kickPlayer("[" + Global.pluginName + " Proxy] please reconnect to: " + addrParts[0] + "," + addrParts[1]);
+                                }
                             }
                         }
                     });
