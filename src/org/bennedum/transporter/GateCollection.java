@@ -15,6 +15,7 @@
  */
 package org.bennedum.transporter;
 
+import com.iConomy.iConomy;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -112,9 +113,30 @@ public class GateCollection {
                 out.println("  {");
                 out.println("    \"name\": \"" + gate.getName() + "\",");
                 out.println("    \"world\": \"" + gate.getWorldName() + "\",");
+                out.println("    \"links\": [");
+                for (String link : gate.getLinks())
+                    out.println("      \"" + link + "\",");
+                out.println("    ],");
                 out.println("    \"x\": " + center.getX() + ",");
                 out.println("    \"y\": " + center.getY() + ",");
                 out.println("    \"z\": " + center.getZ());
+                
+                out.println("    \"design\": \"" + gate.getDesignName() + "\",");
+                out.println("    \"creator\": \"" + gate.getCreatorName() + "\",");
+                if (Utils.iconomyAvailable()) {
+                    if (gate.getLinkLocal()) {
+                        out.println("    \"onWorldSend\": \"" + iConomy.format(gate.getSendLocalCost()) + "\",");
+                        out.println("    \"onWorldReceive\": \"" + iConomy.format(gate.getReceiveLocalCost()) + "\",");
+                    }
+                    if (gate.getLinkWorld()) {
+                        out.println("    \"offWorldSend\": \"" + iConomy.format(gate.getSendWorldCost()) + "\",");
+                        out.println("    \"offWorldReceive\": \"" + iConomy.format(gate.getReceiveWorldCost()) + "\",");
+                    }
+                    if (gate.getLinkServer()) {
+                        out.println("    \"offServerSend\": \"" + iConomy.format(gate.getSendServerCost()) + "\",");
+                        out.println("    \"offServerReceive\": \"" + iConomy.format(gate.getReceiveServerCost()) + "\",");
+                    }
+                }
                 out.println("  }" + (i.hasNext() ? "," : ""));
             }
             out.println("]");
