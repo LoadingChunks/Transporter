@@ -103,8 +103,6 @@ public class GateCommand extends TrpCommandProcessor {
             ctx.send("Full name: %s", gate.getFullName());
             ctx.send("Design: %s", gate.getDesignName());
             ctx.send("Creator: %s", gate.getCreatorName());
-            ctx.send("MultiLink: %s", gate.getMultiLink());
-            ctx.send("Protected: %s", gate.getProtect() ? "Yes" : "No");
             if (Utils.iconomyAvailable()) {
                 if (gate.getLinkLocal())
                     ctx.send("On-world travel cost: %s/%s",
