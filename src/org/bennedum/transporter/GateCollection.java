@@ -114,15 +114,14 @@ public class GateCollection {
                 out.println("    \"name\": \"" + gate.getName() + "\",");
                 out.println("    \"world\": \"" + gate.getWorldName() + "\",");
                 out.println("    \"links\": [");
-                for (String link : gate.getLinks())
-                    out.println("      \"" + link + "\",");
+                for (Iterator<String> li = gate.getLinks().iterator(); li.hasNext();) {
+                    out.print("      \"" + li.next() + "\"");
+                    out.println(i.hasNext() ? "," : "");
+                }
                 out.println("    ],");
                 out.println("    \"x\": " + center.getX() + ",");
                 out.println("    \"y\": " + center.getY() + ",");
-                out.println("    \"z\": " + center.getZ());
-                
-                out.println("    \"design\": \"" + gate.getDesignName() + "\",");
-                out.println("    \"creator\": \"" + gate.getCreatorName() + "\",");
+                out.println("    \"z\": " + center.getZ() + ",");
                 if (Utils.iconomyAvailable()) {
                     if (gate.getLinkLocal()) {
                         out.println("    \"onWorldSend\": \"" + iConomy.format(gate.getSendLocalCost()) + "\",");
@@ -137,6 +136,8 @@ public class GateCollection {
                         out.println("    \"offServerReceive\": \"" + iConomy.format(gate.getReceiveServerCost()) + "\",");
                     }
                 }
+                out.println("    \"design\": \"" + gate.getDesignName() + "\",");
+                out.println("    \"creator\": \"" + gate.getCreatorName() + "\"");
                 out.println("  }" + (i.hasNext() ? "," : ""));
             }
             out.println("]");
