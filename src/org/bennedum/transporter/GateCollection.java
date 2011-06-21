@@ -103,7 +103,9 @@ public class GateCollection {
     public void exportJSON() {
         String fileName = Global.config.getString("exportedGatesFile");
         if (fileName == null) return;
-        File file = new File(Global.plugin.getDataFolder(), fileName);
+        File file = new File(fileName);
+        if (! file.isAbsolute())
+            file = new File(Global.plugin.getDataFolder(), fileName);
         try {
             PrintStream out = new PrintStream(file);
             out.println("[");
@@ -116,7 +118,7 @@ public class GateCollection {
                 out.println("    \"links\": [");
                 for (Iterator<String> li = gate.getLinks().iterator(); li.hasNext();) {
                     out.print("      \"" + li.next() + "\"");
-                    out.println(i.hasNext() ? "," : "");
+                    out.println(li.hasNext() ? "," : "");
                 }
                 out.println("    ],");
                 out.println("    \"x\": " + center.getX() + ",");
