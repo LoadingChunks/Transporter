@@ -24,6 +24,7 @@ import java.util.Map;
 import org.bennedum.transporter.command.CommandProcessor;
 import org.bennedum.transporter.command.DesignCommand;
 import org.bennedum.transporter.command.GateCommand;
+import org.bennedum.transporter.command.GoCommand;
 import org.bennedum.transporter.command.HelpCommand;
 import org.bennedum.transporter.command.PinCommand;
 import org.bennedum.transporter.command.ReloadCommand;
@@ -61,6 +62,7 @@ public final class Global {
         commands.add(new ReloadCommand());
         commands.add(new SaveCommand());
         commands.add(new PinCommand());
+        commands.add(new GoCommand());
         commands.add(new DesignCommand());
         commands.add(new GateCommand());
         commands.add(new ServerCommand());
