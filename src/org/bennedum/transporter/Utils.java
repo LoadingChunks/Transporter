@@ -88,6 +88,13 @@ public class Utils {
     }
 
     public static boolean copyFileFromJar(String resPath, File dstFile, boolean overwriteIfOlder) {
+        if (dstFile.isDirectory()) {
+            int pos = resPath.lastIndexOf('/');
+            if (pos != -1)
+                dstFile = new File(dstFile, resPath.substring(pos + 1));
+            else
+                dstFile = new File(dstFile, resPath);
+        }
         if (dstFile.exists()) {
             if (! overwriteIfOlder) return false;
             try {
@@ -119,18 +126,11 @@ public class Utils {
         }
         BufferedReader r = new BufferedReader(new InputStreamReader(Utils.class.getResourceAsStream(manifestPath)));
         String line;
-        int pos;
-        String name;
         try {
             while ((line = r.readLine()) != null) {
                 line = line.replaceAll("^\\s+|\\s+$|\\s*#.*", "");
                 if (line.length() == 0) continue;
-                pos = line.lastIndexOf('/');
-                if (pos == -1)
-                    name = line;
-                else
-                    name = line.substring(pos + 1);
-                copyFileFromJar(line, new File(dstFolder, name), overwriteIfOlder);
+                copyFileFromJar(line, dstFolder, overwriteIfOlder);
             }
         } catch (IOException ioe) {}
         return created;
