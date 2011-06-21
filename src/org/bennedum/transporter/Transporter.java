@@ -33,13 +33,14 @@ import org.bukkit.plugin.PluginManager;
 // TODO: lightning blocks
 // TODO: new gate design: Jail
 // TODO: on arrival confirmation, delete player's inventory?
-// TODO: add client patching
 
 // TODO: wiki pages:
 // ServerToServer, GateDesign, FAQ, HowToUseAGate, Permissions
 
 // TODO: TEST: fix phantom connection issues
-// TODO: TEST: add go command
+// TODO: TEST: go command
+// TODO: TEST: overviewer integration
+// TODO: TEST: client patching
 
 /**
  *
@@ -68,13 +69,13 @@ public class Transporter extends JavaPlugin {
             ctx.sendLog("creating data folder");
             dataFolder.mkdirs();
         }
-        Utils.copyFileFromJar("/resources/LICENSE.txt", new File(dataFolder, "LICENSE.txt"), true);
-        Utils.copyFileFromJar("/resources/README.txt", new File(dataFolder, "README.txt"), true);
-        Utils.copyFileFromJar("/resources/materials.txt", new File(dataFolder, "materials.txt"), true);
+        Utils.copyFileFromJar("/resources/LICENSE.txt", dataFolder, true);
+        Utils.copyFileFromJar("/resources/README.txt", dataFolder, true);
+        Utils.copyFileFromJar("/resources/materials.txt", dataFolder, true);
 
-        if (Utils.copyFileFromJar("/resources/config.yml", new File(dataFolder, "config.yml"), false))
+        if (Utils.copyFileFromJar("/resources/config.yml", dataFolder, false))
             ctx.sendLog("installed default configuration");
-        if (Utils.copyFileFromJar("/resources/permissions.properties", new File(dataFolder, "permissions.properties"), false))
+        if (Utils.copyFileFromJar("/resources/permissions.properties", dataFolder, false))
             ctx.sendLog("installed default basic permissions");
 
         File designsFolder = new File(dataFolder, "designs");
@@ -83,6 +84,7 @@ public class Transporter extends JavaPlugin {
 
         File overviewerFolder = new File(dataFolder, "overviewer");
         Utils.copyFilesFromJar("/resources/overviewer/manifest", overviewerFolder, true);
+        Utils.copyFileFromJar("/resources/overviewer/transporterConfig.js", overviewerFolder, false);
 
         Utils.loadConfig(ctx);
 
