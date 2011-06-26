@@ -63,27 +63,55 @@ public class GateCollection {
         for (String name : new ArrayList<String>(gates.keySet()))
             if (gates.get(name).isSameServer())
                 gates.remove(name);
+        List<String> loadedWorlds = new ArrayList<String>();
         for (World world : Global.plugin.getServer().getWorlds()) {
-            File worldFolder = Utils.worldPluginFolder(world);
-            File gatesFolder = new File(worldFolder, "gates");
-            if (! gatesFolder.exists()) continue;
-            for (File gateFile : Utils.listYAMLFiles(gatesFolder)) {
-                try {
-                    LocalGate gate = new LocalGate(world, gateFile);
-                    try {
-                        add(gate);
-                        gate.initialize();
-                        ctx.sendLog("loaded gate '%s' for world '%s'", gate.getName(), world.getName());
-                    } catch (GateException ge) {
-                        ctx.warnLog("unable to load gate '%s' for world '%s': %s", gate.getName(), world.getName(), ge.getMessage());
-                    }
-                } catch (TransporterException ge) {
-                    ctx.warnLog("'%s' contains an invalid gate: %s", gateFile.getPath(), ge.getMessage());
+            loadedWorlds.add(world.getName());
+            loadGatesForWorld(ctx, world);
+        }
+
+        // check all loaded, local gate links for non-loaded worlds and load them and their gates
+        for (;;) {
+            List<String> newWorlds = new ArrayList<String>();
+            for (LocalGate gate : getLocalGates()) {
+                for (String link : gate.getLinks()) {
+                    String world = LocalGate.getLocalLinkWorldName(link);
+                    if (world == null) continue;
+                    if ((! newWorlds.contains(world)) && (! loadedWorlds.contains(world)))
+                        newWorlds.add(world);
                 }
             }
+            if (newWorlds.isEmpty()) break;
+            for (String worldName : newWorlds) {
+                ctx.sendLog("loading world '%s'...", worldName);
+                // This is a hack since there's no "loadWorld" method
+                World world = Global.plugin.getServer().createWorld(worldName, World.Environment.NORMAL);
+                loadedWorlds.add(worldName);
+                loadGatesForWorld(ctx, world);
+            }
         }
+
         if (isEmpty())
             ctx.send("no gates loaded");
+    }
+
+    private void loadGatesForWorld(Context ctx, World world) {
+        File worldFolder = Utils.worldPluginFolder(world);
+        File gatesFolder = new File(worldFolder, "gates");
+        if (! gatesFolder.exists()) return;
+        for (File gateFile : Utils.listYAMLFiles(gatesFolder)) {
+            try {
+                LocalGate gate = new LocalGate(world, gateFile);
+                try {
+                    add(gate);
+                    gate.initialize();
+                    ctx.sendLog("loaded gate '%s' for world '%s'", gate.getName(), world.getName());
+                } catch (GateException ge) {
+                    ctx.warnLog("unable to load gate '%s' for world '%s': %s", gate.getName(), world.getName(), ge.getMessage());
+                }
+            } catch (TransporterException ge) {
+                ctx.warnLog("'%s' contains an invalid gate: %s", gateFile.getPath(), ge.getMessage());
+            }
+        }
     }
 
     public void saveAll(Context ctx) {

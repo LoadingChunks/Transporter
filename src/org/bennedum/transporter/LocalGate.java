@@ -101,6 +101,12 @@ public class LocalGate extends Gate {
         return item;
     }
 
+    public static String getLocalLinkWorldName(String link) {
+        String[] parts = link.split("\\.");
+        if (parts.length > 2) return null;
+        return parts[0];
+    }
+
     private File file;
     private World world;
     private Vector center;
@@ -868,6 +874,10 @@ public class LocalGate extends Gate {
         } catch (GateException e) {
             return false;
         }
+    }
+
+    public String getDestinationLink() {
+        return outgoing;
     }
 
     public Gate getDestinationGate() throws GateException {

@@ -62,6 +62,8 @@ public class Transporter extends JavaPlugin {
 
         Context ctx = new Context();
 
+        ctx.sendLog("this is v%s", Global.pluginVersion);
+
         // install/update resources
 
         File dataFolder = Global.plugin.getDataFolder();
@@ -105,7 +107,7 @@ public class Transporter extends JavaPlugin {
         pm.registerEvent(Type.PLAYER_CHAT, playerListener, Priority.Monitor, this); // server-server chat
         pm.registerEvent(Type.VEHICLE_MOVE, vehicleListener, Priority.Monitor, this); // outgoing vehicle teleport
 
-        ctx.sendLog("this is v%s", pdf.getVersion());
+        ctx.sendLog("ready");
 
     }
 

@@ -94,6 +94,7 @@ public class GateCommand extends TrpCommandProcessor {
             LocalGate gate = getGate(ctx, args);
             ctx.requireAllPermissions("trp.gate.select." + gate.getName());
             Global.setSelectedGate(ctx.getPlayer(), gate);
+            ctx.send("selected gate '%s'", gate.getFullName());
             return;
         }
 
@@ -120,7 +121,7 @@ public class GateCommand extends TrpCommandProcessor {
             List<String> links = gate.getLinks();
             ctx.send("Links: %d", links.size());
             for (String link : links)
-                ctx.send("  %s", link);
+                ctx.send(" %s%s", link.equals(gate.getDestinationLink()) ? "*": "", link);
             return;
         }
 
