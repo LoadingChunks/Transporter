@@ -35,7 +35,7 @@ import org.bukkit.plugin.PluginManager;
 // TODO: on arrival confirmation, delete player's inventory?
 
 // TODO: wiki pages:
-// ServerToServer, GateDesign, FAQ, HowToUseAGate, Permissions
+// ServerToServer, FAQ, HowToUseAGate, Permissions
 
 // TODO: TEST: fix phantom connection issues
 // TODO: TEST: go command
