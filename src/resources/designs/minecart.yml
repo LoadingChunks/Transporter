@@ -1,6 +1,6 @@
 name: Minecart
 duration: -1
-build: true
+buildable: true
 buildFromInventory: false
 buildWorlds: .*
 linkLocal: true

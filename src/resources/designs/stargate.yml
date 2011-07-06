@@ -1,6 +1,6 @@
 name: Stargate
 duration: 10000
-build: true
+buildable: true
 buildFromInventory: false
 buildWorlds: .*
 linkLocal: true

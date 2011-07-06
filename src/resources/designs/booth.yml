@@ -1,6 +1,6 @@
 name: Booth
 duration: -1
-build: true
+buildable: true
 buildFromInventory:
 buildWorlds: .*
 linkLocal: true
