@@ -188,7 +188,7 @@ public final class Teleport {
 
         // check inventory
         if (! checkInventory(entity, toGate))
-            throw new TeleportException("remote gate won't some inventory items");
+            throw new TeleportException("remote gate won't allow some inventory items");
 
 
         if ((fromGate != null) && Global.config.getBoolean("useGatePermissions", false)) {
