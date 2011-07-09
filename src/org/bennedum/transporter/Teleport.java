@@ -103,7 +103,7 @@ public final class Teleport {
         toGate.attach(fromGate);
 
         if (toGate.isSameServer()) {
-            return send(entity, fromGate, (LocalGate)toGate);
+            return send(entity, fromGate, (LocalGate)toGate, ! (entity instanceof Player));
         } else {
             send(entity, fromGate, (RemoteGate)toGate);
             return null;
@@ -113,7 +113,7 @@ public final class Teleport {
     // called when a player goes directly to a gate
     public static Location sendDirect(Player player, Gate toGate) throws TeleportException {
         if (toGate.isSameServer()) {
-            return send(player, null, (LocalGate)toGate);
+            return send(player, null, (LocalGate)toGate, true);
         } else {
             send(player, null, (RemoteGate)toGate);
             return null;
@@ -122,7 +122,7 @@ public final class Teleport {
 
     // called when an entity is traveling between gates on our server
     // fromGate can be null if the player is being sent directly
-    private static Location send(Entity entity, LocalGate fromGate, LocalGate toGate) throws TeleportException {
+    private static Location send(Entity entity, LocalGate fromGate, LocalGate toGate, boolean teleport) throws TeleportException {
         Player player = null;
         String pin = null;
         Context ctx = null;
@@ -217,7 +217,7 @@ public final class Teleport {
         velocity.setY(0);
         entity.setVelocity(velocity);
 
-        if (! entity.teleport(newLocation))
+        if (teleport && (! entity.teleport(newLocation)))
             throw new TeleportException("teleport to '%s' failed", toGate.getFullName());
 
         if (filterInventory(entity, toGate)) {

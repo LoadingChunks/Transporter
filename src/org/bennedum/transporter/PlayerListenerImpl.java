@@ -103,7 +103,8 @@ public class PlayerListenerImpl extends PlayerListener {
             if (newLoc != null) {
                 event.setFrom(newLoc);
                 event.setTo(newLoc);
-                event.setCancelled(true);
+                // cancelling the event is bad in RB 953!
+                //event.setCancelled(true);
             }
         } catch (TeleportException te) {
             ctx.warnLog(te.getMessage());
