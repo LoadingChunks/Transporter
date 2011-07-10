@@ -359,11 +359,17 @@ public final class Teleport {
                                 if (addrParts.length == 1) {
                                     // this is a client based reconnect
                                     Utils.info("sending player '%s' to '%s' via client reconnect", player.getName(), addrParts[0]);
-                                    player.kickPlayer("[" + Global.pluginName + " Client] please reconnect to: " + addrParts[0]);
+                                    if (Global.config.getBoolean("impersonateServerportReconnect", false))
+                                        player.kickPlayer("[Serverport] please reconnect to: " + addrParts[0]);
+                                    else
+                                        player.kickPlayer("[" + Global.pluginName + "] please reconnect to: " + addrParts[0]);
                                 } else {
                                     // this is a proxy based reconnect
                                     Utils.info("sending player '%s' to '%s,%s' via proxy reconnect", player.getName(), addrParts[0], addrParts[1]);
-                                    player.kickPlayer("[" + Global.pluginName + " Proxy] please reconnect to: " + addrParts[0] + "," + addrParts[1]);
+                                    if (Global.config.getBoolean("impersonateServerportReconnect", false))
+                                        player.kickPlayer("[Serverport] please reconnect to: " + addrParts[0] + "," + addrParts[1]);
+                                    else
+                                        player.kickPlayer("[" + Global.pluginName + "] please reconnect to: " + addrParts[0] + "," + addrParts[1]);
                                 }
                             }
                         }

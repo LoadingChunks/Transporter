@@ -17,5 +17,7 @@ allowLinkServer: true
 useGatePermissions: false
 exportedGatesFile: overviewer/gates.json
 
+impersonateServerportReconnect: false
+
 usePermissions: false
 useIConomy: false
