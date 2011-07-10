@@ -30,6 +30,7 @@ import org.bennedum.transporter.command.PinCommand;
 import org.bennedum.transporter.command.ReloadCommand;
 import org.bennedum.transporter.command.SaveCommand;
 import org.bennedum.transporter.command.ServerCommand;
+import org.bennedum.transporter.command.WorldCommand;
 import org.bennedum.transporter.net.Network;
 import org.bukkit.entity.Player;
 import org.bukkit.util.config.Configuration;
@@ -66,6 +67,7 @@ public final class Global {
         commands.add(new DesignCommand());
         commands.add(new GateCommand());
         commands.add(new ServerCommand());
+        commands.add(new WorldCommand());
 
 //        commands.add(new DumpCommand());
 //        commands.add(new TestCommand());
