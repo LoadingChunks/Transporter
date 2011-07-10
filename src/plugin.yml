@@ -1,6 +1,6 @@
 name: Transporter
 main: org.bennedum.transporter.Transporter
-version: 6.8
+version: 6.9
 authors:
   - frdfsnlght
 website: something@code.google.com
