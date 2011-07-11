@@ -54,7 +54,7 @@ public class WorldCommand extends TrpCommandProcessor {
 
         if ("list".startsWith(subCmd)) {
             ctx.requireAllPermissions("trp.world.list");
-            List<World> worlds = new ArrayList(Global.plugin.getServer().getWorlds());
+            List<World> worlds = new ArrayList<World>(Global.plugin.getServer().getWorlds());
             Collections.sort(worlds, new Comparator<World>() {
                 @Override
                 public int compare(World a, World b) {

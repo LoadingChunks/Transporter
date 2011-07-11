@@ -15,6 +15,7 @@
  */
 package org.bennedum.transporter;
 
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -125,8 +126,8 @@ public final class Server {
             disconnect(false);
     }
 
-    public String getMinecraftAddress() {
-        return minecraftAddress;
+    public String getMinecraftAddress(InetSocketAddress addr) {
+        return Network.getMinecraftAddress(minecraftAddress, addr.getAddress());
     }
 
     public String getAddress() {
@@ -456,7 +457,7 @@ Utils.debug("received command '%s' from %s", command, getName());
     private Message handleGetInfo() {
         if (! isConnected()) return null;
         Message out = createMessage("setInfo");
-        String addr = Global.network.getMinecraftAddress(connection.getChannel().socket().getInetAddress());
+        String addr = Global.network.getMinecraftAddress();
         out.put("minecraftAddress", addr);
         out.put("version", Global.pluginVersion);
         List<Message> gates = new ArrayList<Message>();

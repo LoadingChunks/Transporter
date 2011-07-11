@@ -107,12 +107,27 @@ public final class Network extends Thread {
         return map;
     }
 
+    public static String getMinecraftAddress(String mcAddr, InetAddress inetAddr) {
+        Map<String,Set<Pattern>> mcAddrs;
+        try {
+            mcAddrs = makeAddressMap(mcAddr, Server.DEFAULT_MC_PORT);
+        } catch (NetworkException e) {
+            return null;
+        }
+        String addrStr = inetAddr.getHostAddress();
+        for (String key : mcAddrs.keySet()) {
+            Set<Pattern> patterns = mcAddrs.get(key);
+            for (Pattern pattern : patterns)
+                if (pattern.matcher(addrStr).matches())
+                    return key;
+        }
+        return null;
+    }
 
     private State state = State.STOPPED;
     private String listenAddressRaw;
     private InetSocketAddress listenAddress;
-    private String minecraftAddressRaw;
-    private Map<String,Set<Pattern>> minecraftAddresses;
+    private String minecraftAddress;
     private String serverKey;
     private final Set<Pattern> banned = new HashSet<Pattern>();
 
@@ -136,11 +151,11 @@ public final class Network extends Thread {
                 throw new TransporterException("listenAddress: " + e.getMessage());
             }
 
-            minecraftAddressRaw = Global.config.getString("minecraftAddress");
-            if (minecraftAddressRaw == null)
+            minecraftAddress = Global.config.getString("minecraftAddress");
+            if (minecraftAddress == null)
                 throw new TransporterException("minecraftAddress is not set");
             try {
-                minecraftAddresses = makeAddressMap(minecraftAddressRaw, Server.DEFAULT_MC_PORT);
+                makeAddressMap(minecraftAddress, Server.DEFAULT_MC_PORT);
             } catch (NetworkException e) {
                 throw new TransporterException("minecraftAddress: " + e.getMessage());
             }
@@ -161,7 +176,7 @@ public final class Network extends Thread {
                 }
 
             ctx.send("starting network manager");
-            ctx.send("minecraft address is %s", minecraftAddressRaw);
+            ctx.send("minecraft address is %s", minecraftAddress);
             ctx.send("listen address is %s", listenAddressRaw);
             ctx.send("server key is '%s'", serverKey);
             start();
@@ -177,18 +192,7 @@ public final class Network extends Thread {
     }
 
     public String getMinecraftAddress() {
-        return minecraftAddressRaw;
-    }
-
-    public String getMinecraftAddress(InetAddress addr) {
-        String addrStr = addr.getHostAddress();
-        for (String mcAddress : minecraftAddresses.keySet()) {
-            Set<Pattern> patterns = minecraftAddresses.get(mcAddress);
-            for (Pattern pattern : patterns)
-                if (pattern.matcher(addrStr).matches())
-                    return mcAddress;
-        }
-        return null;
+        return minecraftAddress;
     }
 
     public String getListenAddress() {

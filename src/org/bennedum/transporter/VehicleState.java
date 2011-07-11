@@ -113,16 +113,16 @@ public final class VehicleState extends EntityState {
         Entity entity;
         switch (type) {
             case MINECART:
-                entity = location.getWorld().spawnMinecart(location);
+                entity = location.getWorld().spawn(location, Minecart.class);
                 break;
             case POWERED_MINECART:
-                entity = location.getWorld().spawnPoweredMinecart(location);
+                entity = location.getWorld().spawn(location, PoweredMinecart.class);
                 break;
             case STORAGE_MINECART:
-                entity = location.getWorld().spawnStorageMinecart(location);
+                entity = location.getWorld().spawn(location, StorageMinecart.class);
                 break;
             case BOAT:
-                entity = location.getWorld().spawnBoat(location);
+                entity = location.getWorld().spawn(location, Boat.class);
                 break;
             default:
                 return null;

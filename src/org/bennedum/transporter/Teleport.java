@@ -350,7 +350,7 @@ public final class Teleport {
                                     } catch (FundsException fe) {}
                                 }
 
-                                String mcAddress = toGate.getServer().getMinecraftAddress();
+                                String mcAddress = toGate.getServer().getMinecraftAddress(player.getAddress());
                                 if (mcAddress == null) {
                                     Utils.warning("minecraft address for '%s' is null?", toGate.getServer().getName());
                                     return;
