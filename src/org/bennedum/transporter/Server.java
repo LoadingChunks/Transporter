@@ -278,6 +278,13 @@ public final class Server {
         connection.sendMessage(message, true);
     }
 
+    public void doGateRemoved(LocalGate gate) {
+        if (! isConnected()) return;
+        Message message = createMessage("removeGate");
+        message.put("name", gate.getFullName());
+        connection.sendMessage(message, true);
+    }
+
     public void doGateDestroyed(LocalGate gate) {
         if (! isConnected()) return;
         Message message = createMessage("destroyGate");
@@ -414,6 +421,8 @@ Utils.debug("received command '%s' from %s", command, getName());
                 handleAddGate(message);
             else if (command.equals("renameGate"))
                 handleRenameGate(message);
+            else if (command.equals("removeGate"))
+                handleRemoveGate(message);
             else if (command.equals("destroyGate"))
                 handleDestroyGate(message);
             else if (command.equals("attachGate"))
@@ -508,7 +517,7 @@ Utils.debug("received command '%s' from %s", command, getName());
         Global.gates.rename(oldName, newName);
     }
 
-    private void handleDestroyGate(Message message) throws ServerException {
+    private void handleRemoveGate(Message message) throws ServerException {
         String gateName = message.getString("name");
         if (gateName == null)
             throw new ServerException("missing name");
@@ -519,6 +528,19 @@ Utils.debug("received command '%s' from %s", command, getName());
         if (gate.isSameServer())
             throw new ServerException("gate '%s' is not remote", gateName);
         Global.gates.remove((RemoteGate)gate);
+    }
+
+    private void handleDestroyGate(Message message) throws ServerException {
+        String gateName = message.getString("name");
+        if (gateName == null)
+            throw new ServerException("missing name");
+        gateName = Gate.makeFullName(this, gateName);
+        Gate gate = Global.gates.get(gateName);
+        if (gate == null)
+            throw new ServerException("unknown gate '%s'", gateName);
+        if (gate.isSameServer())
+            throw new ServerException("gate '%s' is not remote", gateName);
+        Global.gates.destroy((RemoteGate)gate);
     }
 
     private void handleAttachGate(Message message) throws ServerException {

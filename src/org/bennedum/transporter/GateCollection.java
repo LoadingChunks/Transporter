@@ -94,7 +94,7 @@ public class GateCollection {
             ctx.send("no gates loaded");
     }
 
-    private void loadGatesForWorld(Context ctx, World world) {
+    public void loadGatesForWorld(Context ctx, World world) {
         File worldFolder = Utils.worldPluginFolder(world);
         File gatesFolder = new File(worldFolder, "gates");
         if (! gatesFolder.exists()) return;
@@ -201,19 +201,19 @@ public class GateCollection {
 
     public void remove(LocalGate gate) {
         String name = gate.getFullName();
+System.out.println("remove " + name);
         if (! gates.containsKey(name)) return;
         gates.remove(name);
-        gate.destroy();
         screenBlocks.removeGate(gate);
         switchBlocks.removeGate(gate);
         triggerBlocks.removeGate(gate);
         Global.deselectGate(gate);
         for (Gate g : gates.values()) {
             if (! g.isSameServer()) continue;
-            ((LocalGate)g).onGateDestroyed(gate);
+            ((LocalGate)g).onGateRemoved(gate);
         }
         for (Server server : Global.servers.getAll())
-            server.doGateDestroyed(gate);
+            server.doGateRemoved(gate);
         exportJSON();
     }
 
@@ -231,6 +231,42 @@ public class GateCollection {
         for (RemoteGate gate : getRemoteGates()) {
             if (gate.getServer() == server)
                 remove(gate);
+        }
+    }
+
+    public void remove(World world) {
+System.out.println("unloading gates for " + world.getName());
+        for (LocalGate gate : this.getLocalGates()) {
+            if (gate.getWorldName().equals(world.getName()))
+                remove(gate);
+        }
+    }
+
+    public void destroy(LocalGate gate) {
+        String name = gate.getFullName();
+        if (! gates.containsKey(name)) return;
+        gates.remove(name);
+        gate.destroy();
+        screenBlocks.removeGate(gate);
+        switchBlocks.removeGate(gate);
+        triggerBlocks.removeGate(gate);
+        Global.deselectGate(gate);
+        for (Gate g : gates.values()) {
+            if (! g.isSameServer()) continue;
+            ((LocalGate)g).onGateDestroyed(gate);
+        }
+        for (Server server : Global.servers.getAll())
+            server.doGateDestroyed(gate);
+        exportJSON();
+    }
+
+    public void destroy(RemoteGate gate) {
+        String name = gate.getFullName();
+        if (! gates.containsKey(name)) return;
+        gates.remove(name);
+        for (Gate g : gates.values()) {
+            if (! g.isSameServer()) continue;
+            ((LocalGate)g).onGateDestroyed(gate);
         }
     }
 

@@ -106,12 +106,16 @@ public class WorldCommand extends TrpCommandProcessor {
             ctx.requireAllPermissions("trp.world.load");
 
             if (Global.plugin.getServer().getWorld(name) != null)
-                throw new CommandException("world is already loaded");
+                throw new CommandException("world '%s' is already loaded", name);
             File worldFolder = new File(name);
             if (! worldFolder.isDirectory())
-                throw new CommandException("world doesn't exist");
-            Global.plugin.getServer().createWorld(name, Environment.NORMAL);
-            ctx.sendLog("loaded world");
+                throw new CommandException("world '%s' doesn't exist", name);
+            World world = Global.plugin.getServer().createWorld(name, Environment.NORMAL);
+            ctx.sendLog("loaded world '%s'", name);
+
+            // TODO: remove this once bukkit can send onWorldLoad events
+            Global.gates.loadGatesForWorld(new Context(), world);
+
             return;
         }
 
@@ -122,11 +126,16 @@ public class WorldCommand extends TrpCommandProcessor {
 
             ctx.requireAllPermissions("trp.world.unload");
 
-            if (Global.plugin.getServer().getWorld(name) == null)
-                throw new CommandException("world is not loaded");
-            if (! Global.plugin.getServer().unloadWorld(name, true))
-                throw new CommandException("unable to unload world");
-            ctx.sendLog("unloaded world");
+            World world = Global.plugin.getServer().getWorld(name);
+            if (world == null)
+                throw new CommandException("world '%s' is not loaded", name);
+            if (! Global.plugin.getServer().unloadWorld(world, true))
+                throw new CommandException("unable to unload world '%s'", name);
+            ctx.sendLog("unloaded world '%s'", name);
+
+            // TODO: remove this once bukkit can send onWorldUnload events
+            Global.gates.remove(world);
+
             return;
         }
 

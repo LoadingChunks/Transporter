@@ -34,13 +34,7 @@ import org.bukkit.plugin.PluginManager;
 // TODO: new gate design: Jail
 // TODO: on arrival confirmation, delete player's inventory?
 
-// TODO: wiki pages:
-// ServerToServer, FAQ, HowToUseAGate, Permissions
-
-// TODO: TEST: fix phantom connection issues
-// TODO: TEST: go command
-// TODO: TEST: overviewer integration
-// TODO: TEST: client patching
+// TODO: wiki pages: FAQ, LinkingGates, HowToUseAGate, Permissions
 
 /**
  *
@@ -52,6 +46,7 @@ public class Transporter extends JavaPlugin {
     private BlockListenerImpl blockListener = new BlockListenerImpl();
     private PlayerListenerImpl playerListener = new PlayerListenerImpl();
     private VehicleListenerImpl vehicleListener = new VehicleListenerImpl();
+    private WorldListenerImpl worldListener = new WorldListenerImpl();
 
     @Override
     public void onEnable() {
@@ -106,6 +101,8 @@ public class Transporter extends JavaPlugin {
         pm.registerEvent(Type.PLAYER_JOIN, playerListener, Priority.Normal, this); // incoming player teleport
         pm.registerEvent(Type.PLAYER_CHAT, playerListener, Priority.Monitor, this); // server-server chat
         pm.registerEvent(Type.VEHICLE_MOVE, vehicleListener, Priority.Monitor, this); // outgoing vehicle teleport
+        pm.registerEvent(Type.WORLD_LOAD, worldListener, Priority.Normal, this); // add gates on a world
+        pm.registerEvent(Type.WORLD_UNLOAD, worldListener, Priority.Normal, this); // remove gates on a world
 
         ctx.sendLog("ready");
 

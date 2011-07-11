@@ -38,7 +38,7 @@ import org.bennedum.transporter.Utils;
 public final class Connection {
 
     private static final int HANDSHAKE_TIMEOUT = 5000;
-    private static final int PROTOCOL_VERSION = 2;
+    private static final int PROTOCOL_VERSION = 3;
 
     private static final byte ENCRYPTED_FLAG = 0x01;
     private static final int CIPHER_PAD_SIZE = 256;

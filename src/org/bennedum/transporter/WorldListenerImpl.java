@@ -15,24 +15,28 @@
  */
 package org.bennedum.transporter;
 
-import org.bukkit.event.server.ServerCommandEvent;
-import org.bukkit.event.server.ServerListener;
+import org.bukkit.event.world.WorldListener;
+import org.bukkit.event.world.WorldLoadEvent;
+import org.bukkit.event.world.WorldUnloadEvent;
 
 /**
  *
  * @author frdfsnlght <frdfsnlght@gmail.com>
  */
-public class ServerListenerImpl extends ServerListener {
+public class WorldListenerImpl extends WorldListener {
 
     @Override
-    public void onServerCommand(ServerCommandEvent event) {
+    public void onWorldLoad(WorldLoadEvent event) {
         // PENDING: bukkit doesn't supply this event yet
-        Utils.debug("Yeeehaaa! we got an onServerCommand event!");
+        Utils.debug("Yeeehaaa! we got an onWorldLoad event!");
+        Global.gates.loadGatesForWorld(new Context(), event.getWorld());
+    }
 
-//        Transporter.instance.saveConfig();
-//        ctx.info("saved configuration");
-//        Transporter.instance.gates.saveAll(ctx);
-
+    @Override
+    public void onWorldUnload(WorldUnloadEvent event) {
+        // PENDING: bukkit doesn't supply this event yet
+        Utils.debug("Yeeehaaa! we got an onWorldUnload event!");
+        Global.gates.remove(event.getWorld());
     }
 
 }

@@ -697,7 +697,37 @@ public class LocalGate extends Gate {
             incoming.remove(gateName);
             dirty = true;
         }
+        closeIfAllowed();
+        saveInBackground();
+    }
 
+    public void onGateDestroyed(RemoteGate gate) {
+        String gateName = gate.getFullName();
+        if (removeLink(gateName))
+            dirty = true;
+        if (gateName.equals(outgoing)) {
+            outgoing = null;
+            dirty = true;
+            updateScreens();
+        }
+        if (incoming.contains(gateName)) {
+            incoming.remove(gateName);
+            dirty = true;
+        }
+        closeIfAllowed();
+        saveInBackground();
+    }
+
+    public void onGateRemoved(LocalGate gate) {
+        if (gate == this) return;
+        String gateName = gate.getFullName();
+System.out.println("onGateRemoved in " + this.name + ": " + gateName);
+        if (gateName.equals(outgoing)) {
+System.out.println("it's my current link!");
+            outgoing = null;
+            dirty = true;
+            updateScreens();
+        }
         closeIfAllowed();
         saveInBackground();
     }
@@ -709,11 +739,6 @@ public class LocalGate extends Gate {
             dirty = true;
             updateScreens();
         }
-        if (incoming.contains(gateName)) {
-            incoming.remove(gateName);
-            dirty = true;
-        }
-
         closeIfAllowed();
         saveInBackground();
     }
