@@ -145,6 +145,17 @@ public class Utils {
         });
     }
 
+    public static World getWorld(String name) {
+        World world = null;
+        for (World w : Global.plugin.getServer().getWorlds()) {
+            if (w.getName().toLowerCase().startsWith(name.toLowerCase())) {
+                if (world != null) return null;
+                world = w;
+            }
+        }
+        return world;
+    }
+    
     public static File worldFolder(World world) {
         return new File(world.getName());
     }

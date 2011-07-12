@@ -34,7 +34,7 @@ import org.bukkit.plugin.PluginManager;
 // TODO: new gate design: Jail
 // TODO: on arrival confirmation, delete player's inventory?
 
-// TODO: wiki pages: FAQ, LinkingGates, HowToUseAGate, Permissions
+// TODO: wiki pages: FAQ, Permissions
 
 /**
  *

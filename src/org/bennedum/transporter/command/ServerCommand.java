@@ -44,6 +44,8 @@ public class ServerCommand extends TrpCommandProcessor {
                super.getUsage(ctx) + " get listen\n" +
                super.getUsage(ctx) + " set key <key>\n" +
                super.getUsage(ctx) + " get key\n" +
+               super.getUsage(ctx) + " set craftProxy true|false\n" +
+               super.getUsage(ctx) + " get craftProxy\n" +
                super.getUsage(ctx) + " list\n" +
                super.getUsage(ctx) + " add <name> <address> <key>\n" +
                super.getUsage(ctx) + " connect <server>\n" +
@@ -109,6 +111,8 @@ public class ServerCommand extends TrpCommandProcessor {
                 Global.config.setProperty("listenAddress", args.get(0));
             } else if ("key".startsWith(what))
                 Global.config.setProperty("serverKey", args.get(0));
+            else if ("craftProxy".startsWith(what))
+                Global.config.setProperty("craftProxy", Boolean.parseBoolean(args.get(0)));
             else
                 throw new CommandException("set what?");
             Utils.saveConfig(ctx);
@@ -128,6 +132,8 @@ public class ServerCommand extends TrpCommandProcessor {
                 ctx.sendLog("listen=%s", Global.network.getListenAddress());
             else if ("key".startsWith(what))
                 ctx.sendLog("key=%s", Global.network.getKey());
+            else if ("craftProxy".startsWith(what))
+                ctx.sendLog("craftProxy=%s", Global.config.getBoolean("craftProxy", false));
             else
                 throw new CommandException("get what?");
             return;
