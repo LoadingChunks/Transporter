@@ -220,6 +220,10 @@ public class ServerCommand extends TrpCommandProcessor {
                     return;
                 }
             ctx.requireAllPermissions("trp.server.ping");
+            if (! server.isEnabled())
+                throw new CommandException("server '%s' is not enabled", server.getName());
+            if (! server.isConnected())
+                throw new CommandException("server '%s' is not connected", server.getName());
             server.doPing(ctx, timeout);
             ctx.send("pinging '%s'...", server.getName());
             return;
