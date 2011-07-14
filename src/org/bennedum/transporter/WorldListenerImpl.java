@@ -27,15 +27,13 @@ public class WorldListenerImpl extends WorldListener {
 
     @Override
     public void onWorldLoad(WorldLoadEvent event) {
-        // PENDING: bukkit doesn't supply this event yet
-        Utils.debug("Yeeehaaa! we got an onWorldLoad event!");
         Global.gates.loadGatesForWorld(new Context(), event.getWorld());
     }
 
     @Override
     public void onWorldUnload(WorldUnloadEvent event) {
         // PENDING: bukkit doesn't supply this event yet
-        Utils.debug("Yeeehaaa! we got an onWorldUnload event!");
+        System.out.println("Yeeehaaa! we got an onWorldUnload event!");
         Global.gates.remove(event.getWorld());
     }
 

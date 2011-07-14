@@ -50,7 +50,7 @@ public class WorldCommand extends TrpCommandProcessor {
     }
 
     @Override
-    public void process(Context ctx, Command cmd, List<String> args) throws TransporterException {
+    public void process(final Context ctx, Command cmd, List<String> args) throws TransporterException {
         super.process(ctx, cmd, args);
         if (args.isEmpty())
             throw new CommandException("do what with a world?");
@@ -67,14 +67,14 @@ public class WorldCommand extends TrpCommandProcessor {
             });
             ctx.send("%d worlds:", worlds.size());
             for (World world : worlds)
-                ctx.send("  %s", world.getName());
+                ctx.send("  %s (%s)", world.getName(), world.getEnvironment());
             return;
         }
 
         if ("create".startsWith(subCmd)) {
             if (args.isEmpty())
                 throw new CommandException("new name required");
-            String newName = args.remove(0);
+            final String newName = args.remove(0);
             Environment env = Environment.NORMAL;
             Long seed = null;
             if (! args.isEmpty()) {
@@ -94,32 +94,52 @@ public class WorldCommand extends TrpCommandProcessor {
             }
             ctx.requireAllPermissions("trp.world.create");
 
-            if (seed == null)
-                Global.plugin.getServer().createWorld(newName, env);
-            else
-                Global.plugin.getServer().createWorld(newName, env, seed);
-            ctx.sendLog("created world '%s'", newName);
+            ctx.sendLog("creating world '%s'...", newName);
+            final Environment fEnv = env;
+            final Long fSeed = seed;
+            Utils.worker(new Runnable() {
+                @Override
+                public void run() {
+                    if (fSeed == null)
+                        Global.plugin.getServer().createWorld(newName, fEnv);
+                    else
+                        Global.plugin.getServer().createWorld(newName, fEnv, fSeed);
+                    Utils.fire(new Runnable() {
+                        @Override
+                        public void run() {
+                            ctx.sendLog("created world '%s'", newName);
+                        }
+                    });
+                }
+            });
             return;
         }
 
         if ("load".startsWith(subCmd)) {
             if (args.isEmpty())
                 throw new CommandException("world name required");
-            String name = args.remove(0);
+            final String name = args.remove(0);
 
             ctx.requireAllPermissions("trp.world.load");
 
             if (Global.plugin.getServer().getWorld(name) != null)
                 throw new CommandException("world '%s' is already loaded", name);
-            File worldFolder = new File(name);
+            File worldFolder = Utils.worldFolder(name);
             if (! worldFolder.isDirectory())
                 throw new CommandException("world '%s' doesn't exist", name);
-            World world = Global.plugin.getServer().createWorld(name, Environment.NORMAL);
-            ctx.sendLog("loaded world '%s'", name);
-
-            // TODO: remove this once bukkit can send onWorldLoad events
-            Global.gates.loadGatesForWorld(new Context(), world);
-
+            ctx.sendLog("loading world '%s'...", name);
+            Utils.worker(new Runnable() {
+                @Override
+                public void run() {
+                    final World world = Global.plugin.getServer().createWorld(name, Environment.NORMAL);
+                    Utils.fire(new Runnable() {
+                        @Override
+                        public void run() {
+                            ctx.sendLog("loaded world '%s'", world.getName());
+                        }
+                    });
+                }
+            });
             return;
         }
 
@@ -127,19 +147,26 @@ public class WorldCommand extends TrpCommandProcessor {
             if (args.isEmpty())
                 throw new CommandException("world name required");
             String name = args.remove(0);
-            
+
             ctx.requireAllPermissions("trp.world.unload");
 
-            World world = Utils.getWorld(name);
+            final World world = Utils.getWorld(name);
             if (world == null)
                 throw new CommandException("world '%s' is ambiguous or not loaded", name);
-            if (! Global.plugin.getServer().unloadWorld(world, true))
-                throw new CommandException("unable to unload world '%s'", world.getName());
-            ctx.sendLog("unloaded world '%s'", world.getName());
-
-            // TODO: remove this once bukkit can send onWorldUnload events
-            Global.gates.remove(world);
-
+            Utils.worker(new Runnable() {
+                @Override
+                public void run() {
+                    Global.plugin.getServer().unloadWorld(world, true);
+                    Utils.fire(new Runnable() {
+                        @Override
+                        public void run() {
+                            ctx.sendLog("unloaded world '%s'", world.getName());
+                            // TODO: remove this once bukkit can send onWorldUnload events
+                            Global.gates.remove(world);
+                        }
+                    });
+                }
+            });
             return;
         }
 
@@ -150,7 +177,7 @@ public class WorldCommand extends TrpCommandProcessor {
             World world = ctx.getPlayer().getWorld();
             Location location = world.getSpawnLocation();
             String locationString = null;
-            
+
             if ((! args.isEmpty()) && (args.get(0).indexOf(',') != -1))
                 locationString = args.remove(0);
             if (! args.isEmpty()) {
@@ -159,7 +186,7 @@ public class WorldCommand extends TrpCommandProcessor {
                 if (world == null)
                     throw new CommandException("world '%s' is ambiguous or not loaded", name);
             }
-            
+
             if (locationString != null) {
                 String ordStrings[] = locationString.split(",");
                 double ords[] = new double[ordStrings.length];
@@ -185,7 +212,7 @@ public class WorldCommand extends TrpCommandProcessor {
                 else
                     throw new CommandException("expected 2 or 3 ordinates");
             }
-            
+
             ctx.requireAllPermissions("trp.world.go");
 
             ctx.getPlayer().teleport(location);
@@ -198,7 +225,7 @@ public class WorldCommand extends TrpCommandProcessor {
             World world = ctx.isPlayer() ? ctx.getPlayer().getWorld() : null;
             Location location = ctx.isPlayer() ? ctx.getPlayer().getLocation() : null;
             String locationString = null;
-            
+
             if ((! args.isEmpty()) && (args.get(0).indexOf(',') != -1))
                 locationString = args.remove(0);
             if (! args.isEmpty()) {
@@ -207,7 +234,7 @@ public class WorldCommand extends TrpCommandProcessor {
                 if (world == null)
                     throw new CommandException("world '%s' is ambiguous or not loaded", name);
             }
-            
+
             if ((world != null) && (locationString != null)) {
                 String ordStrings[] = locationString.split(",");
                 double ords[] = new double[ordStrings.length];
@@ -237,7 +264,7 @@ public class WorldCommand extends TrpCommandProcessor {
                 throw new CommandException("location required");
             if (world == null)
                 throw new CommandException("world name required");
-            
+
             ctx.requireAllPermissions("trp.world.spawn");
 
             world.setSpawnLocation(location.getBlockX(), location.getBlockY(), location.getBlockZ());
@@ -245,7 +272,7 @@ public class WorldCommand extends TrpCommandProcessor {
 
             return;
         }
-        
+
         throw new CommandException("do what with a world?");
     }
 

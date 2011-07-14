@@ -95,7 +95,7 @@ public class ServerCommand extends TrpCommandProcessor {
             }
             return;
         }
-        
+
         if ("set".startsWith(subCmd)) {
             if (args.isEmpty())
                 throw new CommandException("set what?");
@@ -106,21 +106,25 @@ public class ServerCommand extends TrpCommandProcessor {
             if ("minecraft".startsWith(what)) {
                 Network.makeAddressMap(args.get(0), Server.DEFAULT_MC_PORT);
                 Global.config.setProperty("minecraftAddress", args.get(0));
+                what = "minecraft";
             } else if ("listen".startsWith(what)) {
                 Network.makeAddress(args.get(0));
                 Global.config.setProperty("listenAddress", args.get(0));
-            } else if ("key".startsWith(what))
+                what = "listen";
+            } else if ("key".startsWith(what)) {
                 Global.config.setProperty("serverKey", args.get(0));
-            else if ("craftProxy".startsWith(what))
+                what = "key";
+            } else if ("craftproxy".startsWith(what)) {
                 Global.config.setProperty("craftProxy", Boolean.parseBoolean(args.get(0)));
-            else
+                what = "craftProxy";
+            } else
                 throw new CommandException("set what?");
             Utils.saveConfig(ctx);
             ctx.sendLog("set %s to %s", what, args.get(0));
-            ctx.send("server must be reloaded for changes to take effect");
+            ctx.send("reload server for changes to take effect");
             return;
         }
-        
+
         if ("get".startsWith(subCmd)) {
             if (args.isEmpty())
                 throw new CommandException("get what?");
@@ -132,13 +136,13 @@ public class ServerCommand extends TrpCommandProcessor {
                 ctx.sendLog("listen=%s", Global.network.getListenAddress());
             else if ("key".startsWith(what))
                 ctx.sendLog("key=%s", Global.network.getKey());
-            else if ("craftProxy".startsWith(what))
+            else if ("craftproxy".startsWith(what))
                 ctx.sendLog("craftProxy=%s", Global.config.getBoolean("craftProxy", false));
             else
                 throw new CommandException("get what?");
             return;
         }
-        
+
         if ("add".startsWith(subCmd)) {
             if (args.size() < 3)
                 throw new CommandException("server name, address, and key required");
@@ -149,7 +153,7 @@ public class ServerCommand extends TrpCommandProcessor {
             ctx.sendLog("added server '%s'", server.getName());
             return;
         }
-        
+
         if ("connect".startsWith(subCmd)) {
             if (args.isEmpty())
                 throw new CommandException("server name required");
@@ -165,7 +169,7 @@ public class ServerCommand extends TrpCommandProcessor {
             }
             return;
         }
-        
+
         if ("disconnect".startsWith(subCmd)) {
             if (args.isEmpty())
                 throw new CommandException("server name required");
@@ -177,7 +181,7 @@ public class ServerCommand extends TrpCommandProcessor {
             ctx.sendLog("requested server disconnect for '%s'", server.getName());
             return;
         }
-        
+
         if ("enable".startsWith(subCmd)) {
             if (args.isEmpty())
                 throw new CommandException("server name required");
@@ -190,7 +194,7 @@ public class ServerCommand extends TrpCommandProcessor {
             ctx.sendLog("server '%s' enabled", server.getName());
             return;
         }
-        
+
         if ("disable".startsWith(subCmd)) {
             if (args.isEmpty())
                 throw new CommandException("server name required");
@@ -203,7 +207,7 @@ public class ServerCommand extends TrpCommandProcessor {
             ctx.sendLog("server '%s' disabled", server.getName());
             return;
         }
-        
+
         if ("ping".startsWith(subCmd)) {
             if (args.isEmpty())
                 throw new CommandException("server name required");
@@ -228,7 +232,7 @@ public class ServerCommand extends TrpCommandProcessor {
             ctx.send("pinging '%s'...", server.getName());
             return;
         }
-        
+
         if ("change".startsWith(subCmd)) {
             if (args.size() < 3)
                 throw new CommandException("server name, address, and key required");
@@ -242,7 +246,7 @@ public class ServerCommand extends TrpCommandProcessor {
             ctx.sendLog("server must be reconnected for change to take effect");
             return;
         }
-        
+
         if ("refresh".startsWith(subCmd)) {
             if (args.isEmpty())
                 throw new CommandException("server name required");
@@ -258,7 +262,7 @@ public class ServerCommand extends TrpCommandProcessor {
             }
             return;
         }
-        
+
         if ("remove".startsWith(subCmd)) {
             if (args.isEmpty())
                 throw new CommandException("server name required");
@@ -271,12 +275,12 @@ public class ServerCommand extends TrpCommandProcessor {
             ctx.sendLog("removed server '%s'", server.getName());
             return;
         }
-        
+
         if ("ban".startsWith(subCmd)) {
             if (args.isEmpty())
                 throw new CommandException("do what with bans?");
             subCmd = args.remove(0).toLowerCase();
-            
+
             if ("list".startsWith(subCmd)) {
                 ctx.requireAllPermissions("trp.server.ban.list");
                 List<String> banned = Global.network.getBanned();
@@ -289,7 +293,7 @@ public class ServerCommand extends TrpCommandProcessor {
                 }
                 return;
             }
-            
+
             if (args.isEmpty())
                 throw new CommandException("address pattern required");
             String pattern = args.remove(0);
@@ -302,7 +306,7 @@ public class ServerCommand extends TrpCommandProcessor {
                     throw new CommandException("'%s' is already banned");
                 return;
             }
-        
+
             if ("remove".startsWith(subCmd)) {
                 ctx.requireAllPermissions("trp.server.ban.remove");
                 if (pattern.equals("*")) {
@@ -316,7 +320,7 @@ public class ServerCommand extends TrpCommandProcessor {
             }
             throw new CommandException("do what with a ban?");
         }
-        
+
         throw new CommandException("do what with a server?");
     }
 

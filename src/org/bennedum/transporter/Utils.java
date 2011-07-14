@@ -54,6 +54,7 @@ import org.bukkit.util.config.Configuration;
 public class Utils {
 
     private static final Logger logger = Logger.getLogger("Minecraft");
+    private static final File worldBaseFolder = new File(".");
 
     public static void info(String msg, Object ... args) {
         msg = ChatColor.stripColor(String.format(msg, args));
@@ -155,9 +156,13 @@ public class Utils {
         }
         return world;
     }
-    
+
+    public static File worldFolder(String name) {
+        return new File(worldBaseFolder, name);
+    }
+
     public static File worldFolder(World world) {
-        return new File(world.getName());
+        return new File(worldBaseFolder, world.getName());
     }
 
     public static File worldPluginFolder(World world) {
