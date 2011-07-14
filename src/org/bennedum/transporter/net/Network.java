@@ -277,7 +277,7 @@ public final class Network extends Thread {
 
     // called from selection thread
     private void kill(Connection conn) {
-Utils.debug("kill %s", conn);
+        Utils.debug("kill %s", conn);
         SocketChannel channel = conn.getChannel();
         if (channel != null) {
             SelectionKey key = channel.keyFor(selector);
@@ -295,13 +295,6 @@ Utils.debug("kill %s", conn);
             opening.remove(conn);
         }
         conn.onKilled();
-        /*
-        if (isClose) {
-//            Utils.info("connection %s %s closed", conn.getDirection(), conn.getName());
-            conn.onClosed();
-        }
-         *
-         */
     }
 
     @Override
@@ -475,7 +468,7 @@ Utils.debug("kill %s", conn);
                 conn.onException(e);
                 return;
             }
-Utils.debug("read %d from %s", numRead, conn);
+            Utils.debug("read %d from %s", numRead, conn);
             if (numRead <= 0) break;
             conn.onReadData(Arrays.copyOfRange(buffer.array(), 0, numRead));
             if (numRead < READ_BUFFER_SIZE) break;
@@ -511,7 +504,7 @@ Utils.debug("read %d from %s", numRead, conn);
                 conn.onException(e);
                 return;
             }
-Utils.debug("wrote %d to %s", numWrote, conn);
+            Utils.debug("wrote %d to %s", numWrote, conn);
             if (numWrote == data.length) continue;
             conn.onPutWriteData(Arrays.copyOfRange(data, numWrote, data.length - 1));
             break;
@@ -534,6 +527,17 @@ Utils.debug("wrote %d to %s", numWrote, conn);
         SelectionKey key = conn.getChannel().keyFor(selector);
         if ((key == null) || (! key.isValid())) return;
         key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
+
+        try {
+            Utils.debug("wantWrite to %s: %s %s %s %s", conn,
+                conn.getChannel().isOpen(),
+                conn.getChannel().isConnected(),
+                conn.getChannel().socket().isClosed(),
+                conn.getChannel().socket().isConnected());
+        } catch (Throwable t) {
+            Utils.debug("wantWrite to %s: got throwable: %s: %s", conn, t.getClass().getName(), t.getMessage());
+        }
+                
         selector.wakeup();
     }
 

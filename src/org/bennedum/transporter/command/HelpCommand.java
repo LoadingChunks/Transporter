@@ -44,6 +44,7 @@ public class HelpCommand extends TrpCommandProcessor {
         super.process(ctx, cmd, args);
         List<String> help = new ArrayList<String>();
         for (CommandProcessor cp : Global.commands) {
+            if (cp.isHidden()) continue;
             if (cp.requiresPlayer() && (! ctx.isPlayer())) continue;
             if (cp.requiresOp() && (! ctx.isOp())) continue;
             if (cp.requiresConsole() && (! ctx.isConsole())) continue;

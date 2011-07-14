@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.bennedum.transporter.command.CommandProcessor;
+import org.bennedum.transporter.command.DebugCommand;
 import org.bennedum.transporter.command.DesignCommand;
 import org.bennedum.transporter.command.GateCommand;
 import org.bennedum.transporter.command.GoCommand;
@@ -69,8 +70,7 @@ public final class Global {
         commands.add(new ServerCommand());
         commands.add(new WorldCommand());
 
-//        commands.add(new DumpCommand());
-//        commands.add(new TestCommand());
+        commands.add(new DebugCommand());
     }
 
     public static void setSelectedGate(Player player, LocalGate gate) {

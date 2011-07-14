@@ -128,7 +128,7 @@ public class GateCommand extends TrpCommandProcessor {
 
         if ("open".startsWith(subCmd)) {
             LocalGate gate = getGate(ctx, args);
-            ctx.requireAllPermissions("trp.gate.open." + gate.getFullName());
+            ctx.requireAllPermissions("trp.gate.open." + gate.getName());
             if (gate.isOpen())
                 ctx.warn("gate '%s' is already open", gate.getName(ctx));
             else {
@@ -165,7 +165,7 @@ public class GateCommand extends TrpCommandProcessor {
                 args.remove(args.size() - 1);
             }
             LocalGate gate = getGate(ctx, args);
-            ctx.requireAllPermissions("trp.gate.destroy");
+            ctx.requireAllPermissions("trp.gate.destroy." + gate.getName());
             Global.gates.destroy(gate, unbuild);
             ctx.sendLog("destroyed gate '%s'", gate.getName(ctx));
             return;

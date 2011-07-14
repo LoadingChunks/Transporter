@@ -27,6 +27,7 @@ import org.bukkit.command.Command;
 public abstract class CommandProcessor {
 
     public abstract boolean matches(Command cmd, List<String> args);
+    public boolean isHidden() { return false; }
     public boolean requiresPlayer() { return false; }
     public boolean requiresOp() { return false; }
     public boolean requiresConsole() { return false; }
