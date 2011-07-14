@@ -41,7 +41,7 @@ public class BlockListenerImpl extends BlockListener {
         LocalGate gate = Global.gates.findGateForScreen(event.getBlock().getLocation());
         if (gate != null) {
             Context ctx = new Context(event.getPlayer());
-            Global.gates.destroy(gate);
+            Global.gates.destroy(gate, false);
             ctx.sendLog("destroyed gate '%s'", gate.getName());
         }
         gate = Global.gates.findGateForProtection(event.getBlock().getLocation());

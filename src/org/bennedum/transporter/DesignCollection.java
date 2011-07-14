@@ -91,7 +91,7 @@ public class DesignCollection {
             try {
                 ctx.chargeFunds(design.getCreateCost(), "debited $$ for gate creation");
             } catch (FundsException fe) {
-                Global.gates.destroy(gate);
+                Global.gates.destroy(gate, false);
                 throw fe;
             }
             gate.saveInBackground();

@@ -392,10 +392,17 @@ public class LocalGate extends Gate {
             Global.gates.addProtectBlocks(getBuildBlocks());
     }
 
-    // called from the gate collection when a gate is removed
-    public void destroy() {
+    // called from the gate collection when a gate is destroyed
+    public void destroy(boolean unbuild) {
         close();
         file.delete();
+        if (unbuild) {
+            for (GateBlock gb : blocks) {
+                if (! gb.getDetail().isBuildable()) continue;
+                Block b = gb.getLocation().getBlock();
+                b.setTypeIdAndData(0, (byte)0, false);
+            }
+        }
     }
 
     private void calculateCenter() {
@@ -721,9 +728,7 @@ public class LocalGate extends Gate {
     public void onGateRemoved(LocalGate gate) {
         if (gate == this) return;
         String gateName = gate.getFullName();
-System.out.println("onGateRemoved in " + this.name + ": " + gateName);
         if (gateName.equals(outgoing)) {
-System.out.println("it's my current link!");
             outgoing = null;
             dirty = true;
             updateScreens();

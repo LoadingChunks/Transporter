@@ -47,6 +47,7 @@ public class GateCommand extends TrpCommandProcessor {
                 super.getUsage(ctx) + " open [<gate>]\n" +
                 super.getUsage(ctx) + " close [<gate>]\n" +
                 super.getUsage(ctx) + " rebuild [<gate>]\n" +
+                super.getUsage(ctx) + " destroy [<gate>] [unbuild]\n" +
                 super.getUsage(ctx) + " rename <newname> [<gate>]\n" +
                 super.getUsage(ctx) + " link add [<from>] <to> [rev]\n" +
                 super.getUsage(ctx) + " link remove [<from>] <to> [rev]\n" +
@@ -154,6 +155,19 @@ public class GateCommand extends TrpCommandProcessor {
             ctx.requireAllPermissions("trp.gate.rebuild." + gate.getName());
             gate.rebuild();
             ctx.sendLog("rebuilt gate '%s'", gate.getName(ctx));
+            return;
+        }
+
+        if ("destroy".startsWith(subCmd)) {
+            boolean unbuild = false;
+            if ("unbuild".startsWith(args.get(args.size() - 1).toLowerCase())) {
+                unbuild = true;
+                args.remove(args.size() - 1);
+            }
+            LocalGate gate = getGate(ctx, args);
+            ctx.requireAllPermissions("trp.gate.destroy");
+            Global.gates.destroy(gate, unbuild);
+            ctx.sendLog("destroyed gate '%s'", gate.getName(ctx));
             return;
         }
 

@@ -201,7 +201,6 @@ public class GateCollection {
 
     public void remove(LocalGate gate) {
         String name = gate.getFullName();
-System.out.println("remove " + name);
         if (! gates.containsKey(name)) return;
         gates.remove(name);
         screenBlocks.removeGate(gate);
@@ -235,18 +234,17 @@ System.out.println("remove " + name);
     }
 
     public void remove(World world) {
-System.out.println("unloading gates for " + world.getName());
         for (LocalGate gate : this.getLocalGates()) {
             if (gate.getWorldName().equals(world.getName()))
                 remove(gate);
         }
     }
 
-    public void destroy(LocalGate gate) {
+    public void destroy(LocalGate gate, boolean unbuild) {
         String name = gate.getFullName();
         if (! gates.containsKey(name)) return;
         gates.remove(name);
-        gate.destroy();
+        gate.destroy(unbuild);
         screenBlocks.removeGate(gate);
         switchBlocks.removeGate(gate);
         triggerBlocks.removeGate(gate);
