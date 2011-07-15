@@ -375,6 +375,7 @@ public final class Teleport {
                         }
                     });
                 } catch (final ServerException e) {
+                    toGate.getServer().disconnect(true);
                     Utils.fire(new Runnable() {
                         @Override
                         public void run() {

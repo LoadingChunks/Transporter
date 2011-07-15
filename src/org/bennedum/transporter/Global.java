@@ -42,6 +42,7 @@ import org.bukkit.util.config.Configuration;
  */
 public final class Global {
 
+    public static boolean enabled = false;
     public static Transporter plugin = null;
     public static String pluginName;
     public static String pluginVersion;

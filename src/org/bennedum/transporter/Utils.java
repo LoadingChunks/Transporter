@@ -259,30 +259,36 @@ public class Utils {
     }
 
     public static int fire(Runnable run) {
+        if (! Global.enabled) return -1;
         return Global.plugin.getServer().getScheduler().scheduleSyncDelayedTask(Global.plugin, run);
     }
 
     // delay is millis
     public static int fireDelayed(Runnable run, long delay) {
+        if (! Global.enabled) return -1;
         long ticks = delay / 50;
         return Global.plugin.getServer().getScheduler().scheduleSyncDelayedTask(Global.plugin, run, ticks);
     }
 
     public static <T> Future<T> call(Callable<T> task) {
+        if (! Global.enabled) return null;
         return Global.plugin.getServer().getScheduler().callSyncMethod(Global.plugin, task);
     }
 
     public static int worker(Runnable run) {
+        if (! Global.enabled) return -1;
         return Global.plugin.getServer().getScheduler().scheduleAsyncDelayedTask(Global.plugin, run);
     }
 
     // delay is millis
     public static int workerDelayed(Runnable run, long delay) {
+        if (! Global.enabled) return -1;
         long ticks = delay / 50;
         return Global.plugin.getServer().getScheduler().scheduleAsyncDelayedTask(Global.plugin, run, ticks);
     }
 
     public static void cancelTask(int taskId) {
+        if (! Global.enabled) return;
         Global.plugin.getServer().getScheduler().cancelTask(taskId);
     }
 

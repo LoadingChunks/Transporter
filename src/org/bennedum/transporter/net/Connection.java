@@ -39,6 +39,7 @@ public final class Connection {
 
     private static final int HANDSHAKE_TIMEOUT = 5000;
     private static final int PROTOCOL_VERSION = 3;
+    public static final int PROTOCOL_TIMEOUT = 8000;    // 8 seconds
 
     private static final byte ENCRYPTED_FLAG = 0x01;
     private static final int CIPHER_PAD_SIZE = 256;
@@ -250,6 +251,7 @@ public final class Connection {
     }
 
     public void close() {
+        if (state == State.CLOSED) return;
         state = State.CLOSED;
         if (network != null)
             network.close(this);

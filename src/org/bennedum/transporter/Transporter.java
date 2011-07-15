@@ -50,6 +50,7 @@ public class Transporter extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        Global.enabled = true;
         PluginDescriptionFile pdf = getDescription();
         Global.plugin = this;
         Global.pluginName = pdf.getName();
@@ -110,6 +111,7 @@ public class Transporter extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        Global.enabled = false;
         Context ctx = new Context();
         Global.network.stop(ctx);
         Utils.saveConfig(ctx);

@@ -193,6 +193,7 @@ public final class Server {
     }
 
     private void reconnect() {
+        cancelOutbound();
         if (! allowReconnect) return;
         if (isConnected() || Global.network.isStopped() || isIncoming()) return;
         int time = Global.config.getInt("reconnectInterval", RECONNECT_INTERVAL);
@@ -204,6 +205,7 @@ public final class Server {
         reconnectTask = Utils.fireDelayed(new Runnable() {
             @Override
             public void run() {
+                reconnectTask = -1;
                 connect();
             }
         }, time);
@@ -324,7 +326,7 @@ public final class Server {
 
         Result futureResult = connection.sendRequest(message, true);
         try {
-            Message result = futureResult.get();
+            Message result = futureResult.get(Connection.PROTOCOL_TIMEOUT);
             if (result.getBoolean("success")) return;
             throw new ServerException(result.getString("error"));
         } catch (CancellationException e) {
@@ -381,6 +383,7 @@ public final class Server {
     public void onConnected() {
         allowReconnect = true;
         connected = true;
+        cancelOutbound();
         Utils.info("connected to '%s' (%s)", getName(), connection.getName());
         connection.sendMessage(handleGetInfo(), true);
     }
