@@ -360,11 +360,12 @@ public final class Server {
         connection.sendMessage(message, true);
     }
 
-    public void doRelayChat(Player player, String msg, Set<RemoteGate> toGates) {
+    public void doRelayChat(Player player, String world, String msg, Set<RemoteGate> toGates) {
         if (! isConnected()) return;
         Message message = createMessage("relayChat");
         message.put("player", player.getName());
         message.put("displayName", player.getDisplayName());
+        message.put("world", world);
         message.put("message", msg);
         List<String> gates = new ArrayList<String>(toGates.size());
         for (RemoteGate gate : toGates)
@@ -683,6 +684,10 @@ Utils.debug("received command '%s' from %s", command, getName());
         if (displayName == null)
             displayName = player;
 
+        String world = message.getString("world");
+        if (world == null)
+            throw new ServerException("missing world");
+        
         String msg = message.getString("message");
         if (msg == null)
             throw new ServerException("missing message");
@@ -694,7 +699,7 @@ Utils.debug("received command '%s' from %s", command, getName());
         for (int i = 0; i < toGates.size(); i++)
             toGates.set(i, Gate.makeLocalName(toGates.get(i)));
 
-        Teleport.receiveChat(player, displayName, name, msg, toGates);
+        Teleport.receiveChat(player, displayName, world, name, msg, toGates);
     }
 
     // Utility methods

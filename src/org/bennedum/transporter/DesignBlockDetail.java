@@ -35,6 +35,7 @@ public final class DesignBlockDetail {
     private boolean isSwitch = false;
     private boolean isInsert = false;
     private SpawnDirection spawn = null;
+    private boolean isLightning = false;
 
     public DesignBlockDetail(DesignBlockDetail src, BlockFace direction) {
         if (src.buildBlock != null)
@@ -48,6 +49,7 @@ public final class DesignBlockDetail {
         isInsert = src.isInsert;
         if (src.spawn != null)
             spawn = src.spawn.rotate(direction);
+        isLightning = src.isLightning;
     }
 
     public DesignBlockDetail(String blockType) throws BlockException {
@@ -92,6 +94,8 @@ public final class DesignBlockDetail {
             }
         }
 
+        isLightning = node.getBoolean("lightning", false);
+        
         if (isScreen && ((buildBlock == null) || (! buildBlock.isSign())))
             throw new BlockException("screen blocks must be wall signs or sign posts");
     }
@@ -106,6 +110,7 @@ public final class DesignBlockDetail {
         if (isSwitch) node.put("switch", isSwitch);
         if (isInsert) node.put("insert", isInsert);
         if (spawn != null) node.put("spawn", spawn.toString());
+        if (isLightning) node.put("lightning", isLightning);
         return node;
     }
 
@@ -145,6 +150,10 @@ public final class DesignBlockDetail {
         return spawn;
     }
 
+    public boolean isLightning() {
+        return isLightning;
+    }
+
     public boolean isInventory() {
         return (buildBlock != null) && (buildBlock.getType() != Material.AIR.getId());
     }
@@ -171,6 +180,7 @@ public final class DesignBlockDetail {
                 (isTrigger ? 1000 : 0) +
                 (isSwitch ? 10000 : 0) +
                 (isInsert ? 100000 : 0) +
+                (isLightning ? 1000000 : 0) +
                 ((spawn != null) ? spawn.hashCode() : 0);
     }
 
@@ -196,6 +206,7 @@ public final class DesignBlockDetail {
         if (isSwitch != other.isSwitch) return false;
         if (isInsert != other.isInsert) return false;
         if (spawn != other.spawn) return false;
+        if (isLightning != other.isLightning) return false;
 
         return true;
     }
@@ -209,6 +220,7 @@ public final class DesignBlockDetail {
         buf.append("swt=").append(isSwitch).append(",");
         buf.append("ins=").append(isInsert).append(",");
         buf.append("spw=").append(spawn).append(",");
+        buf.append("lng=").append(isLightning).append(",");
         buf.append(buildBlock).append(",");
         buf.append(openBlock);
         buf.append("]");

@@ -204,6 +204,8 @@ public final class Teleport {
             }
         }
 
+        fromGate.onSend(entity);
+        
         // do the teleport
         Location currentLoc = entity.getLocation();
         Location newLocation = prepareSpawnLocation(currentLoc.getPitch(), currentLoc.getYaw(), (fromGate == null) ? null : fromGate.getDirection(), toGate);
@@ -227,6 +229,8 @@ public final class Teleport {
                 ctx.sendLog("some inventory items where filtered by the remote gate");
         }
 
+        toGate.onReceive(entity);
+        
         if (player == null)
             Utils.info("teleported entity '%d' to '%s'", entity.getEntityId(), toGate.getFullName());
         else {
@@ -340,6 +344,7 @@ public final class Teleport {
                     Utils.fire(new Runnable() {
                         @Override
                         public void run() {
+                            fromGate.onSend(entity);
                             if (player != null) {
                                 ctx.send(ChatColor.GOLD + "teleporting to '%s'...", toGate.getName(ctx));
 
@@ -478,6 +483,7 @@ public final class Teleport {
                     Location location = prepareSpawnLocation(entityState.getPitch(), entityState.getYaw(), fromGateDirection, toGate);
                     Entity entity = entityState.restore(location, null);
                     if (entity != null) {
+                        toGate.onReceive(entity);
                         addGateLock(entity);
                         if (filterInventory(entity, toGate))
                             Utils.info("some inventory items where filtered by the remote gate");
@@ -493,7 +499,7 @@ public final class Teleport {
             synchronized (arrivals) {
                 arrivals.put(playerState.getName(), arrival);
             }
-
+            
             // set up a delayed task to cancel the arrival if they never arrive
             Utils.fireDelayed(new Runnable() {
                 @Override
@@ -560,6 +566,7 @@ public final class Teleport {
             throw new TeleportException("unable to restore entity");
 
         addGateLock(player);
+        toGate.onReceive(entity);
 
         if (! entity.teleport(location))
             throw new TeleportException("teleport to '%s' failed", toGate.getName(ctx));
@@ -633,11 +640,11 @@ public final class Teleport {
             }
         }
         for (Server server : gates.keySet()) {
-            server.doRelayChat(player, message, gates.get(server));
+            server.doRelayChat(player, player.getWorld().getName(), message, gates.get(server));
         }
     }
 
-    public static void receiveChat(String playerName, String displayName, String serverName, String message, List<String> toGates) {
+    public static void receiveChat(String playerName, String displayName, String worldName, String serverName, String message, List<String> toGates) {
         Future<Map<String,Location>> future = Utils.call(new Callable<Map<String,Location>>() {
             @Override
             public Map<String,Location> call() {
@@ -667,7 +674,12 @@ public final class Teleport {
 
         if (playersToReceive.isEmpty()) return;
 
-        final String msg = String.format("<%s@%s> %s", displayName, serverName, message);
+        String format = Global.config.getString("chatFormat", "<%player%@%server%> %message%");
+        format.replaceAll("%player%", displayName);
+        format.replaceAll("%server%", serverName);
+        format.replaceAll("%world%", worldName);
+        format.replaceAll("%message%", message);
+        final String msg = format;
         Utils.fire(new Runnable() {
             @Override
             public void run() {

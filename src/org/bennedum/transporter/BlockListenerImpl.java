@@ -19,6 +19,7 @@ import java.util.List;
 import org.bukkit.block.Block;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDamageEvent;
+import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockListener;
 import org.bukkit.event.block.SignChangeEvent;
 
@@ -88,6 +89,14 @@ public class BlockListenerImpl extends BlockListener {
             ctx.getPlayer().performCommand("trp gate link add \"" + link + "\"");
         } catch (TransporterException te) {
             ctx.warn(te.getMessage());
+        }
+    }
+
+    @Override
+    public void onBlockFromTo(BlockFromToEvent event) {
+        LocalGate gate = Global.gates.findGateForPortal(event.getBlock().getLocation());
+        if (gate != null) {
+            event.setCancelled(true);
         }
     }
 

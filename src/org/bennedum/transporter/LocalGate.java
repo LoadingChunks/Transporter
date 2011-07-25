@@ -31,6 +31,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Sign;
+import org.bukkit.entity.Entity;
 import org.bukkit.util.Vector;
 import org.bukkit.util.config.Configuration;
 import org.bukkit.util.config.ConfigurationNode;
@@ -748,6 +749,17 @@ public class LocalGate extends Gate {
         saveInBackground();
     }
 
+    public void onSend(Entity entity) {
+        // nop
+    }
+    
+    public void onReceive(Entity entity) {
+        GateMap map = getLightningBlocks();
+        GateBlock block = map.randomBlock();
+        if (block == null) return;
+        world.strikeLightningEffect(block.getLocation());
+    }
+    
     public boolean isOpen() {
         return portalOpen;
     }
@@ -1159,6 +1171,15 @@ public class LocalGate extends Gate {
         return map;
     }
 
+    private GateMap getLightningBlocks() {
+        GateMap map = new GateMap();
+        for (GateBlock gb : blocks) {
+            if (! gb.getDetail().isLightning()) continue;
+            map.put(this, gb);
+        }
+        return map;
+    }
+    
     public boolean isOccupyingLocation(Location location) {
         if (location.getWorld() != world) return false;
         for (GateBlock block : blocks) {

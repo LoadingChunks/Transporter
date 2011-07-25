@@ -29,12 +29,13 @@ import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 
 
-// TODO: auto add gates to their own group on creation
-// TODO: lightning blocks
+// TODO: auto add gates to their own group on creation (gate permissions)
 // TODO: new gate design: Jail
-// TODO: on arrival confirmation, delete player's inventory?
 
-// TODO: wiki pages: FAQ, Permissions
+// TODO: auto ping connected servers and reconnect as necessary
+// TODO: method to submit logs/configs with a message to a PHP web page
+// TODO: move servers.yml into main config, remove save servers/reload servers commands, update Commands page
+// TODO: remove minecraftAddress setting, expand server add/change command to accept address patterns
 
 /**
  *
@@ -97,6 +98,7 @@ public class Transporter extends JavaPlugin {
         pm.registerEvent(Type.SIGN_CHANGE, blockListener, Priority.Monitor, this);  // create gate
         pm.registerEvent(Type.BLOCK_DAMAGE, blockListener, Priority.Normal, this);  // protection
         pm.registerEvent(Type.BLOCK_BREAK, blockListener, Priority.Normal, this);  // destroy gate, protection
+        pm.registerEvent(Type.BLOCK_FROMTO, blockListener, Priority.Normal, this);  // prevent liquids flowing
         pm.registerEvent(Type.PLAYER_INTERACT, playerListener, Priority.Normal, this); // open gate/change link
         pm.registerEvent(Type.PLAYER_MOVE, playerListener, Priority.Normal, this); // outgoing player teleport
         pm.registerEvent(Type.PLAYER_JOIN, playerListener, Priority.Normal, this); // incoming player teleport

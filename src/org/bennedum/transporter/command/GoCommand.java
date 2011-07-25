@@ -55,7 +55,7 @@ public class GoCommand extends TrpCommandProcessor {
         if (gate == null)
             throw new CommandException("gate name required");
 
-        ctx.requireAllPermissions("trp.save." + gate.getName());
+        ctx.requireAllPermissions("trp.go." + gate.getName());
         try {
             Teleport.sendDirect(ctx.getPlayer(), gate);
         } catch (TeleportException te) {

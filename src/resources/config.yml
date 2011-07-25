@@ -21,3 +21,5 @@ impersonateServerportReconnect: false
 
 usePermissions: false
 useIConomy: false
+
+chatFormat: <%player%@%server%> %message%
