@@ -34,7 +34,7 @@ public class ReloadCommand extends TrpCommandProcessor {
 
     @Override
     public String getUsage(Context ctx) {
-        return super.getUsage(ctx) + " [config|designs|gates|servers]";
+        return super.getUsage(ctx) + " [config|designs|gates]";
     }
 
     @Override
@@ -48,15 +48,12 @@ public class ReloadCommand extends TrpCommandProcessor {
                 what.add("designs");
             if (ctx.hasAllPermissions("trp.reload.gates"))
                 what.add("gates");
-            if (ctx.hasAllPermissions("trp.reload.servers"))
-                what.add("servers");
         } else {
             for (String arg : args) {
                 arg = arg.toLowerCase();
                 if ("config".startsWith(arg)) arg = "config";
                 else if ("designs".startsWith(arg)) arg = "designs";
                 else if ("gates".startsWith(arg)) arg = "gates";
-                else if ("servers".startsWith(arg)) arg = "servers";
                 else
                     throw new CommandException("reload what?");
                 ctx.requireAllPermissions("trp.reload." + arg);
@@ -64,14 +61,13 @@ public class ReloadCommand extends TrpCommandProcessor {
             }
         }
         for (String arg : what) {
-            if (arg.equals("config"))
+            if (arg.equals("config")) {
                 Utils.loadConfig(ctx);
-            else if (arg.equals("designs"))
+                Global.servers.loadAll(ctx);
+            } else if (arg.equals("designs"))
                 Global.designs.loadAll(ctx);
             else if (arg.equals("gates"))
                 Global.gates.loadAll(ctx);
-            else if (arg.equals("servers"))
-                Global.servers.loadAll(ctx);
         }
     }
 

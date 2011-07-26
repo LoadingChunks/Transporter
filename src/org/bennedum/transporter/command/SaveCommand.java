@@ -34,7 +34,7 @@ public class SaveCommand extends TrpCommandProcessor {
     
     @Override
     public String getUsage(Context ctx) {
-        return super.getUsage(ctx) + " [config|gates|servers]";
+        return super.getUsage(ctx) + " [config|gates]";
     }
 
     @Override
@@ -46,14 +46,11 @@ public class SaveCommand extends TrpCommandProcessor {
                 what.add("config");
             if (ctx.hasAllPermissions("trp.save.gates"))
                 what.add("gates");
-            if (ctx.hasAllPermissions("trp.save.servers"))
-                what.add("servers");
         } else {
             for (String arg : args) {
                 arg = arg.toLowerCase();
                 if ("config".startsWith(arg)) arg = "config";
                 else if ("gates".startsWith(arg)) arg = "gates";
-                else if ("servers".startsWith(arg)) arg = "servers";
                 else
                     throw new CommandException("save what?");
                 ctx.requireAllPermissions("trp.save." + arg);
@@ -61,12 +58,11 @@ public class SaveCommand extends TrpCommandProcessor {
             }
         }
         for (String arg : what) {
-            if (arg.equals("config"))
+            if (arg.equals("config")) {
+                Global.servers.saveAll();
                 Utils.saveConfig(ctx);
-            else if (arg.equals("gates"))
+            } else if (arg.equals("gates"))
                 Global.gates.saveAll(ctx);
-            else if (arg.equals("servers"))
-                Global.servers.saveAll(ctx);
         }
     }
     

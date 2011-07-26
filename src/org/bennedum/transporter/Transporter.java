@@ -32,10 +32,9 @@ import org.bukkit.plugin.PluginManager;
 // TODO: auto add gates to their own group on creation (gate permissions)
 // TODO: new gate design: Jail
 
-// TODO: auto ping connected servers and reconnect as necessary
-// TODO: method to submit logs/configs with a message to a PHP web page
-// TODO: move servers.yml into main config, remove save servers/reload servers commands, update Commands page
-// TODO: remove minecraftAddress setting, expand server add/change command to accept address patterns
+// TEST: method to submit logs/configs with a message to a PHP web page
+// TEST: remove minecraftAddress setting, expand server add/change command to accept address patterns
+// TODO: update wiki to remove save servers/reload servers, server set/get craftProxy commands
 
 /**
  *
@@ -51,6 +50,7 @@ public class Transporter extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        Global.mainThread = Thread.currentThread();
         Global.enabled = true;
         PluginDescriptionFile pdf = getDescription();
         Global.plugin = this;
@@ -87,6 +87,10 @@ public class Transporter extends JavaPlugin {
 
         Utils.loadConfig(ctx);
 
+        // Clean out old config options
+        
+        Global.config.removeProperty("craftProxy");
+        
         Global.network.start(ctx);
         Global.designs.loadAll(ctx);
         Global.gates.loadAll(ctx);

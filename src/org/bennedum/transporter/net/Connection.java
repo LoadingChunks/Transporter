@@ -16,6 +16,7 @@
 package org.bennedum.transporter.net;
 
 import java.io.UnsupportedEncodingException;
+import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.channels.SocketChannel;
@@ -51,6 +52,8 @@ public final class Connection {
     private boolean incoming = false;
     private String connectAddress;
     private State state = State.NONE;
+    private long lastMessageSentTime = 0;
+    private long lastMessageReceivedTime = 0;
 
     private byte[] readBuffer = null;
     private final List<byte[]> writeBuffers = new ArrayList<byte[]>();
@@ -90,6 +93,15 @@ public final class Connection {
         return name;
     }
 
+    public long getLastMessageSentTime() {
+        return lastMessageSentTime;
+    }
+    
+    public long getLastMessageReceivedTime() {
+        return lastMessageReceivedTime;
+    }
+    
+    
     @Override
     public String toString() {
         return getName();
@@ -111,12 +123,16 @@ public final class Connection {
     }
 
     public void onException(Exception e) {
-        Utils.warning("connection exception with %s: %s", getName(), e.getMessage());
+        if (e instanceof ConnectException)
+            Utils.warning("connection exception with %s: %s", getName(), e.getMessage());
+        else
+            Utils.severe(e, "connection exception with %s: %s", getName(), e.getMessage());
         close();
     }
 
-    // outgoing connection
+    // outgoing connection, we're the client
     public void onOpened() {
+        state = State.HANDSHAKE;
         // send the handshake message
         Message message = new Message();
         message.put("protocol", PROTOCOL_VERSION);
@@ -131,17 +147,16 @@ public final class Connection {
         } catch (NoSuchAlgorithmException e) {
             Utils.severe(e, "unable to create handshake message");
         } catch (UnsupportedEncodingException e) {}
-
-        server.onConnected();
     }
 
-    // incoming connection
+    // incoming connection, we're the server
     public void onAccepted() {
         Utils.info("accepted a connection from %s", getName());
+        state = State.HANDSHAKE;
         Utils.fireDelayed(new Runnable() {
             @Override
             public void run() {
-                if (state == State.NONE) {
+                if (state == State.HANDSHAKE) {
                     Utils.warning("closing connection from %s because no handshake was received", getName());
                     close();
                 }
@@ -238,7 +253,8 @@ public final class Connection {
 
     // outbound connection
     public void open() {
-        state = State.ESTABLISHED;
+        // TODO: remove
+        //state = State.ESTABLISHED;
         Global.network.open(this);
     }
 
@@ -274,6 +290,7 @@ public final class Connection {
             data[2] = (byte)(0x00ff & (messageData.length >> 8));
             data[3] = (byte)(0x00ff & messageData.length);
             writeBuffers.add(data);
+            lastMessageSentTime = System.currentTimeMillis();
         } catch (UnsupportedEncodingException e) {
         }
         if (network != null)
@@ -293,7 +310,8 @@ public final class Connection {
 
 
     private void onMessage(Message message) {
-        if (state == State.NONE) {
+        lastMessageReceivedTime = System.currentTimeMillis();
+        if (state == State.HANDSHAKE) {
             // handle handshake message
             int protocol = message.getInt("protocol", 0);
             if (protocol != PROTOCOL_VERSION) {
@@ -301,52 +319,72 @@ public final class Connection {
                 close();
                 return;
             }
-
-            // compare hashed keys with all the available servers to determine which server is connecting
-            String key = message.getString("key");
-            if (key == null) {
-                Utils.warning("no server key detected on connection with %s", getName());
+            String version = message.getString("version");
+            if (version == null) {
+                Utils.warning("expected version string on connection with '%s'", getName());
                 close();
                 return;
             }
-            for (Server serv : Global.servers.getAll()) {
-                try {
-                    MessageDigest dig = MessageDigest.getInstance("SHA1");
-                    Formatter f = new Formatter();
-                    byte[] out = dig.digest((serv.getKey() + ":" + network.getKey()).getBytes("UTF-8"));
-                    for (Byte b : out) f.format("%02x", b);
-                    if (f.toString().equals(key)) {
-                        Utils.info("server key match detected for '%s' on connection with %s", serv.getName(), getName());
-                        if (serv.isEnabled()) {
-                            if (serv.isConnected()) {
-                                Utils.info("server '%s' is already connected", serv.getName());
+            
+            if (incoming) {
+                // compare hashed keys with all the available servers to determine which server is connecting
+                String key = message.getString("key");
+                if (key == null) {
+                    Utils.warning("no server key detected on connection with %s", getName());
+                    close();
+                    return;
+                }
+                for (Server serv : Global.servers.getAll()) {
+                    try {
+                        MessageDigest dig = MessageDigest.getInstance("SHA1");
+                        Formatter f = new Formatter();
+                        byte[] out = dig.digest((serv.getKey() + ":" + network.getKey()).getBytes("UTF-8"));
+                        for (Byte b : out) f.format("%02x", b);
+                        if (f.toString().equals(key)) {
+                            Utils.info("server key match detected for '%s' on connection with %s", serv.getName(), getName());
+                            if (serv.isEnabled()) {
+                                if (serv.isConnected()) {
+                                    Utils.info("server '%s' is already connected", serv.getName());
+                                    close();
+                                    return;
+                                } else if (serv.isConnecting())
+                                    serv.disconnect(false);
+                                server = serv;
+                                server.setConnection(this);
+                                state = State.ESTABLISHED;
+                                
+                                // send handshake
+                                message = new Message();
+                                message.put("protocol", PROTOCOL_VERSION);
+                                message.put("version", Global.pluginVersion);
+                                sendMessage(message, false);
+                                
+                                server.onConnected(version);
+                                return;
+                            } else {
+                                Utils.info("server '%s' is disabled", serv.getName());
+                                Message errMsg = new Message();
+                                errMsg.put("error", "server is disabled");
+                                sendMessage(errMsg, false);
                                 close();
                                 return;
-                            } else if (serv.isConnecting())
-                                serv.disconnect(false);
-                            server = serv;
-                            server.setConnection(this);
-                            state = State.ESTABLISHED;
-                            server.onConnected();
-                            return;
-                        } else {
-                            Utils.info("server '%s' is disabled", serv.getName());
-                            Message errMsg = new Message();
-                            errMsg.put("error", "server is disabled");
-                            sendMessage(errMsg, false);
-                            close();
-                            return;
+                            }
                         }
-                    }
-                } catch (NoSuchAlgorithmException e) {
-                } catch (UnsupportedEncodingException e) {}
+                    } catch (NoSuchAlgorithmException e) {
+                    } catch (UnsupportedEncodingException e) {}
+                }
+                Utils.warning("unknown key detected on connection with %s", this);
+                Message errMsg = new Message();
+                errMsg.put("error", "unknown key");
+                sendMessage(errMsg, false);
+                close();
+                return;
+            } else {
+                state = State.ESTABLISHED;
+                server.onConnected(version);
+                return;
             }
-            Utils.warning("unknown key detected on connection with %s", this);
-            Message errMsg = new Message();
-            errMsg.put("error", "unknown key");
-            sendMessage(errMsg, false);
-            close();
-            return;
+            
         } else if (state == State.ESTABLISHED) {
             if (message.containsKey("responseId")) {
                 int responseId = message.getInt("responseId");
@@ -365,6 +403,7 @@ public final class Connection {
 
     private enum State {
         NONE,
+        HANDSHAKE,
         ESTABLISHED,
         CLOSED;
     }

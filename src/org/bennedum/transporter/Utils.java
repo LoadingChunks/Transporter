@@ -20,20 +20,28 @@ import com.iConomy.system.Account;
 import com.iConomy.system.Holdings;
 import com.nijikokun.bukkit.Permissions.Permissions;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.net.HttpURLConnection;
 import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -44,6 +52,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitWorker;
 import org.bukkit.util.Vector;
 import org.bukkit.util.config.Configuration;
 
@@ -54,8 +63,12 @@ import org.bukkit.util.config.Configuration;
 public class Utils {
 
     private static final Logger logger = Logger.getLogger("Minecraft");
-    private static final File worldBaseFolder = new File(".");
+    private static final File bukkitBaseFolder = new File(".");
+    private static final File worldBaseFolder = bukkitBaseFolder;
 
+    private static final String DEBUG_URL = "http://mc.bennedum.org/transporter-debug.php";
+    private static final String DEBUG_BOUNDARY = "*****";
+    
     public static void info(String msg, Object ... args) {
         msg = ChatColor.stripColor(String.format(msg, args));
         logger.log(Level.INFO, String.format("[%s] %s", Global.pluginName, msg));
@@ -242,10 +255,13 @@ public class Utils {
         return true;
     }
 
-    public static void loadConfig(Context ctx) {
+    public static File getConfigFile() {
         File dataFolder = Global.plugin.getDataFolder();
-        File configFile = new File(dataFolder, "config.yml");
-        Configuration config = new Configuration(configFile);
+        return new File(dataFolder, "config.yml");
+    }
+    
+    public static void loadConfig(Context ctx) {
+        Configuration config = new Configuration(getConfigFile());
         config.load();
         Global.config = config;
         ctx.sendLog("loaded configuration");
@@ -258,6 +274,18 @@ public class Utils {
         ctx.sendLog("saved configuration");
     }
 
+    public static boolean isMainThread() {
+        return Thread.currentThread() == Global.mainThread;
+    }
+    
+    public static boolean isWorkerThread() {
+        if (isMainThread()) return false;
+        Thread t = Thread.currentThread();
+        for (BukkitWorker worker : Global.plugin.getServer().getScheduler().getActiveWorkers())
+            if (worker.getThread() == t) return true;
+        return false;
+    }
+    
     public static int fire(Runnable run) {
         if (! Global.enabled) return -1;
         return Global.plugin.getServer().getScheduler().scheduleSyncDelayedTask(Global.plugin, run);
@@ -342,4 +370,114 @@ public class Utils {
         return ! checkBalance;
     }
 
+    // can be called from any thread, upload will happen in a worker thread
+    public static void submitDebug(final String message) {
+        if (! isWorkerThread()) {
+            debug("scheduling debug submission");
+            worker(new Runnable() {
+                @Override
+                public void run() {
+                    submitDebug(message);
+                }
+            });
+            return;
+        }
+        debug("starting debug submission");
+        
+        File zipFile = null;
+        try {
+            zipFile = File.createTempFile(Global.pluginName, "debug.zip");
+        } catch (IOException e) {
+            severe(e, "unable to create debug zip file");
+            return;
+        }
+        
+        File file;
+        FileInputStream in;
+        int length;
+        byte[] buffer = new byte[1024];
+        
+        try {
+            ZipOutputStream zipOut = new ZipOutputStream(new FileOutputStream(zipFile));
+            
+            // add the config file
+            file = getConfigFile();
+            in = new FileInputStream(file);
+            zipOut.putNextEntry(new ZipEntry(file.getName()));
+            while ((length = in.read(buffer)) > 0)
+                zipOut.write(buffer, 0, length);
+            in.close();
+            zipOut.closeEntry();
+            
+            // add the last 10,000 bytes of the server log
+            file = new File(bukkitBaseFolder, "server.log");
+            in = new FileInputStream(file);
+            zipOut.putNextEntry(new ZipEntry(file.getName()));
+            if (file.length() > 10000)
+                in.skip(file.length() - 10000);
+            while ((length = in.read(buffer)) > 0)
+                zipOut.write(buffer, 0, length);
+            in.close();
+            zipOut.closeEntry();
+            
+            zipOut.close();
+        } catch (IOException e) {
+            severe(e, "unable to create debug zip file '%s'", zipFile.getAbsolutePath());
+            zipFile.delete();
+            return;
+        }
+        
+        try {
+            URL url = new URL(Global.config.getString("debugURL", DEBUG_URL));
+            HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+            conn.setDoInput(true);
+            conn.setDoOutput(true);
+            conn.setUseCaches(false);
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Connection", "Keep-Alive"); // force HTTP 1.1
+            conn.setRequestProperty("Content-Type", "multipart/form-data;boundary=" + DEBUG_BOUNDARY);
+            OutputStream out = conn.getOutputStream();
+            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out));
+            
+            writer.write("--" + DEBUG_BOUNDARY + "\r\n");
+            writer.write("Content-Disposition: form-data; name=\"message\"\r\n");
+            writer.write("\r\n");
+            writer.write(URLEncoder.encode(message, "UTF-8"));
+            writer.write("\r\n");
+            
+            writer.write("--" + DEBUG_BOUNDARY + "\r\n");
+            writer.write("Content-Disposition: form-data; name=\"file\"; filename=\"content.zip\"\r\n");
+            writer.write("\r\n");
+            writer.flush();
+            
+            in = new FileInputStream(zipFile);
+            while ((length = in.read(buffer)) > 0)
+                out.write(buffer, 0, length);
+            in.close();
+            out.flush();
+            
+            writer.write("\r\n");
+            writer.write("--" + DEBUG_BOUNDARY + "--\r\n");
+            writer.flush();
+            writer.close();
+            
+            // read the response
+            BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            String status = reader.readLine();
+            reader.close();
+            
+            String[] statusParts = status.split(" ");
+            status = statusParts[1];
+            if (status.equals("200"))
+                debug("debug data submitted successfully");
+            else
+                throw new IOException("HTTP return status " + status);
+        } catch (IOException e) {
+            severe(e, "unable to submit debug data");
+        } finally {
+            zipFile.delete();
+        }
+        
+    }
+    
 }

@@ -21,6 +21,7 @@ import org.bennedum.transporter.Gate;
 import org.bennedum.transporter.Design;
 import org.bennedum.transporter.Global;
 import org.bennedum.transporter.TransporterException;
+import org.bennedum.transporter.Utils;
 import org.bukkit.command.Command;
 
 /**
@@ -42,6 +43,7 @@ public class DebugCommand extends TrpCommandProcessor {
     public String getUsage(Context ctx) {
         return
                 super.getUsage(ctx) + " true|false\n" +
+                super.getUsage(ctx) + " submit <message>\n" +
                 super.getUsage(ctx) + " dump gate <name>\n" +
                 super.getUsage(ctx) + " dump design <name>";
     }
@@ -52,6 +54,17 @@ public class DebugCommand extends TrpCommandProcessor {
         if (args.isEmpty())
             throw new CommandException("debug what?");
         String subCmd = args.remove(0).toLowerCase();
+
+        if ("submit".startsWith(subCmd)) {
+            if (args.isEmpty())
+                throw new CommandException("message required");
+            String message = args.remove(0);
+            while (! args.isEmpty())
+                message = message + " " + args.remove(0);
+            ctx.send("requested submission of debug data");
+            Utils.submitDebug(message);
+            return;
+        }
         
         if ("dump".startsWith(subCmd)) {
             if (args.isEmpty())

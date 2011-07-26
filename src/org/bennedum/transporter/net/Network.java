@@ -30,7 +30,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -49,7 +48,8 @@ import org.bennedum.transporter.Utils;
 public final class Network extends Thread {
 
     private static final int READ_BUFFER_SIZE = 4096;
-
+    private static final int SELECT_INTERVAL = 30000;
+    
     public static final int DEFAULT_PORT = 25555;
 
     public static InetSocketAddress makeAddress(String addrStr) throws NetworkException {
@@ -77,57 +77,9 @@ public final class Network extends Thread {
         return new InetSocketAddress(address, port);
     }
 
-    public static Map<String,Set<Pattern>> makeAddressMap(String addrStr, int defaultPort) throws NetworkException {
-        Map<String,Set<Pattern>> map = new LinkedHashMap<String,Set<Pattern>>();
-        String addresses[] = addrStr.split("\\s+");
-        for (String address : addresses) {
-            Set<Pattern> patterns = new HashSet<Pattern>();
-            String parts[] = address.split(",");
-            if (parts.length == 1)
-                patterns.add(Pattern.compile(".*"));
-            else
-                for (int i = 1; i < parts.length; i++) {
-                    try {
-                        patterns.add(Pattern.compile(parts[i]));
-                    } catch (PatternSyntaxException e) {
-                        throw new NetworkException("invalid pattern '%s'", parts[i]);
-                    }
-                }
-            String addrParts[] = parts[0].split("/");
-            if (addrParts.length > 2)
-                throw new NetworkException("address '%s' has too many parts", parts[0]);
-            for (int i = 0; i < addrParts.length; i++)
-                try {
-                    makeAddress(addrParts[i], defaultPort);
-                } catch (NetworkException e) {
-                    throw new NetworkException("address '%s': %s", addrParts[i], e.getMessage());
-                }
-            map.put(parts[0], patterns);
-        }
-        return map;
-    }
-
-    public static String getMinecraftAddress(String mcAddr, InetAddress inetAddr) {
-        Map<String,Set<Pattern>> mcAddrs;
-        try {
-            mcAddrs = makeAddressMap(mcAddr, Server.DEFAULT_MC_PORT);
-        } catch (NetworkException e) {
-            return null;
-        }
-        String addrStr = inetAddr.getHostAddress();
-        for (String key : mcAddrs.keySet()) {
-            Set<Pattern> patterns = mcAddrs.get(key);
-            for (Pattern pattern : patterns)
-                if (pattern.matcher(addrStr).matches())
-                    return key;
-        }
-        return null;
-    }
-
     private State state = State.STOPPED;
     private String listenAddressRaw;
     private InetSocketAddress listenAddress;
-    private String minecraftAddress;
     private String serverKey;
     private final Set<Pattern> banned = new HashSet<Pattern>();
 
@@ -150,16 +102,7 @@ public final class Network extends Thread {
             } catch (NetworkException e) {
                 throw new TransporterException("listenAddress: " + e.getMessage());
             }
-
-            minecraftAddress = Global.config.getString("minecraftAddress");
-            if (minecraftAddress == null)
-                throw new TransporterException("minecraftAddress is not set");
-            try {
-                makeAddressMap(minecraftAddress, Server.DEFAULT_MC_PORT);
-            } catch (NetworkException e) {
-                throw new TransporterException("minecraftAddress: " + e.getMessage());
-            }
-
+            
             serverKey = Global.config.getString("serverKey");
             if ((serverKey == null) || serverKey.equals("none"))
                 throw new TransporterException("serverKey is not set");
@@ -176,7 +119,6 @@ public final class Network extends Thread {
                 }
 
             ctx.send("starting network manager");
-            ctx.send("minecraft address is %s", minecraftAddress);
             ctx.send("listen address is %s", listenAddressRaw);
             ctx.send("server key is '%s'", serverKey);
             start();
@@ -190,11 +132,7 @@ public final class Network extends Thread {
     public String getKey() {
         return serverKey;
     }
-
-    public String getMinecraftAddress() {
-        return minecraftAddress;
-    }
-
+    
     public String getListenAddress() {
         return listenAddressRaw;
     }
@@ -365,7 +303,13 @@ public final class Network extends Thread {
                     }
                 }
 
-                if (selector.select() > 0) {
+                // Tell connected servers to do keep alives
+                for (Server server : Global.servers.getAll()) {
+                    server.sendKeepAlive();
+                    server.checkKeepAlive();
+                }
+                
+                if (selector.select(SELECT_INTERVAL) > 0) {
                     Iterator keys = selector.selectedKeys().iterator();
                     while (keys.hasNext()) {
                         SelectionKey key = (SelectionKey)keys.next();

@@ -355,7 +355,7 @@ public final class Teleport {
                                     } catch (FundsException fe) {}
                                 }
 
-                                String mcAddress = toGate.getServer().getMinecraftAddress(player.getAddress());
+                                String mcAddress = toGate.getServer().getMCAddressForClient(player.getAddress());
                                 if (mcAddress == null) {
                                     Utils.warning("minecraft address for '%s' is null?", toGate.getServer().getName());
                                     return;
@@ -364,17 +364,11 @@ public final class Teleport {
                                 if (addrParts.length == 1) {
                                     // this is a client based reconnect
                                     Utils.info("sending player '%s' to '%s' via client reconnect", player.getName(), addrParts[0]);
-                                    if (Global.config.getBoolean("craftProxy", false))
-                                        player.kickPlayer("[Serverport] please reconnect to: " + addrParts[0]);
-                                    else
-                                        player.kickPlayer("[" + Global.pluginName + "] please reconnect to: " + addrParts[0]);
+                                    player.kickPlayer("[Redirect] please reconnect to: " + addrParts[0]);
                                 } else {
                                     // this is a proxy based reconnect
                                     Utils.info("sending player '%s' to '%s,%s' via proxy reconnect", player.getName(), addrParts[0], addrParts[1]);
-                                    if (Global.config.getBoolean("craftProxy", false))
-                                        player.kickPlayer("[Serverport] please reconnect to: " + addrParts[0] + "," + addrParts[1]);
-                                    else
-                                        player.kickPlayer("[" + Global.pluginName + "] please reconnect to: " + addrParts[0] + "," + addrParts[1]);
+                                    player.kickPlayer("[Redirect] please reconnect to: " + addrParts[0] + "," + addrParts[1]);
                                 }
                             }
                         }

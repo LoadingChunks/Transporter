@@ -1,9 +1,9 @@
 name: Transporter
 main: org.bennedum.transporter.Transporter
-version: 6.9
+version: 6.10
 authors:
   - frdfsnlght
-website: something@code.google.com
+website: http://code.google.com/p/bukkit-transporter/
 description: >
   Provides teleportation through gates between worlds and servers.
 commands:

@@ -19,11 +19,15 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeoutException;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import org.bennedum.transporter.net.Connection;
 import org.bennedum.transporter.net.NetworkException;
 import org.bennedum.transporter.net.Network;
@@ -44,35 +48,70 @@ public final class Server {
     private static final int RECONNECT_INTERVAL = 60000;
     private static final int RECONNECT_SKEW = 10000;
 
+    private static final int SEND_KEEPALIVE_INTERVAL = 60000;
+    private static final int RECV_KEEPALIVE_INTERVAL = 90000;
+    
     public static boolean isValidName(String name) {
         if ((name.length() == 0) || (name.length() > 15)) return false;
         return ! (name.contains(".") || name.contains("*"));
     }
 
+    public static Map<String,Set<Pattern>> makeAddressMap(String addrStr, int defaultPort) throws ServerException {
+        Map<String,Set<Pattern>> map = new LinkedHashMap<String,Set<Pattern>>();
+        String addresses[] = addrStr.split("\\s+");
+        for (String address : addresses) {
+            Set<Pattern> patterns = new HashSet<Pattern>();
+            String parts[] = address.split(",");
+            if (parts.length == 1)
+                patterns.add(Pattern.compile(".*"));
+            else
+                for (int i = 1; i < parts.length; i++) {
+                    try {
+                        patterns.add(Pattern.compile(parts[i]));
+                    } catch (PatternSyntaxException e) {
+                        throw new ServerException("invalid pattern '%s'", parts[i]);
+                    }
+                }
+            String addrParts[] = parts[0].split("/");
+            if (addrParts.length > 2)
+                throw new ServerException("address '%s' has too many parts", parts[0]);
+            for (int i = 0; i < addrParts.length; i++)
+                try {
+                    Network.makeAddress(addrParts[i], defaultPort);
+                } catch (NetworkException e) {
+                    throw new ServerException("address '%s': %s", addrParts[i], e.getMessage());
+                }
+            map.put(parts[0], patterns);
+        }
+        return map;
+    }
+    
     private String name;
-    private String address;
+    private String pluginAddress;
     private String key;
+    private String mcAddress;
     private boolean enabled;
     private Connection connection = null;
     private boolean allowReconnect = true;
-    private String minecraftAddress = null;
     private String version = null;
     private int reconnectTask = -1;
     private boolean connected = false;
-
-    public Server(String name, String address, String key) throws ServerException {
+    
+    public Server(String name, String pluginAddress, String key, String mcAddress) throws ServerException {
         this.name = name;
-        this.address = address;
+        this.pluginAddress = pluginAddress;
         this.key = key;
+        this.mcAddress = mcAddress;
         enabled = true;
         validate();
     }
 
     public Server(ConfigurationNode node) throws ServerException {
         name = node.getString("name");
-        address = node.getString("address");
+        pluginAddress = node.getString("pluginAddress");
         key = node.getString("key");
         enabled = node.getBoolean("enabled", true);
+        mcAddress = node.getString("minecraftAddress");
         validate();
     }
 
@@ -81,27 +120,36 @@ public final class Server {
             throw new ServerException("name is required");
         if (! isValidName(name))
             throw new ServerException("name is not valid");
-        if (address == null)
-            throw new ServerException("address is required");
+        if (pluginAddress == null)
+            throw new ServerException("pluginAddress is required");
         try {
-            Network.makeAddress(address);
+            Network.makeAddress(pluginAddress);
         } catch (NetworkException ce) {
-            throw new ServerException("address: %s", ce.getMessage());
+            throw new ServerException("pluginAddress: %s", ce.getMessage());
         }
         if ((key == null) || key.isEmpty())
             throw new ServerException("key is required");
+        if (mcAddress != null)
+            try {
+                makeAddressMap(mcAddress, DEFAULT_MC_PORT);
+            } catch (ServerException se) {
+                throw new ServerException("minecraftAddress: %s", se.getMessage());
+            }
     }
 
-    public void change(String address, String key) throws ServerException {
-        String oldAddress = this.address;
+    public void change(String pluginAddress, String key, String mcAddress) throws ServerException {
+        String oldPluginAddress = this.pluginAddress;
         String oldKey = this.key;
-        this.address = address;
+        String oldMCAddress = this.mcAddress;
+        this.pluginAddress = pluginAddress;
         this.key = key;
+        this.mcAddress = mcAddress;
         try {
             validate();
         } catch (ServerException se) {
-            this.address = oldAddress;
+            this.pluginAddress = oldPluginAddress;
             this.key = oldKey;
+            this.mcAddress = oldMCAddress;
             throw se;
         }
     }
@@ -126,12 +174,33 @@ public final class Server {
             disconnect(false);
     }
 
-    public String getMinecraftAddress(InetSocketAddress addr) {
-        return Network.getMinecraftAddress(minecraftAddress, addr.getAddress());
+    public String getMCAddress() {
+        return mcAddress;
+    }
+    
+    public String getMCAddressForClient(InetSocketAddress clientAddress) {
+        Map<String,Set<Pattern>> mcAddrs;
+        try {
+            if (mcAddress == null) {
+                String[] parts = pluginAddress.split(":");
+                mcAddrs = makeAddressMap(parts[0], DEFAULT_MC_PORT);
+            } else
+                mcAddrs = makeAddressMap(mcAddress, DEFAULT_MC_PORT);
+        } catch (ServerException e) {
+            return null;
+        }
+        String addrStr = clientAddress.getAddress().getHostAddress();
+        for (String addr : mcAddrs.keySet()) {
+            Set<Pattern> patterns = mcAddrs.get(addr);
+            for (Pattern pattern : patterns)
+                if (pattern.matcher(addrStr).matches())
+                    return addr;
+        }
+        return null;
     }
 
-    public String getAddress() {
-        return address;
+    public String getPluginAddress() {
+        return pluginAddress;
     }
 
     public void setConnection(Connection conn) {
@@ -142,12 +211,17 @@ public final class Server {
         return connection;
     }
 
+    public String getVersion() {
+        return version;
+    }
+    
     public Map<String,Object> encode() {
         Map<String,Object> node = new HashMap<String,Object>();
         node.put("name", name);
-        node.put("address", address);
+        node.put("address", pluginAddress);
         node.put("key", key);
         node.put("enabled", enabled);
+        node.put("minecraftAddress", mcAddress);
         return node;
     }
 
@@ -167,7 +241,7 @@ public final class Server {
         if (connection != null)
             connection.close();
         connected = false;
-        connection = new Connection(this, address);
+        connection = new Connection(this, pluginAddress);
         connection.open();
     }
 
@@ -176,7 +250,6 @@ public final class Server {
         cancelOutbound();
         if (connection == null) return;
         connection.close();
-//        connection = null;
     }
 
     public boolean isConnecting() {
@@ -215,13 +288,26 @@ public final class Server {
         if (! isConnected())
             connect();
         else
-            doGetInfo();
+            doGetGates();
     }
 
+    public void sendKeepAlive() {
+        if (! isConnected()) return;
+        if ((System.currentTimeMillis() - connection.getLastMessageSentTime()) < SEND_KEEPALIVE_INTERVAL) return;
+        Utils.debug("sending keepalive to '%s'", name);
+        Message message = createMessage("nop");
+        connection.sendMessage(message, true);
+    }
+    
+    public void checkKeepAlive() {
+        if (! isConnected()) return;
+        if ((System.currentTimeMillis() - connection.getLastMessageReceivedTime()) < RECV_KEEPALIVE_INTERVAL) return;
+        Utils.warning("no keepalive received from server '%s'", name);
+        disconnect(true);
+    }
 
-
-
-
+    
+    
     public void doPing(final Context ctx, final long timeout) {
         if (! isConnected()) return;
         final Message message = createMessage("ping");
@@ -257,9 +343,9 @@ public final class Server {
         });
     }
 
-    public void doGetInfo() {
+    public void doGetGates() {
         if (! isConnected()) return;
-        Message message = createMessage("getInfo");
+        Message message = createMessage("getGates");
         connection.sendMessage(message, true);
     }
 
@@ -381,12 +467,13 @@ public final class Server {
     // If the task is going to take a while, use a worker thread.
 
     // outbound connection
-    public void onConnected() {
+    public void onConnected(String version) {
         allowReconnect = true;
         connected = true;
+        this.version = version;
         cancelOutbound();
-        Utils.info("connected to '%s' (%s)", getName(), connection.getName());
-        connection.sendMessage(handleGetInfo(), true);
+        Utils.info("connected to '%s' (%s), running v%s", getName(), connection.getName(), version);
+        connection.sendMessage(handleGetGates(), true);
     }
 
     public void onDisconnected() {
@@ -413,14 +500,15 @@ public final class Server {
         }
         Message response = null;
 
-Utils.debug("received command '%s' from %s", command, getName());
+        Utils.debug("received command '%s' from %s", command, getName());
         try {
+            if (command.equals("nop")) return;
             if (command.equals("ping"))
                 response = handlePing(message);
-            else if (command.equals("getInfo"))
-                response = handleGetInfo();
-            else if (command.equals("setInfo"))
-                handleSetInfo(message);
+            else if (command.equals("getGates"))
+                response = handleGetGates();
+            else if (command.equals("setGates"))
+                handleSetGates(message);
             else if (command.equals("addGate"))
                 handleAddGate(message);
             else if (command.equals("renameGate"))
@@ -467,12 +555,9 @@ Utils.debug("received command '%s' from %s", command, getName());
         return message;
     }
 
-    private Message handleGetInfo() {
+    private Message handleGetGates() {
         if (! isConnected()) return null;
-        Message out = createMessage("setInfo");
-        String addr = Global.network.getMinecraftAddress();
-        out.put("minecraftAddress", addr);
-        out.put("version", Global.pluginVersion);
+        Message out = createMessage("setGates");
         List<Message> gates = new ArrayList<Message>();
         for (LocalGate gate : Global.gates.getLocalGates()) {
             Message m = new Message();
@@ -485,15 +570,10 @@ Utils.debug("received command '%s' from %s", command, getName());
         return out;
     }
 
-    private void handleSetInfo(Message message) throws ServerException {
-        String addr = message.getString("minecraftAddress");
-        if (addr == null)
-            throw new ServerException("missing minecraftAddress");
+    private void handleSetGates(Message message) throws ServerException {
         Collection<Message> gates = message.getMessageList("gates");
         if (gates == null)
             throw new ServerException("missing gates");
-        version = message.getString("version");
-        minecraftAddress = addr;
         Global.gates.remove(this);
         for (Message m : gates) {
             try {
@@ -502,7 +582,7 @@ Utils.debug("received command '%s' from %s", command, getName());
                 Utils.warning("received bad gate from '%s'", getName());
             }
         }
-        Utils.info("received information from '%s', running v%s", name, version);
+        Utils.info("received gates from '%s'", name);
     }
 
     private void handleAddGate(Message message) throws GateException {
@@ -714,7 +794,7 @@ Utils.debug("received command '%s' from %s", command, getName());
     public String toString() {
         StringBuilder buf = new StringBuilder("Server[");
         buf.append(name).append(",");
-        buf.append(address).append(",");
+        buf.append(pluginAddress).append(",");
         buf.append(key);
         buf.append("]");
         return buf.toString();

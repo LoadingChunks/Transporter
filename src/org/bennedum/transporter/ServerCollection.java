@@ -36,8 +36,11 @@ public class ServerCollection {
     public void loadAll(Context ctx) {
         removeAll();
         servers = new HashMap<String,Server>();
+
+        // check for pre v6.10 file and convert to main config
         File file = new File(Global.plugin.getDataFolder(), "servers.yml");
         if (file.exists()) {
+            ctx.sendLog("converting servers.yml to global configuration...");
             try {
                 if (! file.isFile())
                     throw new ServerException("not a file");
@@ -45,37 +48,45 @@ public class ServerCollection {
                     throw new ServerException("unable to read file");
                 Configuration conf = new Configuration(file);
                 conf.load();
-
                 List<ConfigurationNode> serverNodes = conf.getNodeList("servers", null);
+                List<Map<String,Object>> newServerNodes = new ArrayList<Map<String,Object>>();
                 if (serverNodes != null) {
                     for (ConfigurationNode node : serverNodes) {
-                        try {
-                            Server server = new Server(node);
-                            add(server);
-                            ctx.sendLog("loaded server '%s'", server.getName());
-                        } catch (ServerException se) {
-                            ctx.warnLog("unable to load server: %s", se.getMessage());
-                        }
-
+                        Map<String,Object> data = node.getAll();
+                        data.put("pluginAddress", data.remove("address"));
+                        newServerNodes.add(data);
                     }
                 }
+                Global.config.setProperty("servers", newServerNodes);
+                Utils.saveConfig(ctx);
+                file.delete();
+                ctx.sendLog("conversion complete");
             } catch (ServerException se) {
                 ctx.warnLog("unable to load servers: %s", se.getMessage());
+            }
+        }
+        
+        List<ConfigurationNode> serverNodes = Global.config.getNodeList("servers", null);
+        if (serverNodes != null) {
+            for (ConfigurationNode node : serverNodes) {
+                try {
+                    Server server = new Server(node);
+                    add(server);
+                    ctx.sendLog("loaded server '%s'", server.getName());
+                } catch (ServerException se) {
+                    ctx.warnLog("unable to load server: %s", se.getMessage());
+                }
             }
         }
         if (isEmpty())
             ctx.sendLog("no servers loaded");
     }
 
-    public void saveAll(Context ctx) {
-        File file = new File(Global.plugin.getDataFolder(), "servers.yml");
-        Configuration conf = new Configuration(file);
+    public void saveAll() {
         List<Map<String,Object>> serverNodes = new ArrayList<Map<String,Object>>();
         for (Server server : servers.values())
             serverNodes.add(server.encode());
-        conf.setProperty("servers", serverNodes);
-        conf.save();
-        ctx.sendLog("servers saved");
+        Global.config.setProperty("servers", serverNodes);
     }
 
     public void add(final Server server) throws ServerException {
