@@ -30,11 +30,17 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
@@ -68,6 +74,7 @@ public class Utils {
 
     private static final String DEBUG_URL = "http://mc.bennedum.org/transporter-debug.php";
     private static final String DEBUG_BOUNDARY = "*****";
+    private static final int DEBUG_LOG_BYTES = 20 * 1024;
     
     public static void info(String msg, Object ... args) {
         msg = ChatColor.stripColor(String.format(msg, args));
@@ -370,6 +377,31 @@ public class Utils {
         return ! checkBalance;
     }
 
+    public static HttpURLConnection openURL(URL url) throws IOException {
+        Proxy proxy = Proxy.NO_PROXY;
+        String proxyHost = Global.config.getString("httpProxy.host");
+        if (proxyHost != null) {
+            Proxy.Type proxyType = null;
+            try {
+                proxyType = Proxy.Type.valueOf(Global.config.getString("httpProxy.type", "HTTP"));
+            } catch (IllegalArgumentException iae) {}
+            int proxyPort = Global.config.getInt("httpProxy.port", 80);
+            proxy = new Proxy(proxyType, new InetSocketAddress(proxyHost, proxyPort));
+            debug("using proxy %s", proxy);
+        }
+        HttpURLConnection conn = (HttpURLConnection)url.openConnection(proxy);
+        if (proxy != Proxy.NO_PROXY) {
+            String proxyUser = Global.config.getString("httpProxy.user");
+            String proxyPassword = Global.config.getString("httpProxy.password");
+            if ((proxyUser != null) && (proxyPassword != null)) {
+                String enc = Base64.encode(proxyUser + ":" + proxyPassword, "UTF-8");
+                conn.setRequestProperty("Proxy-Authorization", enc);
+                debug("proxy authentication enabled for user %s", proxyUser);
+            }
+        }
+        return conn;
+    }
+    
     // can be called from any thread, upload will happen in a worker thread
     public static void submitDebug(final String message) {
         if (! isWorkerThread()) {
@@ -386,7 +418,7 @@ public class Utils {
         
         File zipFile = null;
         try {
-            zipFile = File.createTempFile(Global.pluginName, "debug.zip");
+            zipFile = File.createTempFile(Global.pluginName + "-", "-debug.zip");
         } catch (IOException e) {
             severe(e, "unable to create debug zip file");
             return;
@@ -409,32 +441,105 @@ public class Utils {
             in.close();
             zipOut.closeEntry();
             
-            // add the last 10,000 bytes of the server log
+            // add the last DEBUG_LOG_BYTES bytes of the server log
             file = new File(bukkitBaseFolder, "server.log");
             in = new FileInputStream(file);
             zipOut.putNextEntry(new ZipEntry(file.getName()));
-            if (file.length() > 10000)
-                in.skip(file.length() - 10000);
+            if (file.length() > DEBUG_LOG_BYTES) {
+                in.skip(file.length() - DEBUG_LOG_BYTES);
+                // read until the end of a line
+                while (in.read() != 10) {}
+            }
             while ((length = in.read(buffer)) > 0)
                 zipOut.write(buffer, 0, length);
             in.close();
             zipOut.closeEntry();
             
+            // add other debug info...
+            zipOut.putNextEntry(new ZipEntry("debug.txt"));
+            PrintWriter writer = new PrintWriter(new OutputStreamWriter(zipOut));
+            writer.println(message);
+            writer.println();
+            
+            // the list of servers...
+            List<Server> servers = Global.servers.getAll();
+            Collections.sort(servers, new Comparator<Server>() {
+                @Override
+                public int compare(Server a, Server b) {
+                    return a.getName().compareToIgnoreCase(b.getName());
+                }
+            });
+            writer.format("%d servers:\n", servers.size());
+            for (Server server : servers)
+                writer.format("  %s: %s '%s' [%s] %s/%s %s %s %s\n",
+                            server.getName(),
+                            server.getPluginAddress(),
+                            server.getKey(),
+                            (server.getMCAddress() == null) ? "*" : server.getMCAddress(),
+                            (server.isEnabled() ? "up" : "down"),
+                            (server.isConnected() ? "up" : "down"),
+                            (server.isConnected() ? (server.isIncoming() ? "incoming" : "outgoing") : ""),
+                            (server.isConnected() ? server.getConnection().getName() : ""),
+                            (server.isConnected() ? "v" + server.getVersion() : "")
+                        );
+            writer.println();
+            
+            // the list of gates...
+            List<Gate> gates = Global.gates.getAll();
+            Collections.sort(gates, new Comparator<Gate>() {
+                @Override
+                public int compare(Gate a, Gate b) {
+                    return a.getFullName().compareToIgnoreCase(b.getFullName());
+                }
+            });
+            writer.format("%d gates:\n", gates.size());
+            for (Gate gate : gates) {
+                writer.format("  %s\n", gate.getFullName());
+                writer.format("    design: %s\n", gate.getDesignName());
+                if (gate.isSameServer()) {
+                    LocalGate localGate = (LocalGate)gate;
+                    if (localGate.getLinkLocal())
+                        writer.format("local cost: %s/%s\n",
+                                localGate.getSendLocalCost(),
+                                localGate.getReceiveLocalCost());
+                    if (localGate.getLinkWorld())
+                        writer.format("world cost: %s/%s\n",
+                                localGate.getSendWorldCost(),
+                                localGate.getReceiveWorldCost());
+                    if (localGate.getLinkServer())
+                        writer.format("server cost: %s/%s\n",
+                                localGate.getSendServerCost(),
+                                localGate.getReceiveServerCost());
+                    List<String> links = localGate.getLinks();
+                    writer.format("    links: %d\n", links.size());
+                    for (String link : links)
+                        writer.format("     %s%s\n", link.equals(localGate.getDestinationLink()) ? "*": "", link);
+                }
+            }
+            writer.println();
+            
+            
+            writer.flush();
+            zipOut.closeEntry();
+            
             zipOut.close();
         } catch (IOException e) {
-            severe(e, "unable to create debug zip file '%s'", zipFile.getAbsolutePath());
+            severe(e, "unable to create debug zip file '%s':", zipFile.getAbsolutePath());
             zipFile.delete();
             return;
         }
         
+        debug("debug data file '%s' created successfully", zipFile.getAbsolutePath());
+
         try {
             URL url = new URL(Global.config.getString("debugURL", DEBUG_URL));
-            HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+            debug("submitting to %s", url);
+            HttpURLConnection conn = openURL(url);
             conn.setDoInput(true);
             conn.setDoOutput(true);
             conn.setUseCaches(false);
+            conn.setAllowUserInteraction(false);
             conn.setRequestMethod("POST");
-            conn.setRequestProperty("Connection", "Keep-Alive"); // force HTTP 1.1
             conn.setRequestProperty("Content-Type", "multipart/form-data;boundary=" + DEBUG_BOUNDARY);
             OutputStream out = conn.getOutputStream();
             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out));
@@ -461,19 +566,13 @@ public class Utils {
             writer.flush();
             writer.close();
             
-            // read the response
-            BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-            String status = reader.readLine();
-            reader.close();
-            
-            String[] statusParts = status.split(" ");
-            status = statusParts[1];
-            if (status.equals("200"))
+            int status = conn.getResponseCode();
+            if ((status >= 200) && (status < 300))
                 debug("debug data submitted successfully");
             else
-                throw new IOException("HTTP return status " + status);
+                warning("unable to submit debug data: HTTP status " + status);
         } catch (IOException e) {
-            severe(e, "unable to submit debug data");
+            severe(e, "unable to submit debug data:");
         } finally {
             zipFile.delete();
         }
