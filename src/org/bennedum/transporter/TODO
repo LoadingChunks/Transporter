@@ -1,0 +1,21 @@
+
+* Implement gate permissions when Permissions plugin supports adding a gate to a group.
+* Implement new gate design: Jail
+
+Testing:
+    * add/change server with new MC address
+    * trp world go <world>
+    * stationary liquids thing
+    * BukkitContrib redirects
+
+Wiki Updates:
+    * remove save servers/reload servers commands
+    * remove server set/get craftProxy commands
+    * remove server set/get minecraft command
+    * document httpProxy.[type|host|port|user|password] settings
+    * document debugURL setting
+    * document servers.[pluginAddress|enabled|key|name] settings
+    * update ClientPatcher to reflect support for BukkitContrib
+    * add Dynmap page
+
+
