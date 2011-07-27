@@ -185,6 +185,7 @@ public class WorldCommand extends TrpCommandProcessor {
                 world = Utils.getWorld(name);
                 if (world == null)
                     throw new CommandException("world '%s' is ambiguous or not loaded", name);
+                location = world.getSpawnLocation();
             }
 
             if (locationString != null) {
