@@ -29,13 +29,6 @@ import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 
 
-// TODO: auto add gates to their own group on creation (gate permissions)
-// TODO: new gate design: Jail
-
-// TEST: method to submit logs/configs with a message to a PHP web page
-// TEST: remove minecraftAddress setting, expand server add/change command to accept address patterns
-// TODO: update wiki to remove save servers/reload servers, server set/get craftProxy commands
-
 /**
  *
  * @author frdfsnlght <frdfsnlght@gmail.com>
@@ -85,6 +78,9 @@ public class Transporter extends JavaPlugin {
         Utils.copyFilesFromJar("/resources/overviewer/manifest", overviewerFolder, true);
         Utils.copyFileFromJar("/resources/overviewer/transporterConfig.js", overviewerFolder, false);
 
+        File dynmapFolder = new File(dataFolder, "dynmap");
+        Utils.copyFilesFromJar("/resources/dynmap/manifest", dynmapFolder, true);
+
         Utils.loadConfig(ctx);
 
         // Clean out old config options
@@ -133,6 +129,7 @@ public class Transporter extends JavaPlugin {
         boolean inQuotes = false;
         StringBuilder argBuffer = null;
         for (String arg : rawArgs) {
+            if (arg.isEmpty()) continue;
             if (inQuotes) {
                 argBuffer.append(" ");
                 argBuffer.append(arg);
