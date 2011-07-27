@@ -15,7 +15,8 @@ allowLinkWorld: true
 allowLinkServer: true
 
 useGatePermissions: false
-exportedGatesFile: overviewer/gates.json
+exportedGatesFile: dynmap/gates.json
+#exportedGatesFile: overviewer/gates.json
 
 impersonateServerportReconnect: false
 
