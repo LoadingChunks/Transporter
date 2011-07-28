@@ -134,6 +134,7 @@ public class GateCollection {
         File file = new File(fileName);
         if (! file.isAbsolute())
             file = new File(Global.plugin.getDataFolder(), fileName);
+        Utils.debug("exporting gates to %s", file.getAbsolutePath());
         try {
             PrintStream out = new PrintStream(file);
             out.println("[");

@@ -1,6 +1,6 @@
 name: Transporter
 main: org.bennedum.transporter.Transporter
-version: 6.10
+version: "6.10"
 authors:
   - frdfsnlght
 website: http://code.google.com/p/bukkit-transporter/

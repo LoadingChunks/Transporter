@@ -50,7 +50,7 @@ public final class Server {
 
     private static final int SEND_KEEPALIVE_INTERVAL = 60000;
     private static final int RECV_KEEPALIVE_INTERVAL = 90000;
-    
+
     public static boolean isValidName(String name) {
         if ((name.length() == 0) || (name.length() > 15)) return false;
         return ! (name.contains(".") || name.contains("*"));
@@ -85,7 +85,7 @@ public final class Server {
         }
         return map;
     }
-    
+
     private String name;
     private String pluginAddress;
     private String key;
@@ -96,7 +96,7 @@ public final class Server {
     private String version = null;
     private int reconnectTask = -1;
     private boolean connected = false;
-    
+
     public Server(String name, String pluginAddress, String key, String mcAddress) throws ServerException {
         this.name = name;
         this.pluginAddress = pluginAddress;
@@ -177,7 +177,7 @@ public final class Server {
     public String getMCAddress() {
         return mcAddress;
     }
-    
+
     public String getMCAddressForClient(InetSocketAddress clientAddress) {
         Map<String,Set<Pattern>> mcAddrs;
         try {
@@ -214,11 +214,11 @@ public final class Server {
     public String getVersion() {
         return version;
     }
-    
+
     public Map<String,Object> encode() {
         Map<String,Object> node = new HashMap<String,Object>();
         node.put("name", name);
-        node.put("address", pluginAddress);
+        node.put("pluginAddress", pluginAddress);
         node.put("key", key);
         node.put("enabled", enabled);
         node.put("minecraftAddress", mcAddress);
@@ -298,7 +298,7 @@ public final class Server {
         Message message = createMessage("nop");
         connection.sendMessage(message, true);
     }
-    
+
     public void checkKeepAlive() {
         if (! isConnected()) return;
         if ((System.currentTimeMillis() - connection.getLastMessageReceivedTime()) < RECV_KEEPALIVE_INTERVAL) return;
@@ -306,8 +306,8 @@ public final class Server {
         disconnect(true);
     }
 
-    
-    
+
+
     public void doPing(final Context ctx, final long timeout) {
         if (! isConnected()) return;
         final Message message = createMessage("ping");
@@ -767,7 +767,7 @@ public final class Server {
         String world = message.getString("world");
         if (world == null)
             throw new ServerException("missing world");
-        
+
         String msg = message.getString("message");
         if (msg == null)
             throw new ServerException("missing message");

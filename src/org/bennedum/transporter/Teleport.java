@@ -205,21 +205,24 @@ public final class Teleport {
         }
 
         fromGate.onSend(entity);
-        
-        // do the teleport
-        Location currentLoc = entity.getLocation();
-        Location newLocation = prepareSpawnLocation(currentLoc.getPitch(), currentLoc.getYaw(), (fromGate == null) ? null : fromGate.getDirection(), toGate);
 
+        // do the teleport
+        Location location = entity.getLocation();
+        Vector velocity = entity.getVelocity();
+
+        prepareForSpawn(location, velocity, (fromGate == null) ? null : fromGate.getDirection(), toGate);
+
+        // TODO: remove
         // this is necessary so minecarts don't sink into the ground
         // it also gives them a little push out of the gate
-        if (! (entity instanceof Player))
-            newLocation.setY(newLocation.getY() + 0.5);
-        Vector velocity = entity.getVelocity();
-        velocity.multiply(2);
-        velocity.setY(0);
+//        if (! (entity instanceof Player))
+//            newLocation.setY(newLocation.getY() + 0.5);
+//        Vector velocity = entity.getVelocity();
+//        velocity.multiply(2);
+//        velocity.setY(0);
         entity.setVelocity(velocity);
 
-        if (teleport && (! entity.teleport(newLocation)))
+        if (teleport && (! entity.teleport(location)))
             throw new TeleportException("teleport to '%s' failed", toGate.getFullName());
 
         if (filterInventory(entity, toGate)) {
@@ -230,7 +233,7 @@ public final class Teleport {
         }
 
         toGate.onReceive(entity);
-        
+
         if (player == null)
             Utils.info("teleported entity '%d' to '%s'", entity.getEntityId(), toGate.getFullName());
         else {
@@ -266,7 +269,7 @@ public final class Teleport {
             }
         }
 
-        return newLocation;
+        return location;
     }
 
     // called when an entity on our server is being sent to another server
@@ -474,8 +477,12 @@ public final class Teleport {
                 @Override
                 public void run() {
                     Utils.info("sent confirmation of arrival of '%s' from '%s'...", entityState.getName(), fromGate.getFullName());
-                    Location location = prepareSpawnLocation(entityState.getPitch(), entityState.getYaw(), fromGateDirection, toGate);
-                    Entity entity = entityState.restore(location, null);
+                    Location location = new Location(toGate.getWorld(), 0, 0, 0, entityState.getYaw(), entityState.getPitch());
+                    Vector velocity = entityState.getVelocity();
+                    prepareForSpawn(location, velocity, fromGateDirection, toGate);
+                    // TODO: remove
+                    //Location location = prepareSpawnLocation(entityState.getPitch(), entityState.getYaw(), fromGateDirection, toGate);
+                    Entity entity = entityState.restore(location, velocity, null);
                     if (entity != null) {
                         toGate.onReceive(entity);
                         addGateLock(entity);
@@ -493,7 +500,7 @@ public final class Teleport {
             synchronized (arrivals) {
                 arrivals.put(playerState.getName(), arrival);
             }
-            
+
             // set up a delayed task to cancel the arrival if they never arrive
             Utils.fireDelayed(new Runnable() {
                 @Override
@@ -554,12 +561,17 @@ public final class Teleport {
         // do about it now
 
         Context ctx = new Context(player);
-        Location location = prepareSpawnLocation(arrival.getEntityState().getPitch(), arrival.getEntityState().getYaw(), arrival.getFromGateDirection(), toGate);
-        Entity entity = arrival.getEntityState().restore(location, player);
+        Location location = player.getLocation();
+        Vector velocity = player.getVelocity();
+        prepareForSpawn(location, velocity, arrival.getFromGateDirection(), toGate);
+        // TODO: remove
+        //Location location = prepareSpawnLocation(arrival.getEntityState().getPitch(), arrival.getEntityState().getYaw(), arrival.getFromGateDirection(), toGate);
+        Entity entity = arrival.getEntityState().restore(location, velocity, player);
         if (entity == null)
             throw new TeleportException("unable to restore entity");
 
         addGateLock(player);
+        addGateLock(entity);
         toGate.onReceive(entity);
 
         if (! entity.teleport(location))
@@ -685,7 +697,8 @@ public final class Teleport {
             }
         });
     }
-
+    // TODO: remove
+/*
     // fromGateDirection can be null if the player is being sent directly
     private static Location prepareSpawnLocation(float fromPitch, float fromYaw, BlockFace fromGateDirection, LocalGate toGate) {
         GateBlock block = toGate.getSpawnBlocks().randomBlock();
@@ -699,6 +712,23 @@ public final class Teleport {
         location.setYaw(block.getDetail().getSpawn().calculateYaw(fromYaw, fromGateDirection, toGate.getDirection()));
         Utils.prepareChunk(location);
         return location;
+    }
+*/
+
+    // fromGateDirection can be null if the player is being sent directly
+    private static void prepareForSpawn(Location location, Vector velocity, BlockFace fromGateDirection, LocalGate toGate) {
+        GateBlock block = toGate.getSpawnBlocks().randomBlock();
+        Location blockLocation = block.getLocation().clone();
+        location.setWorld(blockLocation.getWorld());
+        location.setX(blockLocation.getX() + 0.5);
+        location.setY(blockLocation.getY());
+        location.setZ(blockLocation.getZ() + 0.5);
+        //location.setPitch(fromPitch);
+        if (fromGateDirection == null)
+            fromGateDirection = toGate.getDirection();
+        location.setYaw(block.getDetail().getSpawn().calculateYaw(location.getYaw(), fromGateDirection, toGate.getDirection()));
+        Utils.prepareChunk(location);
+        Utils.rotate(velocity, fromGateDirection, toGate.getDirection());
     }
 
     // Beyond here be dragons... and inventory filtering

@@ -109,27 +109,28 @@ public final class PlayerState extends EntityState {
     public ItemStack[] getInventory() {
         return inventory;
     }
-    
+
     public ItemStack[] getArmor() {
         return armor;
     }
-    
+
     @Override
     public boolean isPlayer() {
         return true;
     }
-    
+
     @Override
     public PlayerState getPlayerState() {
         return this;
     }
 
     @Override
-    public Entity restore(Location location, Player player) {
+    public Entity restore(Location location, Vector velocity, Player player) {
+        super.restore(location, velocity, player);
         applyTo(player);
         return player;
     }
-    
+
     @Override
     protected void applyTo(Entity entity) {
         Player player = (Player)entity;

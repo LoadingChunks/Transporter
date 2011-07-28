@@ -29,6 +29,7 @@ import org.bukkit.entity.StorageMinecart;
 import org.bukkit.entity.Vehicle;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.Vector;
 
 /**
  *
@@ -109,7 +110,8 @@ public final class VehicleState extends EntityState {
     }
 
     @Override
-    public Entity restore(Location location, Player player) {
+    public Entity restore(Location location, Vector velocity, Player player) {
+        super.restore(location, velocity, player);
         Entity entity;
         switch (type) {
             case MINECART:
@@ -129,7 +131,7 @@ public final class VehicleState extends EntityState {
         }
         applyTo(entity);
         if (passengerState != null)
-            entity.setPassenger(passengerState.restore(location, player));
+            entity.setPassenger(passengerState.restore(location, velocity, player));
         return entity;
     }
 

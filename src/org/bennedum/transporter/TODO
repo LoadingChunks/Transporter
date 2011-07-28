@@ -1,12 +1,9 @@
 
 * Implement gate permissions when Permissions plugin supports adding a gate to a group.
 * Implement new gate design: Jail
+* fix minecarts - too fast same world, no velocity on exit between servers
 
 Testing:
-    * add/change server with new MC address
-    * trp world go <world>
-    * stationary liquids thing
-    * BukkitContrib redirects
 
 Wiki Updates:
     * remove save servers/reload servers commands

@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright 2011 frdfsnlght <frdfsnlght@gmail.com>.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,13 +22,7 @@ transporter = function() {
     var showOnWorld = false;
     var showOffWorld = false;
     var showOffServer = false;
-    
-    var updateVisibleGates = function() {
-		$.each(markers, function(key, value) {
-			markers[key].marker.toggle(isGateVisible(markers[key].gate));
-		});
-    };
-    
+
     var isGateVisible = function(gate) {
         if (gate.world !== dynmap.world.name) return false;
         if (showAll) return true;
@@ -50,7 +44,7 @@ transporter = function() {
         }
         return false;
     };
-    
+
     var createGateInfo = function(gate) {
         var content = '<div class="transporterGateInfo"><img src="transporter/gate-info.png"/><p>';
         content += 'Name: ' + gate.name + '<br/>';
@@ -65,66 +59,78 @@ transporter = function() {
         content += '</p></div>';
         return content;
     };
-    
+
     var rebuildMarkers = function() {
+    console.log('rebuildMarkers');
 		$.each(markers, function(key, value) {
-			markers[key].marker.remove();
+			markers[key].remove();
 		});
         markers = {};
         for (var i in gates) {
             var gate = gates[i];
             var fullName = gate.world + '.' + gate.name;
             var position = dynmap.map.getProjection().fromWorldToLatLng(gate.x, gate.y, gate.z);
-            markers[fullName] = {};
-            markers[fullName].gate = gate;
-            markers[fullName].marker = new CustomMarker(position, dynmap.map, function(div) {
-                $(div).addClass('transporterGateMarker').append(createGateInfo(gate));
+            markers[fullName] = new CustomMarker(position, dynmap.map, function(div) {
+                $(div).addClass('transporterGateMarker').append(createGateInfo(this.gate));
             });
-            markers[fullName].marker.toggle(isGateVisible(gate));
+            markers[fullName].gate = gate;
+            //markers[fullName].toggle(isGateVisible(gate));
+            //markers[fullName].hide();
         }
     };
-    
-    var updateMarkers = function() {
-        for (var i in gates) {
-            var gate = gates[i];
-            var fullName = gate.world + '.' + gate.name;
-            markers[fullName].marker.toggle(isGateVisible(gate));
-        }
+
+    var toggleMarkers = function() {
+    console.log('toggleMarkers');
+		$.each(markers, function(key, value) {
+            var marker = markers[key];
+console.log('gate ' + marker.gate.name + ': ' + isGateVisible(marker.gate));
+
+            if (isGateVisible(marker.gate))
+                marker.show();
+            else
+                marker.hide();
+//			markers[key].toggle(isGateVisible(markers[key].gate));
+		});
     };
-    
+
     return {
 
         refresh: function() {
             $.getJSON('transporter/gates.json', function(newGates) {
                 gates = newGates;
                 rebuildMarkers();
+                toggleMarkers();
             });
         },
-        
-        update: function() {
-            updateMarkers();
+
+        rebuild: function() {
+            rebuildMarkers();
         },
-        
+
+        toggle: function() {
+            toggleMarkers();
+        },
+
         showAllGates: function(ctl, show) {
             showAll = show;
-            updateVisibleGates();
+            toggleMarkers();
         },
-        
+
         showOnWorldGates: function(ctl, show) {
             showOnWorld = show;
-            updateVisibleGates();
+            toggleMarkers();
         },
-        
+
         showOffWorldGates: function(ctl, show) {
             showOffWorld = show;
-            updateVisibleGates();
+            toggleMarkers();
         },
-        
+
         showOffServerGates: function(ctl, show) {
             showOffServer = show;
-            updateVisibleGates();
+            toggleMarkers();
         }
-        
+
     };
 }();
 
@@ -138,21 +144,25 @@ componentconstructors['../transporter/transporter'] = function(dynmap, configura
 		href: 'transporter/transporter.css'
 	});
 	$("head").append( link );
-    
+
     // bind to events
-    
+
     /*
-	$(dynmap).bind('worldupdating', function() {
-        transporter.update();
+	$(dynmap).bind('worldchanged', function() {
+        console.log('worldchanged to: ' + dynmap.world.name);
+//        transporter.rebuild();
+//        transporter.toggle();
     });
-    */
-    
+*/
+
 	$(dynmap).bind('mapchanged', function() {
-        transporter.update();
+        console.log('mapchanged, world is: ' + dynmap.world.name);
+        transporter.rebuild();
+        transporter.toggle();
     });
-    
+
     // setup refresh
     setInterval(transporter.refresh, 60 * 1000);
     setTimeout(transporter.refresh, 5000);
-    
+
 }

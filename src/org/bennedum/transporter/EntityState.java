@@ -103,6 +103,10 @@ public abstract class EntityState {
         return pitch;
     }
 
+    public Vector getVelocity() {
+        return new Vector(velX, velY, velZ);
+    }
+
     public PlayerState getPlayerState() {
         return null;
     }
@@ -115,7 +119,10 @@ public abstract class EntityState {
         return false;
     }
 
-    public Entity restore(Location location, Player player) {
+    public Entity restore(Location location, Vector velocity, Player player) {
+        velX = velocity.getX();
+        velY = velocity.getY();
+        velZ = velocity.getZ();
         return null;
     }
 

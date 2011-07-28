@@ -407,11 +407,11 @@ public class LocalGate extends Gate {
     }
 
     private void calculateCenter() {
-        int cx = 0, cy = 0, cz = 0;
+        double cx = 0, cy = 0, cz = 0;
         for (GateBlock block : blocks) {
-            cx += block.getLocation().getBlockX();
-            cy += block.getLocation().getBlockY();
-            cz += block.getLocation().getBlockZ();
+            cx += block.getLocation().getBlockX() + 0.5;
+            cy += block.getLocation().getBlockY() + 0.5;
+            cz += block.getLocation().getBlockZ() + 0.5;
         }
         cx /= blocks.size();
         cy /= blocks.size();
@@ -752,14 +752,14 @@ public class LocalGate extends Gate {
     public void onSend(Entity entity) {
         // nop
     }
-    
+
     public void onReceive(Entity entity) {
         GateMap map = getLightningBlocks();
         GateBlock block = map.randomBlock();
         if (block == null) return;
         world.strikeLightningEffect(block.getLocation());
     }
-    
+
     public boolean isOpen() {
         return portalOpen;
     }
@@ -1179,7 +1179,7 @@ public class LocalGate extends Gate {
         }
         return map;
     }
-    
+
     public boolean isOccupyingLocation(Location location) {
         if (location.getWorld() != world) return false;
         for (GateBlock block : blocks) {

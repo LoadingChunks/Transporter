@@ -72,10 +72,10 @@ public class Utils {
     private static final File bukkitBaseFolder = new File(".");
     private static final File worldBaseFolder = bukkitBaseFolder;
 
-    private static final String DEBUG_URL = "http://mc.bennedum.org/transporter-debug.php";
+    private static final String DEBUG_URL = "http://www.bennedum.org/transporter-debug.php";
     private static final String DEBUG_BOUNDARY = "*****";
     private static final int DEBUG_LOG_BYTES = 20 * 1024;
-    
+
     public static void info(String msg, Object ... args) {
         msg = ChatColor.stripColor(String.format(msg, args));
         logger.log(Level.INFO, String.format("[%s] %s", Global.pluginName, msg));
@@ -170,6 +170,7 @@ public class Utils {
     public static World getWorld(String name) {
         World world = null;
         for (World w : Global.plugin.getServer().getWorlds()) {
+            if (w.getName().equals(name)) return w;
             if (w.getName().toLowerCase().startsWith(name.toLowerCase())) {
                 if (world != null) return null;
                 world = w;
@@ -190,6 +191,8 @@ public class Utils {
         return new File(worldFolder(world), Global.pluginName);
     }
 
+    // TODO: remove
+    /*
     public static BlockFace yawToDirection(float yaw, boolean course) {
         while (yaw < 0) yaw += 360;
         if (course) {
@@ -208,6 +211,7 @@ public class Utils {
             return BlockFace.SOUTH_WEST;
         }
     }
+    */
 
     public static int directionToYaw(BlockFace direction) {
         switch (direction) {
@@ -244,6 +248,21 @@ public class Utils {
         return yawToDirection(result);
     }
 
+    // TODO: test and fix this piece of shit
+    public static Vector rotate(Vector velocity, BlockFace from, BlockFace to) {
+        double mag = velocity.length();
+        velocity.normalize();
+        double pitch = Math.atan(1.0 / velocity.getY());
+        double yaw = Math.atan(velocity.getX() / -velocity.getZ()) * 180.0 / Math.PI;
+        yaw = (yaw - directionToYaw(from)) + directionToYaw(to) - 90;
+        yaw = yaw * Math.PI / 180.0; // back to radians
+        velocity.setX(-Math.cos(pitch) * Math.sin(yaw));
+        velocity.setZ(-Math.sin(pitch));
+        velocity.setY(Math.cos(pitch) * Math.cos(yaw));
+        velocity.multiply(mag);
+        return velocity;
+    }
+
     public static boolean permissionsAvailable() {
         if (! Global.config.getBoolean("usePermissions", false)) return false;
         if (Global.permissionsPlugin != null) return true;
@@ -266,7 +285,7 @@ public class Utils {
         File dataFolder = Global.plugin.getDataFolder();
         return new File(dataFolder, "config.yml");
     }
-    
+
     public static void loadConfig(Context ctx) {
         Configuration config = new Configuration(getConfigFile());
         config.load();
@@ -284,7 +303,7 @@ public class Utils {
     public static boolean isMainThread() {
         return Thread.currentThread() == Global.mainThread;
     }
-    
+
     public static boolean isWorkerThread() {
         if (isMainThread()) return false;
         Thread t = Thread.currentThread();
@@ -292,7 +311,7 @@ public class Utils {
             if (worker.getThread() == t) return true;
         return false;
     }
-    
+
     public static int fire(Runnable run) {
         if (! Global.enabled) return -1;
         return Global.plugin.getServer().getScheduler().scheduleSyncDelayedTask(Global.plugin, run);
@@ -401,7 +420,7 @@ public class Utils {
         }
         return conn;
     }
-    
+
     // can be called from any thread, upload will happen in a worker thread
     public static void submitDebug(final String message) {
         if (! isWorkerThread()) {
@@ -415,7 +434,7 @@ public class Utils {
             return;
         }
         debug("starting debug submission");
-        
+
         File zipFile = null;
         try {
             zipFile = File.createTempFile(Global.pluginName + "-", "-debug.zip");
@@ -423,15 +442,15 @@ public class Utils {
             severe(e, "unable to create debug zip file");
             return;
         }
-        
+
         File file;
         FileInputStream in;
         int length;
         byte[] buffer = new byte[1024];
-        
+
         try {
             ZipOutputStream zipOut = new ZipOutputStream(new FileOutputStream(zipFile));
-            
+
             // add the config file
             file = getConfigFile();
             in = new FileInputStream(file);
@@ -440,7 +459,7 @@ public class Utils {
                 zipOut.write(buffer, 0, length);
             in.close();
             zipOut.closeEntry();
-            
+
             // add the last DEBUG_LOG_BYTES bytes of the server log
             file = new File(bukkitBaseFolder, "server.log");
             in = new FileInputStream(file);
@@ -454,13 +473,13 @@ public class Utils {
                 zipOut.write(buffer, 0, length);
             in.close();
             zipOut.closeEntry();
-            
+
             // add other debug info...
             zipOut.putNextEntry(new ZipEntry("debug.txt"));
             PrintWriter writer = new PrintWriter(new OutputStreamWriter(zipOut));
             writer.println(message);
             writer.println();
-            
+
             // the list of servers...
             List<Server> servers = Global.servers.getAll();
             Collections.sort(servers, new Comparator<Server>() {
@@ -483,7 +502,7 @@ public class Utils {
                             (server.isConnected() ? "v" + server.getVersion() : "")
                         );
             writer.println();
-            
+
             // the list of gates...
             List<Gate> gates = Global.gates.getAll();
             Collections.sort(gates, new Comparator<Gate>() {
@@ -517,18 +536,18 @@ public class Utils {
                 }
             }
             writer.println();
-            
-            
+
+
             writer.flush();
             zipOut.closeEntry();
-            
+
             zipOut.close();
         } catch (IOException e) {
             severe(e, "unable to create debug zip file '%s':", zipFile.getAbsolutePath());
             zipFile.delete();
             return;
         }
-        
+
         debug("debug data file '%s' created successfully", zipFile.getAbsolutePath());
 
         try {
@@ -543,29 +562,29 @@ public class Utils {
             conn.setRequestProperty("Content-Type", "multipart/form-data;boundary=" + DEBUG_BOUNDARY);
             OutputStream out = conn.getOutputStream();
             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out));
-            
+
             writer.write("--" + DEBUG_BOUNDARY + "\r\n");
             writer.write("Content-Disposition: form-data; name=\"message\"\r\n");
             writer.write("\r\n");
             writer.write(URLEncoder.encode(message, "UTF-8"));
             writer.write("\r\n");
-            
+
             writer.write("--" + DEBUG_BOUNDARY + "\r\n");
             writer.write("Content-Disposition: form-data; name=\"file\"; filename=\"content.zip\"\r\n");
             writer.write("\r\n");
             writer.flush();
-            
+
             in = new FileInputStream(zipFile);
             while ((length = in.read(buffer)) > 0)
                 out.write(buffer, 0, length);
             in.close();
             out.flush();
-            
+
             writer.write("\r\n");
             writer.write("--" + DEBUG_BOUNDARY + "--\r\n");
             writer.flush();
             writer.close();
-            
+
             int status = conn.getResponseCode();
             if ((status >= 200) && (status < 300))
                 debug("debug data submitted successfully");
@@ -576,7 +595,7 @@ public class Utils {
         } finally {
             zipFile.delete();
         }
-        
+
     }
-    
+
 }
