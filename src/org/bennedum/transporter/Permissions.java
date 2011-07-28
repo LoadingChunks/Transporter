@@ -103,6 +103,7 @@ public final class Permissions {
     }
 
     public static boolean isAllowedToConnect(String playerName, String ipAddress) {
+        if (Global.plugin.getServer().getOnlinePlayers().length >= Global.plugin.getServer().getMaxPlayers()) return false;
         if (getList(new File(BANNEDIPS_FILE)).contains(ipAddress)) return false;
         if (getProperties(new File(SERVERPROPERTIES_FILE)).getProperty("white-list", "false").equalsIgnoreCase("true"))
             return getList(new File(WHITELIST_FILE)).contains(playerName);

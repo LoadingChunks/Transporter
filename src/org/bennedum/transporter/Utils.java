@@ -248,18 +248,15 @@ public class Utils {
         return yawToDirection(result);
     }
 
-    // TODO: test and fix this piece of shit
     public static Vector rotate(Vector velocity, BlockFace from, BlockFace to) {
-        double mag = velocity.length();
-        velocity.normalize();
-        double pitch = Math.atan(1.0 / velocity.getY());
-        double yaw = Math.atan(velocity.getX() / -velocity.getZ()) * 180.0 / Math.PI;
-        yaw = (yaw - directionToYaw(from)) + directionToYaw(to) - 90;
-        yaw = yaw * Math.PI / 180.0; // back to radians
-        velocity.setX(-Math.cos(pitch) * Math.sin(yaw));
-        velocity.setZ(-Math.sin(pitch));
-        velocity.setY(Math.cos(pitch) * Math.cos(yaw));
-        velocity.multiply(mag);
+        double angle = directionToYaw(from) - directionToYaw(to); // degrees
+        angle = angle * Math.PI / 180.0; // radians
+        double cos = Math.cos(angle);
+        double sin = Math.sin(angle);
+        double x = velocity.getX();
+        double z = velocity.getZ();
+        velocity.setX((cos * x) + (sin * z));
+        velocity.setZ((-sin * x) + (cos * z));
         return velocity;
     }
 

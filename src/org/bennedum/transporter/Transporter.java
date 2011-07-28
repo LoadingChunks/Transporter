@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.bennedum.transporter.command.CommandException;
 import org.bennedum.transporter.command.CommandProcessor;
+import org.bukkit.block.BlockFace;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.event.Event.Priority;
@@ -27,6 +28,7 @@ import org.bukkit.event.Event.Type;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
+import org.bukkit.util.Vector;
 
 
 /**

@@ -62,9 +62,9 @@ transporter = function() {
 
     var rebuildMarkers = function() {
     console.log('rebuildMarkers');
-		$.each(markers, function(key, value) {
-			markers[key].remove();
-		});
+        $.each(markers, function(key, value) {
+            markers[key].remove();
+        });
         markers = {};
         for (var i in gates) {
             var gate = gates[i];
@@ -72,10 +72,9 @@ transporter = function() {
             var position = dynmap.map.getProjection().fromWorldToLatLng(gate.x, gate.y, gate.z);
             markers[fullName] = new CustomMarker(position, dynmap.map, function(div) {
                 $(div).addClass('transporterGateMarker').append(createGateInfo(this.gate));
+                this.toggle(isGateVisible(this.gate));
             });
             markers[fullName].gate = gate;
-            //markers[fullName].toggle(isGateVisible(gate));
-            //markers[fullName].hide();
         }
     };
 
@@ -83,14 +82,8 @@ transporter = function() {
     console.log('toggleMarkers');
 		$.each(markers, function(key, value) {
             var marker = markers[key];
-console.log('gate ' + marker.gate.name + ': ' + isGateVisible(marker.gate));
-
-            if (isGateVisible(marker.gate))
-                marker.show();
-            else
-                marker.hide();
-//			markers[key].toggle(isGateVisible(markers[key].gate));
-		});
+            marker.toggle(isGateVisible(marker.gate));
+	});
     };
 
     return {
@@ -99,7 +92,6 @@ console.log('gate ' + marker.gate.name + ': ' + isGateVisible(marker.gate));
             $.getJSON('transporter/gates.json', function(newGates) {
                 gates = newGates;
                 rebuildMarkers();
-                toggleMarkers();
             });
         },
 
@@ -137,28 +129,19 @@ console.log('gate ' + marker.gate.name + ': ' + isGateVisible(marker.gate));
 componentconstructors['../transporter/transporter'] = function(dynmap, configuration) {
 
     // load our CSS
-	var link = $("<link>");
-	link.attr({
-		type: 'text/css',
-		rel: 'stylesheet',
-		href: 'transporter/transporter.css'
-	});
-	$("head").append( link );
+    var link = $("<link>");
+    link.attr({
+        type: 'text/css',
+        rel: 'stylesheet',
+        href: 'transporter/transporter.css'
+    });
+    $("head").append( link );
 
     // bind to events
 
-    /*
-	$(dynmap).bind('worldchanged', function() {
-        console.log('worldchanged to: ' + dynmap.world.name);
-//        transporter.rebuild();
-//        transporter.toggle();
-    });
-*/
-
-	$(dynmap).bind('mapchanged', function() {
+    $(dynmap).bind('mapchanged', function() {
         console.log('mapchanged, world is: ' + dynmap.world.name);
         transporter.rebuild();
-        transporter.toggle();
     });
 
     // setup refresh

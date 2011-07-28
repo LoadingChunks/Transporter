@@ -480,8 +480,6 @@ public final class Teleport {
                     Location location = new Location(toGate.getWorld(), 0, 0, 0, entityState.getYaw(), entityState.getPitch());
                     Vector velocity = entityState.getVelocity();
                     prepareForSpawn(location, velocity, fromGateDirection, toGate);
-                    // TODO: remove
-                    //Location location = prepareSpawnLocation(entityState.getPitch(), entityState.getYaw(), fromGateDirection, toGate);
                     Entity entity = entityState.restore(location, velocity, null);
                     if (entity != null) {
                         toGate.onReceive(entity);
@@ -564,8 +562,6 @@ public final class Teleport {
         Location location = player.getLocation();
         Vector velocity = player.getVelocity();
         prepareForSpawn(location, velocity, arrival.getFromGateDirection(), toGate);
-        // TODO: remove
-        //Location location = prepareSpawnLocation(arrival.getEntityState().getPitch(), arrival.getEntityState().getYaw(), arrival.getFromGateDirection(), toGate);
         Entity entity = arrival.getEntityState().restore(location, velocity, player);
         if (entity == null)
             throw new TeleportException("unable to restore entity");
