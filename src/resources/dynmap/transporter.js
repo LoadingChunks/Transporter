@@ -18,6 +18,7 @@ transporter = function() {
 
     var markers = {};
     var gates = [];
+    var infoPopup = false;
     var showAll = true;
     var showOnWorld = false;
     var showOffWorld = false;
@@ -70,7 +71,20 @@ transporter = function() {
             var fullName = gate.world + '.' + gate.name;
             var position = dynmap.map.getProjection().fromWorldToLatLng(gate.x, gate.y, gate.z);
             markers[fullName] = new CustomMarker(position, dynmap.map, function(div) {
-                $(div).addClass('transporterGateMarker').append(createGateInfo(this.gate));
+                var gate = this.gate;
+                $(div).addClass('transporterGateMarker').hover(
+                    function(eIn) {
+                        if (infoPopup) infoPopup.remove();
+                        infoPopup = $(createGateInfo(gate)).css({
+                            top: $(div).css('top'),
+                            left: $(div).css('left')
+                        }).appendTo('.dynmap');
+                    },
+                    function(eOut) {
+                        if (infoPopup) infoPopup.remove();
+                        infoPopup = false;
+                    }
+                );
                 this.toggle(isGateVisible(this.gate));
             });
             markers[fullName].gate = gate;
