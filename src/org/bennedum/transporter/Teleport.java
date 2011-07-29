@@ -43,26 +43,33 @@ import org.bukkit.util.Vector;
 public final class Teleport {
 
     private static final int DEFAULT_ARRIVAL_WINDOW = 20000;
+    private static final int DEFAULT_LOCK_EXPIRATION = 5000;
 
     private static final Map<String,String> pins = new HashMap<String,String>();
-    private static final Set<Integer> gateLocks = new HashSet<Integer>();
+    private static final Map<Integer,Long> gateLocks = new HashMap<Integer,Long>();
     private static final Map<String,PlayerArrival> arrivals = new HashMap<String,PlayerArrival>();
 
     public static void removeGateLock(Entity entity) {
         synchronized (gateLocks) {
-            gateLocks.remove(entity.getEntityId());
+            Long expiry = gateLocks.get(entity.getEntityId());
+            if (expiry == null) return;
+            if (expiry <= System.currentTimeMillis()) {
+                gateLocks.remove(entity.getEntityId());
+                Utils.debug("removed gate lock for entity %d", entity.getEntityId());
+            }
         }
     }
 
     public static boolean isGateLocked(Entity entity) {
         synchronized (gateLocks) {
-            return gateLocks.contains(entity.getEntityId());
+            return gateLocks.containsKey(entity.getEntityId());
         }
     }
 
     public static void addGateLock(Entity entity) {
         synchronized (gateLocks) {
-            gateLocks.add(entity.getEntityId());
+            gateLocks.put(entity.getEntityId(), System.currentTimeMillis() + DEFAULT_LOCK_EXPIRATION);
+            Utils.debug("added gate lock for entity %d", entity.getEntityId());
         }
     }
 
@@ -281,9 +288,10 @@ public final class Teleport {
 
         if (entity instanceof Player)
             player = (Player)entity;
-        else if (entity.getPassenger() instanceof Player)
+        else if (entity.getPassenger() instanceof Player) {
             player = (Player)entity.getPassenger();
-        else
+            addGateLock(player);
+        } else
             player = null;
         if (player == null) {
             pin = null;
@@ -331,8 +339,12 @@ public final class Teleport {
 
         if (player == null)
             Utils.info("teleporting entity '%d' to '%s'...", entity.getEntityId(), toGate.getFullName());
-        else
-            Utils.info("teleporting player '%s' to '%s'...", player.getName(), toGate.getFullName());
+        else {
+            if (player != entity)
+                Utils.info("teleporting player '%s' as passenger of entity '%d' to '%s'...", player.getName(), entity.getEntityId(), toGate.getFullName());
+            else
+                Utils.info("teleporting player '%s' to '%s'...", player.getName(), toGate.getFullName());
+        }
 
         // tell other side to check things
         // if we get a positive response, do our half of the teleport
@@ -417,7 +429,7 @@ public final class Teleport {
         final LocalGate toGate = (LocalGate)gate;
 
         // playerState will be null if no player is involved
-        PlayerState playerState = entityState.getPlayerState();
+        final PlayerState playerState = entityState.getPlayerState();
 
         if (playerState != null) {
             // check permissions on our side
@@ -466,7 +478,14 @@ public final class Teleport {
         Utils.fire(new Runnable() {
             @Override
             public void run() {
-                Utils.info("expecting '%s' from '%s'...", entityState.getName(), fromGate.getFullName());
+                if (playerState == null)
+                    Utils.info("expecting entity '%d' from '%s'...", entityState.getEntityId(), fromGate.getFullName());
+                else {
+                    if (playerState != entityState)
+                        Utils.info("expecting player '%s' as passenger of entity '%d' from '%s'...", playerState.getName(), entityState.getEntityId(), fromGate.getFullName());
+                    else
+                        Utils.info("expecting player '%s' from '%s'...", playerState.getName(), fromGate.getFullName());
+                }
             }
         });
 
@@ -476,7 +495,7 @@ public final class Teleport {
             Utils.fire(new Runnable() {
                 @Override
                 public void run() {
-                    Utils.info("sent confirmation of arrival of '%s' from '%s'...", entityState.getName(), fromGate.getFullName());
+                    Utils.info("sent confirmation of arrival of entity '%d' from '%s'...", entityState.getEntityId(), fromGate.getFullName());
                     Location location = new Location(toGate.getWorld(), 0, 0, 0, entityState.getYaw(), entityState.getPitch());
                     Vector velocity = entityState.getVelocity();
                     prepareForSpawn(location, velocity, fromGateDirection, toGate);
@@ -486,9 +505,9 @@ public final class Teleport {
                         addGateLock(entity);
                         if (filterInventory(entity, toGate))
                             Utils.info("some inventory items where filtered by the remote gate");
-                        Utils.info("teleported '%s' to '%s'", entityState.getName(), toGate.getFullName());
+                        Utils.info("teleported entity %d to '%s'", entityState.getEntityId(), toGate.getFullName());
                     } else
-                        Utils.warning("unable to teleport '%s' to '%s'", entityState.getName(), toGate.getFullName());
+                        Utils.warning("unable to teleport entity %d to '%s'", entityState.getEntityId(), toGate.getFullName());
                 }
             });
         } else {
@@ -516,7 +535,14 @@ public final class Teleport {
             arrivals.remove(arrival.getPlayerState().getName());
             arrival.setCancelled();
         }
-        Utils.info("cancelled expected arrival of '%s' from '%s'", arrival.getPlayerState().getName(), arrival.getFromGateName());
+
+        EntityState entityState = arrival.getEntityState();
+        PlayerState playerState = arrival.getPlayerState();
+
+        if (playerState != entityState)
+            Utils.info("cancelled expected arrival of player '%s' as passenger of entity '%d' from '%s'...", playerState.getName(), entityState.getEntityId(), arrival.getFromGateName());
+        else
+            Utils.info("cancelled expected arrival of player '%s' from '%s'...", playerState.getName(), arrival.getFromGateName());
 
         try {
             Server fromServer = Global.servers.get(arrival.getFromServerName());
@@ -546,7 +572,14 @@ public final class Teleport {
             if (arrival == null) return null;
             arrival.setArrived();
         }
-        Utils.info("detected arrival of '%s' from '%s'", player.getName(), arrival.getFromGateName());
+
+        EntityState entityState = arrival.getEntityState();
+        PlayerState playerState = arrival.getPlayerState();
+
+        if (playerState != entityState)
+            Utils.info("detected arrival of player '%s' as passenger of entity '%d' from '%s'...", playerState.getName(), entityState.getEntityId(), arrival.getFromGateName());
+        else
+            Utils.info("detected arrival of player '%s' from '%s'...", playerState.getName(), arrival.getFromGateName());
 
         Gate gate = Global.gates.get(arrival.getToGateName());
         if (gate == null)
@@ -560,9 +593,11 @@ public final class Teleport {
 
         Context ctx = new Context(player);
         Location location = player.getLocation();
+Utils.debug("player is at %s", location);
         Vector velocity = player.getVelocity();
         prepareForSpawn(location, velocity, arrival.getFromGateDirection(), toGate);
-        Entity entity = arrival.getEntityState().restore(location, velocity, player);
+Utils.debug("calculated loc is %s", location);
+        Entity entity = entityState.restore(location, velocity, player);
         if (entity == null)
             throw new TeleportException("unable to restore entity");
 
@@ -605,7 +640,17 @@ public final class Teleport {
         Utils.fire(new Runnable() {
             @Override
             public void run() {
-                Utils.info("received confirmation of arrival of '%s' at '%s'", entityState.getName(), toGateName);
+
+                PlayerState playerState = entityState.getPlayerState();
+
+                if (playerState == null)
+                    Utils.info("received confirmation of arrival of entity '%d' at '%s'...", entityState.getEntityId(), toGateName);
+                else {
+                    if (playerState != entityState)
+                        Utils.info("received confirmation of arrival of player '%s' as passenger of entity '%d' at '%s'...", playerState.getName(), entityState.getEntityId(), toGateName);
+                    else
+                        Utils.info("received confirmation of arrival of player '%s' at '%s'...", playerState.getName(), toGateName);
+                }
 
                 // if the entity isn't a player, we have to destroy it on this side
                 if ((! entityState.isPlayer()) && (fromGateName != null)) {

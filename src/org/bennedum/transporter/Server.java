@@ -296,7 +296,7 @@ public final class Server {
         if ((System.currentTimeMillis() - connection.getLastMessageSentTime()) < SEND_KEEPALIVE_INTERVAL) return;
         Utils.debug("sending keepalive to '%s'", name);
         Message message = createMessage("nop");
-        connection.sendMessage(message, true);
+        sendMessage(message);
     }
 
     public void checkKeepAlive() {
@@ -346,7 +346,7 @@ public final class Server {
     public void doGetGates() {
         if (! isConnected()) return;
         Message message = createMessage("getGates");
-        connection.sendMessage(message, true);
+        sendMessage(message);
     }
 
     public void doGateAdded(LocalGate gate) {
@@ -355,7 +355,7 @@ public final class Server {
         message.put("name", gate.getName());
         message.put("worldName", gate.getWorldName());
         message.put("designName", gate.getDesignName());
-        connection.sendMessage(message, true);
+        sendMessage(message);
     }
 
     public void doGateRenamed(String oldFullName, String newName) {
@@ -363,21 +363,21 @@ public final class Server {
         Message message = createMessage("renameGate");
         message.put("oldName", oldFullName);
         message.put("newName", newName);
-        connection.sendMessage(message, true);
+        sendMessage(message);
     }
 
     public void doGateRemoved(LocalGate gate) {
         if (! isConnected()) return;
         Message message = createMessage("removeGate");
         message.put("name", gate.getFullName());
-        connection.sendMessage(message, true);
+        sendMessage(message);
     }
 
     public void doGateDestroyed(LocalGate gate) {
         if (! isConnected()) return;
         Message message = createMessage("destroyGate");
         message.put("name", gate.getFullName());
-        connection.sendMessage(message, true);
+        sendMessage(message);
     }
 
     public void doGateAttach(RemoteGate toGate, LocalGate fromGate) {
@@ -385,7 +385,7 @@ public final class Server {
         Message message = createMessage("attachGate");
         message.put("to", toGate.getWorldName() + "." + toGate.getName());
         message.put("from", fromGate.getFullName());
-        connection.sendMessage(message, true);
+        sendMessage(message);
     }
 
     public void doGateDetach(RemoteGate toGate, LocalGate fromGate) {
@@ -393,7 +393,7 @@ public final class Server {
         Message message = createMessage("detachGate");
         message.put("to", toGate.getWorldName() + "." + toGate.getName());
         message.put("from", fromGate.getFullName());
-        connection.sendMessage(message, true);
+        sendMessage(message);
     }
 
     // blocks until acknowledgement from remote server is received
@@ -432,7 +432,7 @@ public final class Server {
         message.put("fromGate", fromGateName);
         message.put("toGate", toGateName);
         message.put("entity", entityState.encode());
-        connection.sendMessage(message, true);
+        sendMessage(message);
     }
 
     // used to tell the sending side we didn't receive the entity
@@ -443,7 +443,7 @@ public final class Server {
         message.put("fromGate", fromGateName);
         message.put("toGate", toGateName);
         message.put("entity", entityState.encode());
-        connection.sendMessage(message, true);
+        sendMessage(message);
     }
 
     public void doRelayChat(Player player, String world, String msg, Set<RemoteGate> toGates) {
@@ -457,7 +457,7 @@ public final class Server {
         for (RemoteGate gate : toGates)
             gates.add(Gate.makeLocalName(gate.getGlobalName()));
         message.put("toGates", gates);
-        connection.sendMessage(message, true);
+        sendMessage(message);
     }
 
 
@@ -473,7 +473,7 @@ public final class Server {
         this.version = version;
         cancelOutbound();
         Utils.info("connected to '%s' (%s), running v%s", getName(), connection.getName(), version);
-        connection.sendMessage(handleGetGates(), true);
+        sendMessage(handleGetGates());
     }
 
     public void onDisconnected() {
@@ -545,7 +545,7 @@ public final class Server {
                 response.put("responseId", message.getInt("requestId"));
                 response.remove("requestId");
             }
-            connection.sendMessage(response, true);
+            sendMessage(response);
         }
     }
 
@@ -788,6 +788,11 @@ public final class Server {
         Message m = new Message();
         m.put("command", command);
         return m;
+    }
+
+    private void sendMessage(Message message) {
+        Utils.debug("sending command '%s' to %s", message.getString("command", "<none>"), name);
+        connection.sendMessage(message, true);
     }
 
     @Override

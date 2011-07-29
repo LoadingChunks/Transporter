@@ -61,7 +61,6 @@ transporter = function() {
     };
 
     var rebuildMarkers = function() {
-    console.log('rebuildMarkers');
         $.each(markers, function(key, value) {
             markers[key].remove();
         });
@@ -79,7 +78,6 @@ transporter = function() {
     };
 
     var toggleMarkers = function() {
-    console.log('toggleMarkers');
 		$.each(markers, function(key, value) {
             var marker = markers[key];
             marker.toggle(isGateVisible(marker.gate));
@@ -140,7 +138,6 @@ componentconstructors['../transporter/transporter'] = function(dynmap, configura
     // bind to events
 
     $(dynmap).bind('mapchanged', function() {
-        console.log('mapchanged, world is: ' + dynmap.world.name);
         transporter.rebuild();
     });
 
