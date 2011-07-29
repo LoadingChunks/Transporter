@@ -50,6 +50,7 @@ public final class Teleport {
     private static final Map<String,PlayerArrival> arrivals = new HashMap<String,PlayerArrival>();
 
     public static void removeGateLock(Entity entity) {
+        if (entity == null) return;
         synchronized (gateLocks) {
             Long expiry = gateLocks.get(entity.getEntityId());
             if (expiry == null) return;
@@ -61,12 +62,14 @@ public final class Teleport {
     }
 
     public static boolean isGateLocked(Entity entity) {
+        if (entity == null) return false;
         synchronized (gateLocks) {
             return gateLocks.containsKey(entity.getEntityId());
         }
     }
 
     public static void addGateLock(Entity entity) {
+        if (entity == null) return;
         synchronized (gateLocks) {
             gateLocks.put(entity.getEntityId(), System.currentTimeMillis() + DEFAULT_LOCK_EXPIRATION);
             Utils.debug("added gate lock for entity %d", entity.getEntityId());

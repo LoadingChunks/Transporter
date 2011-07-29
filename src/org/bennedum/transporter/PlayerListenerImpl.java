@@ -99,27 +99,29 @@ public class PlayerListenerImpl extends PlayerListener {
 
         Context ctx = new Context(player);
         try {
-            Location newLoc = Teleport.send(player, fromGate);
+            Reservation r = new Reservation(player, fromGate);
+            r.depart();
+            Location newLoc = r.getToLocation();
             if (newLoc != null) {
                 event.setFrom(newLoc);
                 event.setTo(newLoc);
                 // cancelling the event is bad in RB 953!
                 //event.setCancelled(true);
             }
-        } catch (TeleportException te) {
-            ctx.warnLog(te.getMessage());
+        } catch (ReservationException re) {
+            ctx.warnLog(re.getMessage());
         }
     }
 
     @Override
     public void onPlayerJoin(PlayerJoinEvent event) {
-        if (Teleport.expectingArrival(event.getPlayer())) {
-            Context ctx = new Context(event.getPlayer());
-            try {
-                Location loc = Teleport.arrive(event.getPlayer());
-            } catch (TeleportException te) {
-                ctx.warnLog("there was a problem processing your arrival: ", te.getMessage());
-            }
+        Reservation r = Reservation.remove(event.getPlayer());
+        if (r == null) return;
+        Context ctx = new Context(event.getPlayer());
+        try {
+            r.arrive();
+        } catch (ReservationException re) {
+            ctx.warnLog("there was a problem processing your arrival: ", re.getMessage());
         }
     }
 

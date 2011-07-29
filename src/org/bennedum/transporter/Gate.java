@@ -45,6 +45,8 @@ public abstract class Gate {
     public abstract String getWorldName();
     public abstract String getServerName();
     public abstract String getDesignName();
+    public abstract double getSendCost(Gate toGate);
+    public abstract double getReceiveCost(Gate fromGate);
 
     public abstract void onRenameComplete();
 

@@ -71,10 +71,20 @@ public final class Permissions {
         return false;
     }
 
+    public static void requirePermission(Player player, String perm) throws PermissionsException {
+        if (player == null) return;
+        requirePermissions(player.getWorld().getName(), player.getName(), true, perm);
+    }
+    
     public static void requirePermissions(Player player, boolean requireAll, String ... perms) throws PermissionsException {
+        if (player == null) return;
         requirePermissions(player.getWorld().getName(), player.getName(), requireAll, perms);
     }
 
+    public static void requirePermission(String worldName, String playerName, String perm) throws PermissionsException {
+        requirePermissions(worldName, playerName, true, perm);
+    }
+    
     public static void requirePermissions(String worldName, String playerName, boolean requireAll, String ... perms) throws PermissionsException {
         if (isOp(playerName)) return;
         if (Utils.permissionsAvailable()) {

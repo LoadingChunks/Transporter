@@ -102,6 +102,8 @@ public class Context {
         return (Player)sender;
     }
 
+    // TODO: maybe not use permissions stuff here
+    
     public boolean hasAllPermissions(String ... perms) {
         try {
             requireAllPermissions(perms);
@@ -125,6 +127,8 @@ public class Context {
         Permissions.requirePermissions(player, requireAll, perms);
     }
 
+    // TODO: move this stuff to new Economy class
+    
     public void requireFunds(double amount) throws FundsException {
         if (isOp() || isSystem() || (! isPlayer())) return;
         Player player = getPlayer();
@@ -140,6 +144,8 @@ public class Context {
         }
     }
 
+    // TODO: move this stuff to new Inventory class
+    
     public void requireInventory(Map<Material,Integer> blocks) throws InventoryException {
         if (isSystem() || (! isPlayer())) return;
         Player player = getPlayer();

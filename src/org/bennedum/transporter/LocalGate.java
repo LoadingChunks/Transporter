@@ -598,6 +598,23 @@ public class LocalGate extends Gate {
     }
 
     @Override
+    public double getSendCost(Gate toGate) {
+        if (toGate == null) return 0;
+        if (toGate.isSameWorld(this)) return sendLocalCost;
+        if (toGate.isSameServer()) return sendWorldCost;
+        return sendServerCost;
+    }
+
+    @Override
+    public double getReceiveCost(Gate fromGate) {
+        if (fromGate == null) return 0;
+        if (fromGate.isSameWorld(this)) return receiveLocalCost;
+        if (fromGate.isSameServer()) return receiveWorldCost;
+        return receiveServerCost;
+    }
+
+    
+    @Override
     public void onRenameComplete() {
         file.delete();
         generateFile();

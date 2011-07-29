@@ -65,6 +65,16 @@ public final class RemoteGate extends Gate {
     }
 
     @Override
+    public double getSendCost(Gate toGate) {
+        return 0;
+    }
+
+    @Override
+    public double getReceiveCost(Gate fromGate) {
+        return 0;
+    }
+    
+    @Override
     public void dump(Context ctx) {
         Utils.debug("RemoteGate:");
         Utils.debug("  name = %s", name);

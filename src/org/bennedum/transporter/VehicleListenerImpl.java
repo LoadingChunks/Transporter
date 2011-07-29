@@ -35,14 +35,16 @@ public class VehicleListenerImpl extends VehicleListener {
             return;
         }
         if (Teleport.isGateLocked(vehicle)) return;
+        
         try {
-            Teleport.send(vehicle, fromGate);
-        } catch (TeleportException te) {
+            Reservation r = new Reservation(vehicle, fromGate);
+            r.depart();
+        } catch (ReservationException re) {
             if (vehicle.getPassenger() instanceof Player) {
                 Context ctx = new Context((Player)vehicle.getPassenger());
-                ctx.warnLog(te.getMessage());
+                ctx.warnLog(re.getMessage());
             } else
-                Utils.warning(te.getMessage());
+                Utils.warning(re.getMessage());
         }
     }
 
