@@ -15,8 +15,6 @@
  */
 package org.bennedum.transporter;
 
-import com.iConomy.iConomy;
-import com.nijiko.permissions.PermissionHandler;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -52,9 +50,6 @@ public final class Global {
     public static GateCollection gates = new GateCollection();
     public static ServerCollection servers = new ServerCollection();
     public static Network network = new Network();
-
-    public static PermissionHandler permissionsPlugin = null;
-    public static iConomy iconomyPlugin = null;
 
     public static final List<CommandProcessor> commands = new ArrayList<CommandProcessor>();
 

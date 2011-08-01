@@ -15,6 +15,7 @@
  */
 package org.bennedum.transporter;
 
+import com.nijiko.permissions.PermissionHandler;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -26,6 +27,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 
 /**
  *
@@ -45,6 +47,17 @@ public final class Permissions {
     
     private static Map<String,ListFile> listFiles = new HashMap<String,ListFile>();
     private static Map<String,PropertiesFile> propertiesFiles = new HashMap<String,PropertiesFile>();
+
+    private static PermissionHandler permissionsPlugin = null;
+    
+    public static boolean permissionsAvailable() {
+        if (! Global.config.getBoolean("usePermissions", false)) return false;
+        if (permissionsPlugin != null) return true;
+        Plugin p = Global.plugin.getServer().getPluginManager().getPlugin("Permissions");
+        if ((p == null) || (! p.isEnabled())) return false;
+        permissionsPlugin = ((com.nijikokun.bukkit.Permissions.Permissions)p).getHandler();
+        return true;
+    }
     
     public static boolean hasBasic(Player player, String perm) {
         return hasBasic(player.getName(), perm);
@@ -87,29 +100,31 @@ public final class Permissions {
     
     public static void requirePermissions(String worldName, String playerName, boolean requireAll, String ... perms) throws PermissionsException {
         if (isOp(playerName)) return;
-        if (Utils.permissionsAvailable()) {
+        if (permissionsAvailable()) {
             for (String perm : perms) {
                 if (requireAll) {
-                    if (! Global.permissionsPlugin.permission(worldName, playerName, perm))
+                    if (! permissionsPlugin.permission(worldName, playerName, perm))
                         throw new PermissionsException("not permitted (Permissions)");
                 } else {
-                    if (Global.permissionsPlugin.permission(worldName, playerName, perm)) return;
+                    if (permissionsPlugin.permission(worldName, playerName, perm)) return;
                 }
             }
             if (! requireAll)
                 throw new PermissionsException("not permitted (Permissions)");
-        } else {
-            for (String perm : perms) {
-                if (requireAll) {
-                    if (! hasBasic(playerName, perm))
-                        throw new PermissionsException("not permitted (basic)");
-                } else {
-                    if (hasBasic(playerName, perm)) return;
-                }
-            }
-            if (! requireAll)
-                throw new PermissionsException("not permitted (basic)");
+            return;
         }
+        
+        // use built-in permissions
+        for (String perm : perms) {
+            if (requireAll) {
+                if (! hasBasic(playerName, perm))
+                    throw new PermissionsException("not permitted (basic)");
+            } else {
+                if (hasBasic(playerName, perm)) return;
+            }
+        }
+        if (! requireAll)
+            throw new PermissionsException("not permitted (basic)");
     }
 
     public static boolean isAllowedToConnect(String playerName, String ipAddress) {

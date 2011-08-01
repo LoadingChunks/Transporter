@@ -33,7 +33,6 @@ import org.bennedum.transporter.net.NetworkException;
 import org.bennedum.transporter.net.Network;
 import org.bennedum.transporter.net.Message;
 import org.bennedum.transporter.net.Result;
-import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.config.ConfigurationNode;
@@ -396,6 +395,48 @@ public final class Server {
         sendMessage(message);
     }
 
+    public void doSendReservation(Reservation res) throws ServerException {
+        if (! isConnected())
+            throw new ServerException("server '%s' is offline", name);
+        Message message = createMessage("sendReservation");
+        message.put("reservation", res.encode());
+        sendMessage(message);
+    }
+    
+    public void doReservationApproved(long id) throws ServerException {
+        if (! isConnected())
+            throw new ServerException("server '%s' is offline", name);
+        Message message = createMessage("reservationApproved");
+        message.put("id", id);
+        sendMessage(message);
+    }
+    
+    public void doReservationDenied(long id, String reason) throws ServerException {
+        if (! isConnected())
+            throw new ServerException("server '%s' is offline", name);
+        Message message = createMessage("reservationDenied");
+        message.put("id", id);
+        message.put("reason", reason);
+        sendMessage(message);
+    }
+    
+    public void doReservationArrived(long id) throws ServerException {
+        if (! isConnected())
+            throw new ServerException("server '%s' is offline", name);
+        Message message = createMessage("reservationArrived");
+        message.put("id", id);
+        sendMessage(message);
+    }
+
+    public void doReservationTimeout(long id) throws ServerException {
+        if (! isConnected())
+            throw new ServerException("server '%s' is offline", name);
+        Message message = createMessage("reservationTimeout");
+        message.put("id", id);
+        sendMessage(message);
+    }
+    
+    // TODO: remove
     // blocks until acknowledgement from remote server is received
     // fromGate can be null if the player is being sent directly
     public void doExpectEntity(Entity entity, LocalGate fromGate, RemoteGate toGate) throws ServerException {
@@ -424,6 +465,7 @@ public final class Server {
         }
     }
 
+    // TODO: remove
     // used to tell the sending side we've recieved the entity
     // fromGate can be null if the player is being sent directly
     public void doConfirmArrival(EntityState entityState, String fromGateName, String toGateName) {
@@ -435,6 +477,7 @@ public final class Server {
         sendMessage(message);
     }
 
+    // TODO: remove
     // used to tell the sending side we didn't receive the entity
     // fromGate can be null if the player is being sent directly
     public void doCancelArrival(EntityState entityState, String fromGateName, String toGateName) {
@@ -521,12 +564,17 @@ public final class Server {
                 handleAttachGate(message);
             else if (command.equals("detachGate"))
                 handleDetachGate(message);
-            else if (command.equals("expectEntity"))
-                response = handleExpectEntity(message);
-            else if (command.equals("cancelArrival"))
-                handleCancelArrival(message);
-            else if (command.equals("confirmArrival"))
-                handleConfirmArrival(message);
+            else if (command.equals("sendReservation"))
+                handleSendReservation(message);
+            else if (command.equals("reservationApproved"))
+                handleReservationApproved(message);
+            else if (command.equals("reservationDenied"))
+                handleReservationDenied(message);
+            else if (command.equals("reservationArrived"))
+                handleReservationArrived(message);
+            else if (command.equals("reservationTimeout"))
+                handleReservationTimeout(message);
+                    
             else if (command.equals("relayChat"))
                 handleRelayChat(message);
 
@@ -675,6 +723,57 @@ public final class Server {
         toGate.detach(fromGate);
     }
 
+    private void handleSendReservation(Message message) throws ServerException {
+        Message resMsg = message.getMessage("reservation");
+        if (resMsg == null)
+            throw new ServerException("missing reservation");
+        Reservation res;
+        try {
+            res = new Reservation(resMsg, this);
+            res.receive();
+        } catch (ReservationException e) {
+            throw new ServerException("invalid reservation: %s", e.getMessage());
+        }
+    }
+    
+    private void handleReservationApproved(Message message) throws ServerException {
+        long id = message.getLong("id");
+        Reservation res = Reservation.get(id);
+        if (res == null)
+            throw new ServerException("unknown reservation id %s", id);
+        res.approved();
+    }
+    
+    private void handleReservationDenied(Message message) throws ServerException {
+        long id = message.getLong("id");
+        Reservation res = Reservation.get(id);
+        if (res == null)
+            throw new ServerException("unknown reservation id %s", id);
+        String reason = message.getString("reason");
+        if (reason == null)
+            throw new ServerException("missing reason");
+        res.denied(reason);
+    }
+    
+    private void handleReservationArrived(Message message) throws ServerException {
+        long id = message.getLong("id");
+        Reservation res = Reservation.get(id);
+        if (res == null)
+            throw new ServerException("unknown reservation id %s", id);
+        res.arrived();
+    }
+
+    private void handleReservationTimeout(Message message) throws ServerException {
+        long id = message.getLong("id");
+        Reservation res = Reservation.get(id);
+        if (res == null)
+            throw new ServerException("unknown reservation id %s", id);
+        res.timeout();
+    }
+    
+            
+    // TODO: remove
+    /*
     private Message handleExpectEntity(Message message) throws ServerException {
         String fromGate = message.getString("fromGate");
         if (fromGate != null)
@@ -708,7 +807,9 @@ public final class Server {
         }
         return new Message();
     }
-
+     */
+    
+            /*
     private void handleCancelArrival(Message message) throws ServerException {
         String fromGate = message.getString("fromGate");
         if (fromGate != null)
@@ -754,7 +855,8 @@ public final class Server {
             throw new ServerException(te.getMessage());
         }
     }
-
+*/
+            
     private void handleRelayChat(Message message) throws ServerException {
         String player = message.getString("player");
         if (player == null)

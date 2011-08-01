@@ -32,6 +32,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.Entity;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 import org.bukkit.util.config.Configuration;
 import org.bukkit.util.config.ConfigurationNode;
@@ -71,35 +72,6 @@ public class LocalGate extends Gate {
 
     private static boolean isValidPin(String pin) {
         return pin.length() < 20;
-    }
-
-    public static String checkItem(String item) {
-        if (item == null) return null;
-        if (item.equals("*")) return item;
-        item = item.toUpperCase();
-        String parts[] = item.split(":");
-        if (parts.length > 2) return null;
-        try {
-            int typeId = Integer.parseInt(parts[0]);
-            Material material = Material.getMaterial(typeId);
-            if (material == null) return null;
-            item = material.toString();
-        } catch (NumberFormatException nfe) {
-            try {
-                Material material = Material.valueOf(parts[0]);
-                item = material.toString();
-            } catch (IllegalArgumentException iae) {
-                return null;
-            }
-        }
-        if (parts.length > 1)
-            try {
-                short dura = Short.parseShort(parts[1]);
-                item += ":" + dura;
-            } catch (NumberFormatException e) {
-                return null;
-            }
-        return item;
     }
 
     public static String getLocalLinkWorldName(String link) {
@@ -230,7 +202,7 @@ public class LocalGate extends Gate {
 
         List<String> items = conf.getStringList("bannedItems", new ArrayList<String>());
         for (String item : items) {
-            String i = checkItem(item);
+            String i = Inventory.normalizeItem(item);
             if (i == null)
                 throw new GateException("invalid banned item '%s'", item);
             bannedItems.add(i);
@@ -238,7 +210,7 @@ public class LocalGate extends Gate {
 
         items = conf.getStringList("allowedItems", new ArrayList<String>());
         for (String item : items) {
-            String i = checkItem(item);
+            String i = Inventory.normalizeItem(item);
             if (i == null)
                 throw new GateException("invalid allowed item '%s'", item);
             allowedItems.add(i);
@@ -247,11 +219,11 @@ public class LocalGate extends Gate {
         items = conf.getKeys("replaceItems");
         if (items != null) {
             for (String oldItem : items) {
-                String oi = checkItem(oldItem);
+                String oi = Inventory.normalizeItem(oldItem);
                 if (oi == null)
                     throw new GateException("invalid replace item '%s'", oldItem);
                 String newItem = conf.getString("replaceItems." + oldItem);
-                String ni = checkItem(newItem);
+                String ni = Inventory.normalizeItem(newItem);
                 if (ni == null)
                     throw new GateException("invalid replace item '%s'", newItem);
                 replaceItems.put(oi, ni);
@@ -996,22 +968,21 @@ public class LocalGate extends Gate {
     }
 
     public boolean addBannedItem(String item) throws GateException {
-        item = checkItem(item);
-        if (item == null)
-            throw new GateException("invalid item");
-        synchronized (bannedItems) {
-            if (bannedItems.contains(item)) return false;
-            bannedItems.add(item);
+        try {
+            if (! Inventory.appendItemList(bannedItems, item)) return false;
+        } catch (InventoryException e) {
+            throw new GateException(e.getMessage());
         }
         dirty = true;
         saveInBackground();
         return true;
     }
 
-    public boolean removeBannedItem(String item) {
-        synchronized (bannedItems) {
-            if (bannedItems.contains(item)) return false;
-            bannedItems.remove(item);
+    public boolean removeBannedItem(String item) throws GateException {
+        try {
+            if (! Inventory.removeItemList(bannedItems, item)) return false;
+        } catch (InventoryException e) {
+            throw new GateException(e.getMessage());
         }
         dirty = true;
         saveInBackground();
@@ -1026,32 +997,29 @@ public class LocalGate extends Gate {
         saveInBackground();
     }
 
+    // TODO: remove
+    /*
     public boolean hasBannedItem(String item) {
-        if (item.equals("*")) return true;
-        String parts[] = item.split(":");
-        synchronized (bannedItems) {
-            return bannedItems.contains(parts[0]) ||
-                   bannedItems.contains(item);
-        }
+        return Inventory.itemListContains(bannedItems, item);
     }
-
+*/
+    
     public boolean addAllowedItem(String item) throws GateException {
-        item = checkItem(item);
-        if (item == null)
-            throw new GateException("invalid item");
-        synchronized (allowedItems) {
-            if (allowedItems.contains(item)) return false;
-            allowedItems.add(item);
+        try {
+            if (! Inventory.appendItemList(allowedItems, item)) return false;
+        } catch (InventoryException e) {
+            throw new GateException(e.getMessage());
         }
         dirty = true;
         saveInBackground();
         return true;
     }
 
-    public boolean removeAllowedItem(String item) {
-        synchronized (allowedItems) {
-            if (allowedItems.contains(item)) return false;
-            allowedItems.remove(item);
+    public boolean removeAllowedItem(String item) throws GateException {
+        try {
+            if (! Inventory.removeItemList(allowedItems, item)) return false;
+        } catch (InventoryException e) {
+            throw new GateException(e.getMessage());
         }
         dirty = true;
         saveInBackground();
@@ -1066,41 +1034,38 @@ public class LocalGate extends Gate {
         saveInBackground();
     }
 
+    // TODO: remove
+    /*
     public boolean hasAllowedItems() {
         synchronized (allowedItems) {
             return ! allowedItems.isEmpty();
         }
     }
-
+*/
+    
+    // TODO: remove
+    /*
     public boolean hasAllowedItem(String item) {
-        if (item.equals("*")) return true;
-        String parts[] = item.split(":");
-        synchronized (allowedItems) {
-            return allowedItems.contains(parts[0]) ||
-                   allowedItems.contains(item);
-        }
+        return Inventory.itemListContains(allowedItems, item);
     }
-
-    public boolean addReplaceItem(String oldItem, String newItem) throws GateException {
-        oldItem = checkItem(oldItem);
-        if (oldItem == null)
-            throw new GateException("invalid old item");
-        newItem = checkItem(newItem);
-        if (newItem == null)
-            throw new GateException("invalid new item");
-        synchronized (replaceItems) {
-            if (replaceItems.containsKey(oldItem)) return false;
-            replaceItems.put(oldItem, newItem);
+*/
+    
+    public boolean addReplaceItem(String fromItem, String toItem) throws GateException {
+        try {
+            if (! Inventory.appendItemMap(replaceItems, fromItem, toItem)) return false;
+        } catch (InventoryException e) {
+            throw new GateException(e.getMessage());
         }
         dirty = true;
         saveInBackground();
         return true;
     }
 
-    public boolean removeReplaceItem(String item) {
-        synchronized (replaceItems) {
-            if (replaceItems.containsKey(item)) return false;
-            replaceItems.remove(item);
+    public boolean removeReplaceItem(String item) throws GateException {
+        try {
+            if (! Inventory.removeItemMap(replaceItems, item)) return false;
+        } catch (InventoryException e) {
+            throw new GateException(e.getMessage());
         }
         dirty = true;
         saveInBackground();
@@ -1115,6 +1080,8 @@ public class LocalGate extends Gate {
         saveInBackground();
     }
 
+    // TODO: remove
+    /*
     public String getReplaceItem(String item) {
         String parts[] = item.split(":");
         synchronized (replaceItems) {
@@ -1124,8 +1091,33 @@ public class LocalGate extends Gate {
         }
     }
 
+     */
+    
+    public boolean isAcceptableInventory(ItemStack[] stacks) {
+        if (stacks == null) return true;
+        if (! requireAllowedItems) return true;
+        if (stacks == null) return true;
+        for (int i = 0; i < stacks.length; i++) {
+            ItemStack stack = stacks[i];
+            if (stack == null) continue;
+            if (Inventory.filterItemStack(stack, replaceItems, allowedItems, bannedItems) == null) return false;
+        }
+        return true;
+    }
 
-
+    public boolean filterInventory(ItemStack[] stacks) {
+        if (stacks == null) return false;
+        boolean filtered = false;
+        for (int i = 0; i < stacks.length; i++) {
+            ItemStack newStack = Inventory.filterItemStack(stacks[i], replaceItems, allowedItems, bannedItems);
+            if (newStack != stacks[i]) {
+                stacks[i] = newStack;
+                filtered = true;
+            }
+        }
+        return filtered;
+    }
+    
     public boolean isInChatProximity(Location location) {
         if (! relayChat) return false;
         if (location.getWorld() != world) return false;

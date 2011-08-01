@@ -15,10 +15,6 @@
  */
 package org.bennedum.transporter;
 
-import com.iConomy.iConomy;
-import com.iConomy.system.Account;
-import com.iConomy.system.Holdings;
-import com.nijikokun.bukkit.Permissions.Permissions;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -39,9 +35,7 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
@@ -51,13 +45,8 @@ import java.util.zip.ZipOutputStream;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.BlockFace;
-import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.PlayerInventory;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitWorker;
 import org.bukkit.util.Vector;
 import org.bukkit.util.config.Configuration;
@@ -260,24 +249,6 @@ public class Utils {
         return velocity;
     }
 
-    public static boolean permissionsAvailable() {
-        if (! Global.config.getBoolean("usePermissions", false)) return false;
-        if (Global.permissionsPlugin != null) return true;
-        Plugin p = Global.plugin.getServer().getPluginManager().getPlugin("Permissions");
-        if ((p == null) || (! p.isEnabled())) return false;
-        Global.permissionsPlugin = ((Permissions)p).getHandler();
-        return true;
-    }
-
-    public static boolean iconomyAvailable() {
-        if (! Global.config.getBoolean("useIConomy", false)) return false;
-        if (Global.iconomyPlugin != null) return true;
-        Plugin p = Global.plugin.getServer().getPluginManager().getPlugin("iConomy");
-        if ((p == null) || (! p.getClass().getName().equals("com.iConomy.iConomy")) || (! p.isEnabled())) return false;
-        Global.iconomyPlugin = (iConomy)p;
-        return true;
-    }
-
     public static File getConfigFile() {
         File dataFolder = Global.plugin.getDataFolder();
         return new File(dataFolder, "config.yml");
@@ -349,48 +320,6 @@ public class Utils {
         if (world.isChunkLoaded(chunk)) return false;
         world.loadChunk(chunk);
         return true;
-    }
-
-    public static boolean deductFunds(String accountName, double amount, boolean checkBalance) throws FundsException {
-        if (! iconomyAvailable() || (amount <= 0)) return false;
-        Account account = iConomy.getAccount(accountName);
-        if (account == null) {
-            Utils.warning("iConomy account '%s' not found", accountName);
-            return false;
-        }
-        Holdings hold = account.getHoldings();
-        if (hold.balance() < amount)
-            throw new FundsException("insufficient funds");
-        if (checkBalance) return false;
-        hold.subtract(amount);
-        return true;
-    }
-
-    public static boolean deductInventory(Player player, Map<Material,Integer> blocks, boolean checkBalance) throws InventoryException {
-        if ((player == null) || blocks.isEmpty()) return false;
-        PlayerInventory inv = player.getInventory();
-        for (Material material : blocks.keySet()) {
-            int needed = blocks.get(material);
-            if (needed <= 0) continue;
-            HashMap<Integer,? extends ItemStack> slots = inv.all(material);
-            for (int slotNum : slots.keySet()) {
-                ItemStack stack = slots.get(slotNum);
-                if (stack.getAmount() > needed) {
-                    if (! checkBalance)
-                        stack.setAmount(stack.getAmount() - needed);
-                    needed = 0;
-                } else {
-                    needed -= stack.getAmount();
-                    if (! checkBalance)
-                        inv.clear(slotNum);
-                }
-                blocks.put(material, needed);
-                if (needed <= 0) break;
-            }
-            if (needed > 0)
-                throw new InventoryException("need %d more %s", needed, material);
-        }
-        return ! checkBalance;
     }
 
     public static HttpURLConnection openURL(URL url) throws IOException {

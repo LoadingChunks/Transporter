@@ -19,10 +19,10 @@ package org.bennedum.transporter;
  *
  * @author frdfsnlght <frdfsnlght@gmail.com>
  */
-public class FundsException extends TransporterException {
+public class EconomyException extends TransporterException {
     
-    public FundsException(String msg) {
-        super(msg);
+    public EconomyException(String msg, Object ... args) {
+        super(String.format(msg, args));
     }
     
 }
