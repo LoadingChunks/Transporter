@@ -725,10 +725,10 @@ Utils.debug("calculated loc is %s", location);
         if (playersToReceive.isEmpty()) return;
 
         String format = Global.config.getString("chatFormat", "<%player%@%server%> %message%");
-        format.replaceAll("%player%", displayName);
-        format.replaceAll("%server%", serverName);
-        format.replaceAll("%world%", worldName);
-        format.replaceAll("%message%", message);
+        format.replace("%player%", displayName);
+        format.replace("%server%", serverName);
+        format.replace("%world%", worldName);
+        format.replace("%message%", message);
         final String msg = format;
         Utils.fire(new Runnable() {
             @Override
