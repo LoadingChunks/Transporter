@@ -34,32 +34,32 @@ import org.bukkit.util.Vector;
  *
  * @author frdfsnlght <frdfsnlght@gmail.com>
  */
-public class GateCollection {
+public final class Gates {
 
     // Local gates are stored as worldName.gateName
     // Remote gates are stored as serverName.worldName.gateName
-    private Map<String,Gate> gates = new HashMap<String,Gate>();
+    private static final Map<String,Gate> gates = new HashMap<String,Gate>();
 
     // Gate build blocks that are protected
-    private GateMap protectBlocks = new GateMap();
+    private static final GateMap protectBlocks = new GateMap();
 
     // Gate screens for local gates
-    private GateMap screenBlocks = new GateMap();
+    private static final GateMap screenBlocks = new GateMap();
 
     // Gate switches for local gates
-    private GateMap switchBlocks = new GateMap();
+    private static final GateMap switchBlocks = new GateMap();
 
     // Gate triggers for local gates
-    private GateMap triggerBlocks = new GateMap();
+    private static final GateMap triggerBlocks = new GateMap();
 
     // Portal blocks for open, local gates
-    private GateMap portalBlocks = new GateMap();
+    private static final GateMap portalBlocks = new GateMap();
 
 
     //private Set<String> teleportingPlayers = new HashSet<String>();
 
 
-    public void loadAll(Context ctx) {
+    public static void loadAll(Context ctx) {
         for (String name : new ArrayList<String>(gates.keySet()))
             if (gates.get(name).isSameServer())
                 gates.remove(name);
@@ -94,7 +94,7 @@ public class GateCollection {
             ctx.send("no gates loaded");
     }
 
-    public void loadGatesForWorld(Context ctx, World world) {
+    public static void loadGatesForWorld(Context ctx, World world) {
         File worldFolder = Utils.worldPluginFolder(world);
         File gatesFolder = new File(worldFolder, "gates");
         if (! gatesFolder.exists()) return;
@@ -114,7 +114,7 @@ public class GateCollection {
         }
     }
 
-    public void saveAll(Context ctx) {
+    public static void saveAll(Context ctx) {
         exportJSON();
         if (size() == 0) {
             ctx.send("no gates to save");
@@ -128,7 +128,7 @@ public class GateCollection {
         }
     }
 
-    public void exportJSON() {
+    public static void exportJSON() {
         String fileName = Global.config.getString("exportedGatesFile");
         if (fileName == null) return;
         File file = new File(fileName);
@@ -153,7 +153,7 @@ public class GateCollection {
                 out.println("    \"x\": " + center.getX() + ",");
                 out.println("    \"y\": " + center.getY() + ",");
                 out.println("    \"z\": " + center.getZ() + ",");
-                if (Utils.iconomyAvailable()) {
+                if (Economy.isAvailable()) {
                     if (gate.getLinkLocal()) {
                         out.println("    \"onWorldSend\": \"" + iConomy.format(gate.getSendLocalCost()) + "\",");
                         out.println("    \"onWorldReceive\": \"" + iConomy.format(gate.getReceiveLocalCost()) + "\",");
@@ -178,7 +178,7 @@ public class GateCollection {
         }
     }
 
-    public void add(Gate gate) throws GateException {
+    public static void add(Gate gate) throws GateException {
         String name = gate.getFullName();
         if (gates.containsKey(name))
             throw new GateException("a gate with the same name already exists here");
@@ -195,12 +195,12 @@ public class GateCollection {
         }
         if (gate.isSameServer()) {
             exportJSON();
-            for (Server server : Global.servers.getAll())
+            for (Server server : Servers.getAll())
                 server.doGateAdded((LocalGate)gate);
         }
     }
 
-    public void remove(LocalGate gate) {
+    public static void remove(LocalGate gate) {
         String name = gate.getFullName();
         if (! gates.containsKey(name)) return;
         gates.remove(name);
@@ -212,12 +212,12 @@ public class GateCollection {
             if (! g.isSameServer()) continue;
             ((LocalGate)g).onGateRemoved(gate);
         }
-        for (Server server : Global.servers.getAll())
+        for (Server server : Servers.getAll())
             server.doGateRemoved(gate);
         exportJSON();
     }
 
-    public void remove(RemoteGate gate) {
+    public static void remove(RemoteGate gate) {
         String name = gate.getFullName();
         if (! gates.containsKey(name)) return;
         gates.remove(name);
@@ -227,21 +227,21 @@ public class GateCollection {
         }
     }
 
-    public void remove(Server server) {
+    public static void remove(Server server) {
         for (RemoteGate gate : getRemoteGates()) {
             if (gate.getServer() == server)
                 remove(gate);
         }
     }
 
-    public void remove(World world) {
-        for (LocalGate gate : this.getLocalGates()) {
+    public static void remove(World world) {
+        for (LocalGate gate : getLocalGates()) {
             if (gate.getWorldName().equals(world.getName()))
                 remove(gate);
         }
     }
 
-    public void destroy(LocalGate gate, boolean unbuild) {
+    public static void destroy(LocalGate gate, boolean unbuild) {
         String name = gate.getFullName();
         if (! gates.containsKey(name)) return;
         gates.remove(name);
@@ -254,12 +254,12 @@ public class GateCollection {
             if (! g.isSameServer()) continue;
             ((LocalGate)g).onGateDestroyed(gate);
         }
-        for (Server server : Global.servers.getAll())
+        for (Server server : Servers.getAll())
             server.doGateDestroyed(gate);
         exportJSON();
     }
 
-    public void destroy(RemoteGate gate) {
+    public static void destroy(RemoteGate gate) {
         String name = gate.getFullName();
         if (! gates.containsKey(name)) return;
         gates.remove(name);
@@ -269,14 +269,14 @@ public class GateCollection {
         }
     }
 
-    public void rename(String fullName, String newName) throws GateException {
+    public static void rename(String fullName, String newName) throws GateException {
         Gate gate = get(fullName);
         if (gate == null)
             throw new GateException("gate not found");
         rename(gate, newName);
     }
 
-    public void rename(Gate gate, String newName) throws GateException {
+    public static void rename(Gate gate, String newName) throws GateException {
         if (! Gate.isValidName(newName))
             throw new GateException("the gate name is invalid");
         String oldFullName = gate.getFullName();
@@ -296,12 +296,12 @@ public class GateCollection {
         }
         if (gate.isSameServer()) {
             exportJSON();
-            for (Server server : Global.servers.getAll())
+            for (Server server : Servers.getAll())
                 server.doGateRenamed(oldFullName, newName);
         }
     }
 
-    public Gate get(Context ctx, String name) {
+    public static Gate get(Context ctx, String name) {
         int pos = name.indexOf('.');
         if (pos == -1) {
             // asking for a local gate in the player's current world
@@ -311,7 +311,7 @@ public class GateCollection {
         return get(name);
     }
 
-    public Gate get(String name) {
+    public static Gate get(String name) {
         if (gates.containsKey(name)) return gates.get(name);
         Gate gate = null;
         name = name.toLowerCase();
@@ -324,7 +324,7 @@ public class GateCollection {
         return gate;
     }
 
-    public LocalGate getLocalGate(Context ctx, String name) {
+    public static LocalGate getLocalGate(Context ctx, String name) {
         int pos = name.indexOf('.');
         if (pos == -1) {
             // asking for a local gate in the player's current world
@@ -335,7 +335,7 @@ public class GateCollection {
 
     }
 
-    public LocalGate getLocalGate(String name) {
+    public static LocalGate getLocalGate(String name) {
         Gate gate = null;
         if (gates.containsKey(name))
             gate = gates.get(name);
@@ -351,66 +351,66 @@ public class GateCollection {
         return ((gate != null) && gate.isSameServer()) ? (LocalGate)gate : null;
     }
 
-    public List<Gate> getAll() {
+    public static List<Gate> getAll() {
         return new ArrayList<Gate>(gates.values());
     }
 
-    public Collection<LocalGate> getLocalGates() {
+    public static Collection<LocalGate> getLocalGates() {
         Collection<LocalGate> g = new ArrayList<LocalGate>();
         for (Gate gate : gates.values())
             if (gate.isSameServer()) g.add((LocalGate)gate);
         return g;
     }
 
-    public Collection<RemoteGate> getRemoteGates() {
+    public static Collection<RemoteGate> getRemoteGates() {
         Collection<RemoteGate> g = new ArrayList<RemoteGate>();
         for (Gate gate : gates.values())
             if (! gate.isSameServer()) g.add((RemoteGate)gate);
         return g;
     }
 
-    public boolean isEmpty() {
+    public static boolean isEmpty() {
         return size() == 0;
     }
 
-    public int size() {
+    public static int size() {
         return gates.size();
     }
 
-    public LocalGate findGateForProtection(Location loc) {
+    public static LocalGate findGateForProtection(Location loc) {
         return protectBlocks.getGate(loc);
     }
 
-    public LocalGate findGateForScreen(Location loc) {
+    public static LocalGate findGateForScreen(Location loc) {
         return screenBlocks.getGate(loc);
     }
 
-    public LocalGate findGateForSwitch(Location loc) {
+    public static LocalGate findGateForSwitch(Location loc) {
         return switchBlocks.getGate(loc);
     }
 
-    public LocalGate findGateForTrigger(Location loc) {
+    public static LocalGate findGateForTrigger(Location loc) {
         return triggerBlocks.getGate(loc);
     }
 
-    public LocalGate findGateForPortal(Location loc) {
+    public static LocalGate findGateForPortal(Location loc) {
         return portalBlocks.getGate(loc);
     }
 
-    public void addPortalBlocks(GateMap portalBlocks) {
-        this.portalBlocks.putAll(portalBlocks);
+    public static void addPortalBlocks(GateMap portalBlocks) {
+        portalBlocks.putAll(portalBlocks);
     }
 
-    public void removePortalBlocks(LocalGate gate) {
-        this.portalBlocks.removeGate(gate);
+    public static void removePortalBlocks(LocalGate gate) {
+        portalBlocks.removeGate(gate);
     }
 
-    public void addProtectBlocks(GateMap protectBlocks) {
-        this.protectBlocks.putAll(protectBlocks);
+    public static void addProtectBlocks(GateMap protectBlocks) {
+        protectBlocks.putAll(protectBlocks);
     }
 
-    public void removeProtectBlocks(LocalGate gate) {
-        this.protectBlocks.removeGate(gate);
+    public static void removeProtectBlocks(LocalGate gate) {
+        protectBlocks.removeGate(gate);
     }
 
 }

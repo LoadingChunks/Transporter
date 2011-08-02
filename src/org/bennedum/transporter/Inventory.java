@@ -116,34 +116,6 @@ public final class Inventory {
         return true;
     }
     
-    // TODO: integrate this into Design class for building gates
-    public static boolean deductInventory(Player player, Map<Material,Integer> blocks, boolean checkBalance) throws InventoryException {
-        if ((player == null) || blocks.isEmpty()) return false;
-        PlayerInventory inv = player.getInventory();
-        for (Material material : blocks.keySet()) {
-            int needed = blocks.get(material);
-            if (needed <= 0) continue;
-            HashMap<Integer,? extends ItemStack> slots = inv.all(material);
-            for (int slotNum : slots.keySet()) {
-                ItemStack stack = slots.get(slotNum);
-                if (stack.getAmount() > needed) {
-                    if (! checkBalance)
-                        stack.setAmount(stack.getAmount() - needed);
-                    needed = 0;
-                } else {
-                    needed -= stack.getAmount();
-                    if (! checkBalance)
-                        inv.clear(slotNum);
-                }
-                blocks.put(material, needed);
-                if (needed <= 0) break;
-            }
-            if (needed > 0)
-                throw new InventoryException("need %d more %s", needed, material);
-        }
-        return ! checkBalance;
-    }
-
     public static ItemStack filterItemStack(ItemStack stack, Map<String,String> replace, Set<String> allowed, Set<String> banned) {
         if (stack == null) return null;
         String item = encodeItemStack(stack);
@@ -191,6 +163,46 @@ public final class Inventory {
         return new ItemStack(material, amount, damage);
     }
     
-    
-    
+    public static void requireBlocks(Player player, Map<Material,Integer> blocks) throws InventoryException {
+        if ((player == null) || (blocks == null) || blocks.isEmpty()) return;
+        PlayerInventory inv = player.getInventory();
+        for (Material material : blocks.keySet()) {
+            int needed = blocks.get(material);
+            if (needed <= 0) continue;
+            HashMap<Integer,? extends ItemStack> slots = inv.all(material);
+            for (int slotNum : slots.keySet()) {
+                ItemStack stack = slots.get(slotNum);
+                needed -= stack.getAmount();
+                if (needed <= 0) break;
+            }
+            if (needed > 0)
+                throw new InventoryException("need %d more %s", needed, material);
+        }
+    }
+
+    public static boolean deductBlocks(Player player, Map<Material,Integer> blocks) throws InventoryException {
+        if ((player == null) || (blocks == null) || blocks.isEmpty()) return false;
+        PlayerInventory inv = player.getInventory();
+        for (Material material : blocks.keySet()) {
+            int needed = blocks.get(material);
+            if (needed <= 0) continue;
+            HashMap<Integer,? extends ItemStack> slots = inv.all(material);
+            for (int slotNum : slots.keySet()) {
+                ItemStack stack = slots.get(slotNum);
+                if (stack.getAmount() > needed) {
+                    stack.setAmount(stack.getAmount() - needed);
+                    needed = 0;
+                } else {
+                    needed -= stack.getAmount();
+                    inv.clear(slotNum);
+                }
+                blocks.put(material, needed);
+                if (needed <= 0) break;
+            }
+            if (needed > 0)
+                throw new InventoryException("need %d more %s", needed, material);
+        }
+        return true;
+    }
+
 }

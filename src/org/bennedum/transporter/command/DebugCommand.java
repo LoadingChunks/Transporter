@@ -19,7 +19,10 @@ import java.util.List;
 import org.bennedum.transporter.Context;
 import org.bennedum.transporter.Gate;
 import org.bennedum.transporter.Design;
+import org.bennedum.transporter.Designs;
+import org.bennedum.transporter.Gates;
 import org.bennedum.transporter.Global;
+import org.bennedum.transporter.Permissions;
 import org.bennedum.transporter.TransporterException;
 import org.bennedum.transporter.Utils;
 import org.bukkit.command.Command;
@@ -72,11 +75,11 @@ public class DebugCommand extends TrpCommandProcessor {
             String what = args.remove(0).toLowerCase();
             
             if ("gate".startsWith(what)) {
-                ctx.requireAllPermissions("trp.debug.dump.gate");
+                Permissions.require(ctx.getPlayer(), "trp.debug.dump.gate");
                 if (args.isEmpty())
                     throw new CommandException("gate name required");
                 String name = args.remove(1);
-                Gate gate = Global.gates.get(name);
+                Gate gate = Gates.get(name);
                 if (gate == null)
                     throw new CommandException("unknown or offline gate '%s'", name);
                 gate.dump(ctx);
@@ -84,11 +87,11 @@ public class DebugCommand extends TrpCommandProcessor {
             }
             
             if ("design".startsWith(what)) {
-                ctx.requireAllPermissions("trp.debug.dump.design");
+                Permissions.require(ctx.getPlayer(), "trp.debug.dump.design");
                 if (args.isEmpty())
                     throw new CommandException("design name required");
                 String name = args.remove(1);
-                Design design = Global.designs.get(name);
+                Design design = Designs.get(name);
                 if (design == null)
                     throw new CommandException("unknown design '%s'", name);
                 design.dump(ctx);

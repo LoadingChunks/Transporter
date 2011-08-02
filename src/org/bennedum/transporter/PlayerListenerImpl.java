@@ -39,7 +39,7 @@ public class PlayerListenerImpl extends PlayerListener {
 
         // open a closed gate, change destinations, close an opened gate if the end of the links are reached
 
-        LocalGate gate = Global.gates.findGateForTrigger(location);
+        LocalGate gate = Gates.findGateForTrigger(location);
         if (gate != null) {
             Global.setSelectedGate(event.getPlayer(), gate);
 
@@ -54,7 +54,7 @@ public class PlayerListenerImpl extends PlayerListener {
                     }
                 }
             } else {
-                Gate switchGate = Global.gates.findGateForSwitch(location);
+                Gate switchGate = Gates.findGateForSwitch(location);
                 if (switchGate == gate) {
                     // the trigger is the same block as the switch, so do something special
                     if (gate.isLastLink()) {
@@ -75,7 +75,7 @@ public class PlayerListenerImpl extends PlayerListener {
             }
         }
 
-        gate = Global.gates.findGateForSwitch(location);
+        gate = Gates.findGateForSwitch(location);
         if (gate != null) {
             Global.setSelectedGate(event.getPlayer(), gate);
             try {
@@ -90,12 +90,12 @@ public class PlayerListenerImpl extends PlayerListener {
     @Override
     public void onPlayerMove(PlayerMoveEvent event) {
         Player player = event.getPlayer();
-        LocalGate fromGate = Global.gates.findGateForPortal(event.getTo());
+        LocalGate fromGate = Gates.findGateForPortal(event.getTo());
         if (fromGate == null) {
-            Teleport.removeGateLock(player);
+            Reservation.removeGateLock(player);
             return;
         }
-        if (Teleport.isGateLocked(player)) return;
+        if (Reservation.isGateLocked(player)) return;
 
         Context ctx = new Context(player);
         try {
@@ -115,19 +115,19 @@ public class PlayerListenerImpl extends PlayerListener {
 
     @Override
     public void onPlayerJoin(PlayerJoinEvent event) {
-        Reservation r = Reservation.remove(event.getPlayer());
+        Reservation r = Reservation.get(event.getPlayer());
         if (r == null) return;
-        Context ctx = new Context(event.getPlayer());
         try {
             r.arrive();
-        } catch (ReservationException re) {
-            ctx.warnLog("there was a problem processing your arrival: ", re.getMessage());
+        } catch (ReservationException e) {
+            Context ctx = new Context(event.getPlayer());
+            ctx.warnLog("there was a problem processing your arrival: ", e.getMessage());
         }
     }
 
     @Override
     public void onPlayerChat(PlayerChatEvent event) {
-        Teleport.sendChat(event.getPlayer(), event.getMessage());
+        Chat.send(event.getPlayer(), event.getMessage());
     }
 
 }

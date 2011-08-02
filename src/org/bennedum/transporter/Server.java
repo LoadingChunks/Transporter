@@ -15,9 +15,17 @@
  */
 package org.bennedum.transporter;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -33,7 +41,6 @@ import org.bennedum.transporter.net.NetworkException;
 import org.bennedum.transporter.net.Network;
 import org.bennedum.transporter.net.Message;
 import org.bennedum.transporter.net.Result;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.config.ConfigurationNode;
 
@@ -50,6 +57,15 @@ public final class Server {
     private static final int SEND_KEEPALIVE_INTERVAL = 60000;
     private static final int RECV_KEEPALIVE_INTERVAL = 90000;
 
+    public static final List<String> OPTIONS = new ArrayList<String>();
+
+    static {
+        OPTIONS.add("publicAddress");
+        OPTIONS.add("privateAddress");
+        OPTIONS.add("sendAllChat");
+        OPTIONS.add("receiveAllChat");
+    }
+    
     public static boolean isValidName(String name) {
         if ((name.length() == 0) || (name.length() > 15)) return false;
         return ! (name.contains(".") || name.contains("*"));
@@ -85,22 +101,84 @@ public final class Server {
         return map;
     }
 
+    private static String makePrivateAddress(String in) throws ServerException {
+        if ((in == null) || in.equals("*")) {
+            in = null;
+            if (Global.network.getListenAddress().getAddress().isAnyLocalAddress()) {
+                // take the first IP address on the first interface
+                try {
+                    for (Enumeration<NetworkInterface> e1 = NetworkInterface.getNetworkInterfaces(); e1.hasMoreElements(); ) {
+                        NetworkInterface iface = e1.nextElement();
+                        if (! iface.isUp()) continue;
+                        if (iface.isLoopback()) continue;
+                        InetAddress addr = getInterfaceAddress(iface);
+                        if (addr != null) {
+                            in = addr.getHostAddress();
+                            break;
+                        }
+                    }
+                } catch (SocketException e) {
+                    Utils.severe(e, "unable to list network addresses:");
+                    throw new ServerException("unable to obtain private address");
+                }
+            }
+            if (in == null) in = "-";
+
+        } else if ((! in.equals("-")) &&
+                   (! in.matches("^[\\d\\.]+$"))) {
+            try {
+                int pos = in.indexOf(':');
+                String port = null;
+                if (pos != -1) {
+                    port = in.substring(pos);
+                    in = in.substring(0, pos);
+                }
+                NetworkInterface iface = NetworkInterface.getByName(in);
+                InetAddress addr = getInterfaceAddress(iface);
+                if (addr != null)
+                    in = addr.getHostAddress();
+                else
+                    throw new ServerException("unable to get address of interface '%s'", in);
+                if (port != null)
+                    in += port;
+            } catch (SocketException e) {
+                throw new ServerException("unable to find interface '%s'", in);
+            }
+        }
+        if ((! in.equals("-")) &&
+            (! in.contains(":")))
+            in += ":" + Global.plugin.getServer().getPort();
+        return in;
+    }
+    
+    private static InetAddress getInterfaceAddress(NetworkInterface iface) {
+        for (Enumeration<InetAddress> e = iface.getInetAddresses(); e.hasMoreElements(); ) {
+            InetAddress addr = e.nextElement();
+            if (addr instanceof Inet4Address) return addr;
+        }
+        return null;
+    }
+    
     private String name;
     private String pluginAddress;
     private String key;
-    private String mcAddress;
     private boolean enabled;
     private Connection connection = null;
     private boolean allowReconnect = true;
     private String version = null;
+    private String remotePrivateAddress = null;
     private int reconnectTask = -1;
     private boolean connected = false;
 
-    public Server(String name, String pluginAddress, String key, String mcAddress) throws ServerException {
+    private String publicAddress = null;
+    private String privateAddress = null;
+    private boolean sendAllChat = false;
+    private boolean receiveAllChat = false;
+    
+    public Server(String name, String plgAddr, String key) throws ServerException {
         this.name = name;
-        this.pluginAddress = pluginAddress;
+        pluginAddress = plgAddr;
         this.key = key;
-        this.mcAddress = mcAddress;
         enabled = true;
         validate();
     }
@@ -110,7 +188,19 @@ public final class Server {
         pluginAddress = node.getString("pluginAddress");
         key = node.getString("key");
         enabled = node.getBoolean("enabled", true);
-        mcAddress = node.getString("minecraftAddress");
+        
+        // v6.10 to v6.11
+        publicAddress = node.getString("minecraftAddress");
+        if (publicAddress != null) {
+            node.removeProperty("minecraftAddress");
+            node.setProperty("publicAddress", publicAddress);
+        }
+        
+        publicAddress = node.getString("publicAddress");
+        privateAddress = node.getString("privateAddress");
+        sendAllChat = node.getBoolean("sendAllChat", false);
+        receiveAllChat = node.getBoolean("receiveAllChat", false);
+        
         validate();
     }
 
@@ -128,27 +218,30 @@ public final class Server {
         }
         if ((key == null) || key.isEmpty())
             throw new ServerException("key is required");
-        if (mcAddress != null)
+        
+        if (publicAddress != null)
             try {
-                makeAddressMap(mcAddress, DEFAULT_MC_PORT);
-            } catch (ServerException se) {
-                throw new ServerException("minecraftAddress: %s", se.getMessage());
+                makeAddressMap(publicAddress, DEFAULT_MC_PORT);
+            } catch (ServerException e) {
+                throw new ServerException("publicAddress: %s", e.getMessage());
             }
+        try {
+            privateAddress = makePrivateAddress(privateAddress);
+        } catch (ServerException e) {
+            throw new ServerException("privateAddress: %s", e.getMessage());
+        }
     }
 
-    public void change(String pluginAddress, String key, String mcAddress) throws ServerException {
+    public void change(String plgAddr, String key) throws ServerException {
         String oldPluginAddress = this.pluginAddress;
         String oldKey = this.key;
-        String oldMCAddress = this.mcAddress;
-        this.pluginAddress = pluginAddress;
+        pluginAddress = plgAddr;
         this.key = key;
-        this.mcAddress = mcAddress;
         try {
             validate();
         } catch (ServerException se) {
-            this.pluginAddress = oldPluginAddress;
-            this.key = oldKey;
-            this.mcAddress = oldMCAddress;
+            pluginAddress = oldPluginAddress;
+            key = oldKey;
             throw se;
         }
     }
@@ -173,33 +266,138 @@ public final class Server {
             disconnect(false);
     }
 
-    public String getMCAddress() {
-        return mcAddress;
+    public String getPluginAddress() {
+        return pluginAddress;
     }
 
-    public String getMCAddressForClient(InetSocketAddress clientAddress) {
-        Map<String,Set<Pattern>> mcAddrs;
+    public String getPublicAddress() {
+        return publicAddress;
+    }
+
+    public void setPublicAddress(String address) throws ServerException {
+        String saved = publicAddress;
+        publicAddress = address;
         try {
-            if (mcAddress == null) {
+            validate();
+        } catch (ServerException e) {
+            publicAddress = saved;
+            throw e;
+        }
+    }
+
+    public String getPrivateAddress() {
+        return publicAddress;
+    }
+    
+    public void setPrivateAddress(String address) throws ServerException {
+        String saved = privateAddress;
+        privateAddress = address;
+        try {
+            validate();
+        } catch (ServerException e) {
+            privateAddress = saved;
+            throw e;
+        }
+    }
+    
+    public String resolveOption(String option) throws ServerException {
+        for (String opt : OPTIONS) {
+            if (opt.toLowerCase().startsWith(option.toLowerCase()))
+                return opt;
+        }
+        throw new ServerException("unknown option");
+    }
+
+    public void setOption(String option, String value) throws ServerException {
+        if (! OPTIONS.contains(option))
+            throw new ServerException("unknown option");
+        String methodName = "set" +
+                option.substring(0, 1).toUpperCase() +
+                option.substring(1);
+        try {
+            Field f = getClass().getDeclaredField(option);
+            Class c = f.getType();
+            Method m = getClass().getMethod(methodName, c);
+            if (c == Boolean.TYPE)
+                m.invoke(this, Boolean.parseBoolean(value));
+            else if (c == Integer.TYPE)
+                m.invoke(this, Integer.parseInt(value));
+            else if (c == Float.TYPE)
+                m.invoke(this, Float.parseFloat(value));
+            else if (c == Double.TYPE)
+                m.invoke(this, Double.parseDouble(value));
+            else if (c == String.class)
+                m.invoke(this, value);
+            else
+                throw new ServerException("unsupported option type");
+
+        } catch (InvocationTargetException ite) {
+            throw (ServerException)ite.getCause();
+        } catch (NoSuchMethodException nsme) {
+            throw new ServerException("invalid method");
+        } catch (IllegalArgumentException iae) {
+            throw new ServerException("invalid value");
+        } catch (NoSuchFieldException nsfe) {
+            throw new ServerException("unknown option");
+        } catch (IllegalAccessException iae) {
+            throw new ServerException("unable to set the option");
+        }
+    }
+
+    public String getOption(String option) throws ServerException {
+        if (! OPTIONS.contains(option))
+            throw new ServerException("unknown option");
+        String methodName = "get" +
+                option.substring(0, 1).toUpperCase() +
+                option.substring(1);
+        try {
+            Field f = getClass().getDeclaredField(option);
+            Class c = f.getType();
+            Method m = getClass().getMethod(methodName, c);
+            Object value = m.invoke(this);
+            if (value == null) return "(null)";
+            return value.toString();
+        } catch (InvocationTargetException ite) {
+            throw (ServerException)ite.getCause();
+        } catch (NoSuchMethodException nsme) {
+            throw new ServerException("invalid method");
+        } catch (NoSuchFieldException nsfe) {
+            throw new ServerException("unknown option");
+        } catch (IllegalAccessException iae) {
+            throw new ServerException("unable to read the option");
+        }
+    }
+    
+    public String getReconnectAddressForClient(InetSocketAddress clientAddress) {
+        String clientAddrStr = clientAddress.getAddress().getHostAddress();
+        
+        if (remotePrivateAddress != null) {
+            InetSocketAddress remoteAddr = (InetSocketAddress)connection.getChannel().socket().getRemoteSocketAddress();
+            if (remoteAddr != null) {
+                if (remoteAddr.getAddress().getHostAddress().equals(clientAddrStr)) {
+                    Utils.debug("redirect for client %s using private address %s", clientAddrStr, remotePrivateAddress);
+                    return remotePrivateAddress;
+                }
+            }
+        }
+        
+        Map<String,Set<Pattern>> pubAddrs;
+        try {
+            if (publicAddress == null) {
                 String[] parts = pluginAddress.split(":");
-                mcAddrs = makeAddressMap(parts[0], DEFAULT_MC_PORT);
+                pubAddrs = makeAddressMap(parts[0], DEFAULT_MC_PORT);
             } else
-                mcAddrs = makeAddressMap(mcAddress, DEFAULT_MC_PORT);
+                pubAddrs = makeAddressMap(publicAddress, DEFAULT_MC_PORT);
         } catch (ServerException e) {
             return null;
         }
-        String addrStr = clientAddress.getAddress().getHostAddress();
-        for (String addr : mcAddrs.keySet()) {
-            Set<Pattern> patterns = mcAddrs.get(addr);
+        for (String addr : pubAddrs.keySet()) {
+            Set<Pattern> patterns = pubAddrs.get(addr);
             for (Pattern pattern : patterns)
-                if (pattern.matcher(addrStr).matches())
+                if (pattern.matcher(clientAddrStr).matches())
                     return addr;
         }
         return null;
-    }
-
-    public String getPluginAddress() {
-        return pluginAddress;
     }
 
     public void setConnection(Connection conn) {
@@ -220,7 +418,10 @@ public final class Server {
         node.put("pluginAddress", pluginAddress);
         node.put("key", key);
         node.put("enabled", enabled);
-        node.put("minecraftAddress", mcAddress);
+        node.put("publicAddress", publicAddress);
+        node.put("privateAddress", privateAddress);
+        node.put("sendAllChat", sendAllChat);
+        node.put("receiveAllChat", receiveAllChat);
         return node;
     }
 
@@ -286,8 +487,10 @@ public final class Server {
     public void refresh() {
         if (! isConnected())
             connect();
-        else
-            doGetGates();
+        else {
+            Message message = createMessage("refresh");
+            sendMessage(message);
+        }
     }
 
     public void sendKeepAlive() {
@@ -340,12 +543,6 @@ public final class Server {
                 });
             }
         });
-    }
-
-    public void doGetGates() {
-        if (! isConnected()) return;
-        Message message = createMessage("getGates");
-        sendMessage(message);
     }
 
     public void doGateAdded(LocalGate gate) {
@@ -435,59 +632,6 @@ public final class Server {
         message.put("id", id);
         sendMessage(message);
     }
-    
-    // TODO: remove
-    // blocks until acknowledgement from remote server is received
-    // fromGate can be null if the player is being sent directly
-    public void doExpectEntity(Entity entity, LocalGate fromGate, RemoteGate toGate) throws ServerException {
-        if (! isConnected())
-            throw new ServerException("server '%s' is offline", name);
-
-        Message message = createMessage("expectEntity");
-        message.put("fromGate", (fromGate == null) ? null : fromGate.getFullName());
-        message.put("toGate", Gate.makeLocalName(toGate.getGlobalName()));
-        message.put("fromGateDirection", (fromGate == null) ? null : fromGate.getDirection().toString());
-
-        EntityState entityState = EntityState.extractState(entity);
-        message.put("entity", entityState.encode());
-
-        Result futureResult = connection.sendRequest(message, true);
-        try {
-            Message result = futureResult.get(Connection.PROTOCOL_TIMEOUT);
-            if (result.getBoolean("success")) return;
-            throw new ServerException(result.getString("error"));
-        } catch (CancellationException e) {
-            throw new ServerException("server '%s' went offline during teleportaion", name);
-        } catch (InterruptedException e) {
-            throw new ServerException("server '%s' was interrupted during teleportaion", name);
-        } catch (TimeoutException e) {
-            throw new ServerException("request to server '%s' timed out during teleportaion", name);
-        }
-    }
-
-    // TODO: remove
-    // used to tell the sending side we've recieved the entity
-    // fromGate can be null if the player is being sent directly
-    public void doConfirmArrival(EntityState entityState, String fromGateName, String toGateName) {
-        if (! isConnected()) return;
-        Message message = createMessage("confirmArrival");
-        message.put("fromGate", fromGateName);
-        message.put("toGate", toGateName);
-        message.put("entity", entityState.encode());
-        sendMessage(message);
-    }
-
-    // TODO: remove
-    // used to tell the sending side we didn't receive the entity
-    // fromGate can be null if the player is being sent directly
-    public void doCancelArrival(EntityState entityState, String fromGateName, String toGateName) {
-        if (! isConnected()) return;
-        Message message = createMessage("cancelArrival");
-        message.put("fromGate", fromGateName);
-        message.put("toGate", toGateName);
-        message.put("entity", entityState.encode());
-        sendMessage(message);
-    }
 
     public void doRelayChat(Player player, String world, String msg, Set<RemoteGate> toGates) {
         if (! isConnected()) return;
@@ -496,13 +640,15 @@ public final class Server {
         message.put("displayName", player.getDisplayName());
         message.put("world", world);
         message.put("message", msg);
-        List<String> gates = new ArrayList<String>(toGates.size());
-        for (RemoteGate gate : toGates)
-            gates.add(Gate.makeLocalName(gate.getGlobalName()));
-        message.put("toGates", gates);
+        if (toGates != null) {
+            List<String> gates = new ArrayList<String>(toGates.size());
+            for (RemoteGate gate : toGates)
+                gates.add(Gate.makeLocalName(gate.getGlobalName()));
+            message.put("toGates", gates);
+        }
         sendMessage(message);
     }
-
+    
 
 
 
@@ -516,7 +662,7 @@ public final class Server {
         this.version = version;
         cancelOutbound();
         Utils.info("connected to '%s' (%s), running v%s", getName(), connection.getName(), version);
-        sendMessage(handleGetGates());
+        sendMessage(handleRefresh());
     }
 
     public void onDisconnected() {
@@ -525,7 +671,7 @@ public final class Server {
             connected = false;
         }
         connection = null;
-        Global.gates.remove(this);
+        Gates.remove(this);
         reconnect();
     }
 
@@ -548,10 +694,10 @@ public final class Server {
             if (command.equals("nop")) return;
             if (command.equals("ping"))
                 response = handlePing(message);
-            else if (command.equals("getGates"))
-                response = handleGetGates();
-            else if (command.equals("setGates"))
-                handleSetGates(message);
+            else if (command.equals("refresh"))
+                response = handleRefresh();
+            else if (command.equals("refreshData"))
+                handleRefreshData(message);
             else if (command.equals("addGate"))
                 handleAddGate(message);
             else if (command.equals("renameGate"))
@@ -603,11 +749,19 @@ public final class Server {
         return message;
     }
 
-    private Message handleGetGates() {
+    private Message handleRefresh() {
         if (! isConnected()) return null;
-        Message out = createMessage("setGates");
+        Message out = createMessage("refreshData");
+
+        // NAT stuff
+        if (Global.config.getBoolean("detectNAT", true)) {
+            if (! "-".equals(privateAddress))
+                out.put("privateAddress", privateAddress);
+        }
+        
+        // gate list
         List<Message> gates = new ArrayList<Message>();
-        for (LocalGate gate : Global.gates.getLocalGates()) {
+        for (LocalGate gate : Gates.getLocalGates()) {
             Message m = new Message();
             m.put("name", gate.getName());
             m.put("worldName", gate.getWorldName());
@@ -615,27 +769,34 @@ public final class Server {
             gates.add(m);
         }
         out.put("gates", gates);
+        
+        
         return out;
     }
 
-    private void handleSetGates(Message message) throws ServerException {
+    private void handleRefreshData(Message message) throws ServerException {
+        // NAT stuff
+        remotePrivateAddress = message.getString("privateAddress");
+        Utils.debug("received privateAddress '%s' from '%s'", privateAddress, name);
+        
+        // gate list
         Collection<Message> gates = message.getMessageList("gates");
-        if (gates == null)
-            throw new ServerException("missing gates");
-        Global.gates.remove(this);
-        for (Message m : gates) {
-            try {
-                Global.gates.add(new RemoteGate(this, m));
-            } catch (GateException ge) {
-                Utils.warning("received bad gate from '%s'", getName());
+        if (gates != null) {
+            Gates.remove(this);
+            for (Message m : gates) {
+                try {
+                    Gates.add(new RemoteGate(this, m));
+                } catch (GateException ge) {
+                    Utils.warning("received bad gate from '%s'", getName());
+                }
             }
+            Utils.debug("received %d gates from '%s'", gates.size(), name);
         }
-        Utils.info("received gates from '%s'", name);
     }
 
     private void handleAddGate(Message message) throws GateException {
         RemoteGate gate = new RemoteGate(this, message);
-        Global.gates.add(gate);
+        Gates.add(gate);
     }
 
     private void handleRenameGate(Message message) throws ServerException, GateException {
@@ -646,7 +807,7 @@ public final class Server {
         String newName = message.getString("newName");
         if (newName == null)
             throw new ServerException("missing newName");
-        Global.gates.rename(oldName, newName);
+        Gates.rename(oldName, newName);
     }
 
     private void handleRemoveGate(Message message) throws ServerException {
@@ -654,12 +815,12 @@ public final class Server {
         if (gateName == null)
             throw new ServerException("missing name");
         gateName = Gate.makeFullName(this, gateName);
-        Gate gate = Global.gates.get(gateName);
+        Gate gate = Gates.get(gateName);
         if (gate == null)
             throw new ServerException("unknown gate '%s'", gateName);
         if (gate.isSameServer())
             throw new ServerException("gate '%s' is not remote", gateName);
-        Global.gates.remove((RemoteGate)gate);
+        Gates.remove((RemoteGate)gate);
     }
 
     private void handleDestroyGate(Message message) throws ServerException {
@@ -667,12 +828,12 @@ public final class Server {
         if (gateName == null)
             throw new ServerException("missing name");
         gateName = Gate.makeFullName(this, gateName);
-        Gate gate = Global.gates.get(gateName);
+        Gate gate = Gates.get(gateName);
         if (gate == null)
             throw new ServerException("unknown gate '%s'", gateName);
         if (gate.isSameServer())
             throw new ServerException("gate '%s' is not remote", gateName);
-        Global.gates.destroy((RemoteGate)gate);
+        Gates.destroy((RemoteGate)gate);
     }
 
     private void handleAttachGate(Message message) throws ServerException {
@@ -686,12 +847,12 @@ public final class Server {
             throw new ServerException("missing fromName");
         fromName = Gate.makeFullName(this, fromName);
 
-        Gate toGate = Global.gates.get(toName);
+        Gate toGate = Gates.get(toName);
         if (toGate == null)
             throw new ServerException("unknown to gate '%s'", toName);
         if (! toGate.isSameServer())
             throw new ServerException("to gate '%s' is local", toName);
-        Gate fromGate = Global.gates.get(fromName);
+        Gate fromGate = Gates.get(fromName);
         if (fromGate == null)
             throw new ServerException("unknown from gate '%s'", fromName);
         if (fromGate.isSameServer())
@@ -710,12 +871,12 @@ public final class Server {
             throw new ServerException("missing fromName");
         fromName = Gate.makeFullName(this, fromName);
 
-        Gate toGate = Global.gates.get(toName);
+        Gate toGate = Gates.get(toName);
         if (toGate == null)
             throw new ServerException("unknown to gate '%s'", toName);
         if (! toGate.isSameServer())
             throw new ServerException("to gate '%s' is local", toName);
-        Gate fromGate = Global.gates.get(fromName);
+        Gate fromGate = Gates.get(fromName);
         if (fromGate == null)
             throw new ServerException("unknown from gate '%s'", fromName);
         if (fromGate.isSameServer())
@@ -770,92 +931,6 @@ public final class Server {
             throw new ServerException("unknown reservation id %s", id);
         res.timeout();
     }
-    
-            
-    // TODO: remove
-    /*
-    private Message handleExpectEntity(Message message) throws ServerException {
-        String fromGate = message.getString("fromGate");
-        if (fromGate != null)
-            fromGate = Gate.makeFullName(this, fromGate);
-
-        String toGate = message.getString("toGate");
-        if (toGate == null)
-            throw new ServerException("missing toGate");
-        toGate = Gate.makeLocalName(toGate);
-
-        String fromGateDirectionStr = message.getString("fromGateDirection");
-        BlockFace fromGateDirection = null;
-        if (fromGateDirectionStr != null) {
-            try {
-                fromGateDirection = BlockFace.valueOf(fromGateDirectionStr);
-            } catch (IllegalArgumentException e) {
-                throw new ServerException("invalid fromGateDirection");
-            }
-        }
-
-        if (! message.containsKey("entity"))
-            throw new ServerException("missing entity");
-        EntityState entityState = EntityState.extractState(message.getMessage("entity"));
-        if (entityState == null)
-            throw new ServerException("invalid entity");
-
-        try {
-            Teleport.expect(entityState, this, fromGate, toGate, fromGateDirection);
-        } catch (TeleportException te) {
-            throw new ServerException(te.getMessage());
-        }
-        return new Message();
-    }
-     */
-    
-            /*
-    private void handleCancelArrival(Message message) throws ServerException {
-        String fromGate = message.getString("fromGate");
-        if (fromGate != null)
-            fromGate = Gate.makeLocalName(fromGate);
-
-        String toGate = message.getString("toGate");
-        if (toGate == null)
-            throw new ServerException("missing toGate");
-        toGate = Gate.makeFullName(this, toGate);
-
-        if (! message.containsKey("entity"))
-            throw new ServerException("missing entity");
-        EntityState entityState = EntityState.extractState(message.getMessage("entity"));
-        if (entityState == null)
-            throw new ServerException("invalid entity");
-
-        try {
-            Teleport.cancel(entityState, fromGate, toGate);
-        } catch (TeleportException te) {
-            throw new ServerException(te.getMessage());
-        }
-    }
-
-    private void handleConfirmArrival(Message message) throws ServerException {
-        String fromGate = message.getString("fromGate");
-        if (fromGate != null)
-            fromGate = Gate.makeLocalName(fromGate);
-
-        String toGate = message.getString("toGate");
-        if (toGate == null)
-            throw new ServerException("missing toGate");
-        toGate = Gate.makeFullName(this, toGate);
-
-        if (! message.containsKey("entity"))
-            throw new ServerException("missing entity");
-        EntityState entityState = EntityState.extractState(message.getMessage("entity"));
-        if (entityState == null)
-            throw new ServerException("invalid entity");
-
-        try {
-            Teleport.confirm(entityState, fromGate, toGate);
-        } catch (TeleportException te) {
-            throw new ServerException(te.getMessage());
-        }
-    }
-*/
             
     private void handleRelayChat(Message message) throws ServerException {
         String player = message.getString("player");
@@ -875,13 +950,11 @@ public final class Server {
             throw new ServerException("missing message");
 
         List<String> toGates = message.getStringList("toGates");
-        if ((toGates == null) || toGates.isEmpty())
-            throw new ServerException("missing toGates");
+        if (toGates != null)
+            for (int i = 0; i < toGates.size(); i++)
+                toGates.set(i, Gate.makeLocalName(toGates.get(i)));
 
-        for (int i = 0; i < toGates.size(); i++)
-            toGates.set(i, Gate.makeLocalName(toGates.get(i)));
-
-        Teleport.receiveChat(player, displayName, world, name, msg, toGates);
+        Chat.receive(player, displayName, world, name, msg, toGates);
     }
 
     // Utility methods

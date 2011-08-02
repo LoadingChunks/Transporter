@@ -31,7 +31,7 @@ public class BlockListenerImpl extends BlockListener {
 
     @Override
     public void onBlockDamage(BlockDamageEvent event) {
-        LocalGate gate = Global.gates.findGateForProtection(event.getBlock().getLocation());
+        LocalGate gate = Gates.findGateForProtection(event.getBlock().getLocation());
         if (gate != null) {
             event.setCancelled(true);
         }
@@ -39,13 +39,13 @@ public class BlockListenerImpl extends BlockListener {
 
     @Override
     public void onBlockBreak(BlockBreakEvent event) {
-        LocalGate gate = Global.gates.findGateForScreen(event.getBlock().getLocation());
+        LocalGate gate = Gates.findGateForScreen(event.getBlock().getLocation());
         if (gate != null) {
             Context ctx = new Context(event.getPlayer());
-            Global.gates.destroy(gate, false);
+            Gates.destroy(gate, false);
             ctx.sendLog("destroyed gate '%s'", gate.getName());
         }
-        gate = Global.gates.findGateForProtection(event.getBlock().getLocation());
+        gate = Gates.findGateForProtection(event.getBlock().getLocation());
         if (gate != null) {
             event.setCancelled(true);
         }
@@ -54,7 +54,7 @@ public class BlockListenerImpl extends BlockListener {
     @Override
     public void onSignChange(SignChangeEvent event) {
         Block block = event.getBlock();
-        LocalGate gate = Global.gates.findGateForScreen(block.getLocation());
+        LocalGate gate = Gates.findGateForScreen(block.getLocation());
         if (gate != null) return;
         Context ctx = new Context(event.getPlayer());
         String gateName = null;
@@ -70,7 +70,7 @@ public class BlockListenerImpl extends BlockListener {
         }
         try {
             if (gateName == null) return;
-            gate = Global.designs.create(ctx, block.getLocation(), gateName);
+            gate = Designs.create(ctx, block.getLocation(), gateName);
             if (gate == null) return;
             ctx.sendLog("created gate '%s'", gate.getName());
             Global.setSelectedGate(event.getPlayer(), gate);
@@ -94,7 +94,7 @@ public class BlockListenerImpl extends BlockListener {
 
     @Override
     public void onBlockFromTo(BlockFromToEvent event) {
-        LocalGate gate = Global.gates.findGateForPortal(event.getBlock().getLocation());
+        LocalGate gate = Gates.findGateForPortal(event.getBlock().getLocation());
         if (gate != null) {
             event.setCancelled(true);
         }

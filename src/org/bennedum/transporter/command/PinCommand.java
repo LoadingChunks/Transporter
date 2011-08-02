@@ -17,7 +17,7 @@ package org.bennedum.transporter.command;
 
 import java.util.List;
 import org.bennedum.transporter.Context;
-import org.bennedum.transporter.Teleport;
+import org.bennedum.transporter.Reservation;
 import org.bennedum.transporter.TransporterException;
 import org.bukkit.command.Command;
 
@@ -44,7 +44,7 @@ public class PinCommand extends TrpCommandProcessor {
         if (args.isEmpty())
             throw new CommandException("pin required");
         String pin = args.remove(0);
-        Teleport.setPin(ctx.getPlayer(), pin);
+        Reservation.setPin(ctx.getPlayer(), pin);
         ctx.send("gate pin set");
     }
 

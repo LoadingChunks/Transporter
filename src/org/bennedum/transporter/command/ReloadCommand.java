@@ -18,7 +18,10 @@ package org.bennedum.transporter.command;
 import java.util.ArrayList;
 import java.util.List;
 import org.bennedum.transporter.Context;
-import org.bennedum.transporter.Global;
+import org.bennedum.transporter.Designs;
+import org.bennedum.transporter.Gates;
+import org.bennedum.transporter.Permissions;
+import org.bennedum.transporter.Servers;
 import org.bennedum.transporter.TransporterException;
 import org.bennedum.transporter.Utils;
 import org.bukkit.command.Command;
@@ -42,11 +45,11 @@ public class ReloadCommand extends TrpCommandProcessor {
         super.process(ctx, cmd, args);
         List<String> what = new ArrayList<String>();
         if (args.isEmpty()) {
-            if (ctx.hasAllPermissions("trp.reload.config"))
+            if (Permissions.has(ctx.getPlayer(), "trp.reload.config"))
                 what.add("config");
-            if (ctx.hasAllPermissions("trp.reload.designs"))
+            if (Permissions.has(ctx.getPlayer(), "trp.reload.designs"))
                 what.add("designs");
-            if (ctx.hasAllPermissions("trp.reload.gates"))
+            if (Permissions.has(ctx.getPlayer(), "trp.reload.gates"))
                 what.add("gates");
         } else {
             for (String arg : args) {
@@ -56,18 +59,18 @@ public class ReloadCommand extends TrpCommandProcessor {
                 else if ("gates".startsWith(arg)) arg = "gates";
                 else
                     throw new CommandException("reload what?");
-                ctx.requireAllPermissions("trp.reload." + arg);
+                Permissions.require(ctx.getPlayer(), "trp.reload." + arg);
                 what.add(arg);
             }
         }
         for (String arg : what) {
             if (arg.equals("config")) {
                 Utils.loadConfig(ctx);
-                Global.servers.loadAll(ctx);
+                Servers.loadAll(ctx);
             } else if (arg.equals("designs"))
-                Global.designs.loadAll(ctx);
+                Designs.loadAll(ctx);
             else if (arg.equals("gates"))
-                Global.gates.loadAll(ctx);
+                Gates.loadAll(ctx);
         }
     }
 

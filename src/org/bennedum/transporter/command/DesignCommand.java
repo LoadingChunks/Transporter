@@ -20,7 +20,11 @@ import java.util.Comparator;
 import java.util.List;
 import org.bennedum.transporter.Context;
 import org.bennedum.transporter.Design;
+import org.bennedum.transporter.Designs;
+import org.bennedum.transporter.Economy;
 import org.bennedum.transporter.Global;
+import org.bennedum.transporter.Inventory;
+import org.bennedum.transporter.Permissions;
 import org.bennedum.transporter.SavedBlock;
 import org.bennedum.transporter.TransporterException;
 import org.bukkit.World;
@@ -51,11 +55,11 @@ public class DesignCommand extends TrpCommandProcessor {
         String subCmd = args.remove(0).toLowerCase();
 
         if ("list".startsWith(subCmd)) {
-            ctx.requireAllPermissions("trp.design.list");
-            if (Global.designs.getAll().isEmpty())
+            Permissions.require(ctx.getPlayer(), "trp.design.list");
+            if (Designs.getAll().isEmpty())
                 ctx.send("there are no designs");
             else {
-                List<Design> designs = Global.designs.getAll();
+                List<Design> designs = Designs.getAll();
                 Collections.sort(designs, new Comparator<Design>() {
                     @Override
                     public int compare(Design a, Design b) {
@@ -83,7 +87,7 @@ public class DesignCommand extends TrpCommandProcessor {
             World world = player.getWorld();
 
             if (designName.toLowerCase().equals("undo")) {
-                ctx.requireAllPermissions("trp.design.build.undo");
+                Permissions.require(ctx.getPlayer(), "trp.design.build.undo");
                 List<SavedBlock> blocks = Global.removeBuildUndo(player);
                 if (blocks == null)
                     throw new CommandException("nothing to undo");
@@ -93,7 +97,7 @@ public class DesignCommand extends TrpCommandProcessor {
                 return;
             }
 
-            Design design = Global.designs.get(designName);
+            Design design = Designs.get(designName);
             if (design == null)
                 throw new CommandException("unknown design '%s'", designName);
             if (! design.isBuildable())
@@ -101,17 +105,19 @@ public class DesignCommand extends TrpCommandProcessor {
             if (! design.isBuildableInWorld(world))
                 throw new CommandException("gate type '%s' is not buildable in this world", design.getName());
 
-            ctx.requireAllPermissions("trp.design.build." + design.getName());
+            Permissions.require(ctx.getPlayer(), "trp.design.build." + design.getName());
 
-            ctx.requireFunds(design.getBuildCost());
+            Economy.requireFunds(ctx.getPlayer(), design.getBuildCost());
             if (design.mustBuildFromInventory())
-                ctx.requireInventory(design.getInventoryBlocks());
+                Inventory.requireBlocks(ctx.getPlayer(), design.getInventoryBlocks());
 
             List<SavedBlock> blocks = design.build(player.getLocation());
 
-            ctx.chargeFunds(design.getBuildCost(), "debited $$ for gate construction");
+            if (Economy.deductFunds(ctx.getPlayer(), design.getBuildCost()))
+                ctx.sendLog("debited %s for gate construction", design.getBuildCost());
             if (design.mustBuildFromInventory())
-                ctx.chargeInventory(design.getInventoryBlocks());
+                if (Inventory.deductBlocks(ctx.getPlayer(), design.getInventoryBlocks()))
+                    ctx.sendLog("debited inventory");
 
             Global.setBuildUndo(player, blocks);
 

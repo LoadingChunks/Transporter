@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 import org.bennedum.transporter.command.CommandException;
 import org.bennedum.transporter.command.CommandProcessor;
-import org.bukkit.block.BlockFace;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.event.Event.Priority;
@@ -28,7 +27,6 @@ import org.bukkit.event.Event.Type;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
-import org.bukkit.util.Vector;
 
 
 /**
@@ -90,9 +88,9 @@ public class Transporter extends JavaPlugin {
         Global.config.removeProperty("craftProxy");
         
         Global.network.start(ctx);
-        Global.designs.loadAll(ctx);
-        Global.gates.loadAll(ctx);
-        Global.servers.loadAll(ctx);
+        Designs.loadAll(ctx);
+        Gates.loadAll(ctx);
+        Servers.loadAll(ctx);
 
         PluginManager pm = getServer().getPluginManager();
 
@@ -119,7 +117,7 @@ public class Transporter extends JavaPlugin {
         Context ctx = new Context();
         Global.network.stop(ctx);
         Utils.saveConfig(ctx);
-        Global.gates.saveAll(ctx);
+        Gates.saveAll(ctx);
         ctx.sendLog("disabled");
         Global.plugin = null;
     }

@@ -33,6 +33,7 @@ import java.net.Proxy;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -47,6 +48,7 @@ import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.BlockFace;
+import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitWorker;
 import org.bukkit.util.Vector;
 import org.bukkit.util.config.Configuration;
@@ -406,8 +408,40 @@ public class Utils {
             writer.println(message);
             writer.println();
 
-            // the list of servers...
-            List<Server> servers = Global.servers.getAll();
+            // MC info
+            writer.format("Bukkit version:      %s\n", Global.plugin.getServer().getVersion());
+            writer.format("MC address:          %s:%s\n", Global.plugin.getServer().getIp(), Global.plugin.getServer().getPort());
+            writer.format("Transporter version: %s\n", Global.pluginVersion);
+            writer.println();
+            
+            // list of players...
+            List<Player> players = Arrays.asList(Global.plugin.getServer().getOnlinePlayers());
+            Collections.sort(players, new Comparator<Player>() {
+                @Override
+                public int compare(Player a, Player b) {
+                    return a.getName().compareToIgnoreCase(b.getName());
+                }
+            });
+            writer.format("%d players:\n", players.size());
+            for (Player player : players)
+                writer.format("  %s (%s)\n", player.getName(), player.getAddress());
+            writer.println();
+            
+            // list of worlds...
+            List<World> worlds = Global.plugin.getServer().getWorlds();
+            Collections.sort(worlds, new Comparator<World>() {
+                @Override
+                public int compare(World a, World b) {
+                    return a.getName().compareToIgnoreCase(b.getName());
+                }
+            });
+            writer.format("%d worlds:\n", worlds.size());
+            for (World world : worlds)
+                writer.format("  %s (%s)\n", world.getName(), world.getEnvironment());
+            writer.println();
+            
+            // list of servers...
+            List<Server> servers = Servers.getAll();
             Collections.sort(servers, new Comparator<Server>() {
                 @Override
                 public int compare(Server a, Server b) {
@@ -416,11 +450,12 @@ public class Utils {
             });
             writer.format("%d servers:\n", servers.size());
             for (Server server : servers)
-                writer.format("  %s: %s '%s' [%s] %s/%s %s %s %s\n",
+                writer.format("  %s: %s '%s' [%s] [%s] %s/%s %s %s %s\n",
                             server.getName(),
                             server.getPluginAddress(),
                             server.getKey(),
-                            (server.getMCAddress() == null) ? "*" : server.getMCAddress(),
+                            (server.getPublicAddress() == null) ? "*" : server.getPublicAddress(),
+                            (server.getPrivateAddress() == null) ? "*" : server.getPrivateAddress(),
                             (server.isEnabled() ? "up" : "down"),
                             (server.isConnected() ? "up" : "down"),
                             (server.isConnected() ? (server.isIncoming() ? "incoming" : "outgoing") : ""),
@@ -429,8 +464,8 @@ public class Utils {
                         );
             writer.println();
 
-            // the list of gates...
-            List<Gate> gates = Global.gates.getAll();
+            // list of gates...
+            List<Gate> gates = Gates.getAll();
             Collections.sort(gates, new Comparator<Gate>() {
                 @Override
                 public int compare(Gate a, Gate b) {

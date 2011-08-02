@@ -84,21 +84,30 @@ public final class Permissions {
         return false;
     }
 
-    public static void requirePermission(Player player, String perm) throws PermissionsException {
-        if (player == null) return;
-        requirePermissions(player.getWorld().getName(), player.getName(), true, perm);
+    public static boolean has(Player player, String perm) {
+        try {
+            require(player.getWorld().getName(), player.getName(), true, perm);
+            return true;
+        } catch (PermissionsException e) {
+            return false;
+        }
     }
     
-    public static void requirePermissions(Player player, boolean requireAll, String ... perms) throws PermissionsException {
+    public static void require(Player player, String perm) throws PermissionsException {
         if (player == null) return;
-        requirePermissions(player.getWorld().getName(), player.getName(), requireAll, perms);
+        require(player.getWorld().getName(), player.getName(), true, perm);
+    }
+    
+    public static void require(Player player, boolean requireAll, String ... perms) throws PermissionsException {
+        if (player == null) return;
+        require(player.getWorld().getName(), player.getName(), requireAll, perms);
     }
 
-    public static void requirePermission(String worldName, String playerName, String perm) throws PermissionsException {
-        requirePermissions(worldName, playerName, true, perm);
+    public static void require(String worldName, String playerName, String perm) throws PermissionsException {
+        require(worldName, playerName, true, perm);
     }
     
-    public static void requirePermissions(String worldName, String playerName, boolean requireAll, String ... perms) throws PermissionsException {
+    private static void require(String worldName, String playerName, boolean requireAll, String ... perms) throws PermissionsException {
         if (isOp(playerName)) return;
         if (permissionsAvailable()) {
             for (String perm : perms) {
@@ -135,6 +144,11 @@ public final class Permissions {
         return ! getList(new File(BANNEDPLAYERS_FILE)).contains(playerName);
     }
 
+    public static boolean isOp(Player player) {
+        if (player == null) return true;
+        return isOp(player.getName());
+    }
+    
     public static boolean isOp(String playerName) {
         return getList(new File(OPS_FILE)).contains(playerName);
     }

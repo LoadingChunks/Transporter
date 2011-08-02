@@ -18,7 +18,9 @@ package org.bennedum.transporter.command;
 import java.util.ArrayList;
 import java.util.List;
 import org.bennedum.transporter.Context;
-import org.bennedum.transporter.Global;
+import org.bennedum.transporter.Gates;
+import org.bennedum.transporter.Permissions;
+import org.bennedum.transporter.Servers;
 import org.bennedum.transporter.TransporterException;
 import org.bennedum.transporter.Utils;
 import org.bukkit.command.Command;
@@ -42,9 +44,9 @@ public class SaveCommand extends TrpCommandProcessor {
         super.process(ctx, cmd, args);
         List<String> what = new ArrayList<String>();
         if (args.isEmpty()) {
-            if (ctx.hasAllPermissions("trp.save.config"))
+            if (Permissions.has(ctx.getPlayer(), "trp.save.config"))
                 what.add("config");
-            if (ctx.hasAllPermissions("trp.save.gates"))
+            if (Permissions.has(ctx.getPlayer(), "trp.save.gates"))
                 what.add("gates");
         } else {
             for (String arg : args) {
@@ -53,16 +55,16 @@ public class SaveCommand extends TrpCommandProcessor {
                 else if ("gates".startsWith(arg)) arg = "gates";
                 else
                     throw new CommandException("save what?");
-                ctx.requireAllPermissions("trp.save." + arg);
+                Permissions.require(ctx.getPlayer(), "trp.save." + arg);
                 what.add(arg);
             }
         }
         for (String arg : what) {
             if (arg.equals("config")) {
-                Global.servers.saveAll();
+                Servers.saveAll();
                 Utils.saveConfig(ctx);
             } else if (arg.equals("gates"))
-                Global.gates.saveAll(ctx);
+                Gates.saveAll(ctx);
         }
     }
     

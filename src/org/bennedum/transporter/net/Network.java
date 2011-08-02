@@ -38,6 +38,7 @@ import java.util.regex.PatternSyntaxException;
 import org.bennedum.transporter.Context;
 import org.bennedum.transporter.Global;
 import org.bennedum.transporter.Server;
+import org.bennedum.transporter.Servers;
 import org.bennedum.transporter.TransporterException;
 import org.bennedum.transporter.Utils;
 
@@ -81,6 +82,7 @@ public final class Network extends Thread {
     private String listenAddressRaw;
     private InetSocketAddress listenAddress;
     private String serverKey;
+    
     private final Set<Pattern> banned = new HashSet<Pattern>();
 
     private Selector selector = null;
@@ -133,10 +135,14 @@ public final class Network extends Thread {
         return serverKey;
     }
     
-    public String getListenAddress() {
+    public String getListenAddressRaw() {
         return listenAddressRaw;
     }
 
+    public InetSocketAddress getListenAddress() {
+        return listenAddress;
+    }
+    
     // called from main thread
     public void stop(Context ctx) {
         if ((! isAlive()) || (state != State.RUNNING)) return;
@@ -304,7 +310,7 @@ public final class Network extends Thread {
                 }
 
                 // Tell connected servers to do keep alives
-                for (Server server : Global.servers.getAll()) {
+                for (Server server : Servers.getAll()) {
                     server.sendKeepAlive();
                     server.checkKeepAlive();
                 }

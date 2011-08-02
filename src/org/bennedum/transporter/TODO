@@ -3,10 +3,20 @@
 * Implement new gate design: Jail
 * fix minecarts - too fast same world, no velocity on exit between servers
 * fix exit direction from gates - inconsistent
-
+* add back call to gate's to do lightning
 
 Testing:
+    * new teleportation shit
 
 Wiki Updates:
     * update GateDesign with lightning
-
+    * update server add/change commands with new/renamed args
+    * update ServerToServer:
+        * heading note about experimental NAT support
+        * scenario 1 new "trp server list" output format
+    * global configuration:
+        * detectNAT setting (default true)
+        * useBOSEconomy (default false)
+    * home page
+        * BOSEconomy support
+    * gate design: iConomy -> Economy

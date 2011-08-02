@@ -27,15 +27,15 @@ import org.bukkit.util.config.ConfigurationNode;
  *
  * @author frdfsnlght <frdfsnlght@gmail.com>
  */
-public class ServerCollection {
+public final class Servers {
 
     private static final int CONNECT_DELAY = 4000;
 
-    private Map<String,Server> servers = new HashMap<String,Server>();
+    private static final Map<String,Server> servers = new HashMap<String,Server>();
 
-    public void loadAll(Context ctx) {
+    public static void loadAll(Context ctx) {
         removeAll();
-        servers = new HashMap<String,Server>();
+        servers.clear();
 
         // check for pre v6.10 file and convert to main config
         File file = new File(Global.plugin.getDataFolder(), "servers.yml");
@@ -82,14 +82,14 @@ public class ServerCollection {
             ctx.sendLog("no servers loaded");
     }
 
-    public void saveAll() {
+    public static void saveAll() {
         List<Map<String,Object>> serverNodes = new ArrayList<Map<String,Object>>();
         for (Server server : servers.values())
             serverNodes.add(server.encode());
         Global.config.setProperty("servers", serverNodes);
     }
 
-    public void add(final Server server) throws ServerException {
+    public static void add(final Server server) throws ServerException {
         String name = server.getName();
         if (servers.containsKey(name))
             throw new ServerException("a server with the same name already exists");
@@ -103,19 +103,19 @@ public class ServerCollection {
             }, CONNECT_DELAY);
     }
 
-    public void remove(Server server) {
+    public static void remove(Server server) {
         String name = server.getName();
         if (! servers.containsKey(name)) return;
         servers.remove(name);
         server.disconnect(false);
     }
 
-    public void removeAll() {
+    public static void removeAll() {
         for (Server server : new ArrayList<Server>(servers.values()))
             remove(server);
     }
 
-    public Server get(String name) {
+    public static Server get(String name) {
         if (servers.containsKey(name)) return servers.get(name);
         Server server = null;
         name = name.toLowerCase();
@@ -128,15 +128,15 @@ public class ServerCollection {
         return server;
     }
 
-    public List<Server> getAll() {
+    public static List<Server> getAll() {
         return new ArrayList<Server>(servers.values());
     }
 
-    public boolean isEmpty() {
+    public static boolean isEmpty() {
         return size() == 0;
     }
 
-    public int size() {
+    public static int size() {
         return servers.size();
     }
 

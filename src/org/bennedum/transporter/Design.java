@@ -45,10 +45,6 @@ public class Design {
         return ! (name.contains(".") || name.contains("*"));
     }
 
-    private static String checkItem(String item) {
-        return LocalGate.checkItem(item);
-    }
-
     private String name;
     private int duration;
     private boolean buildable;
@@ -116,7 +112,7 @@ public class Design {
 
         List<String> items = conf.getStringList("bannedItems", new ArrayList<String>());
         for (String item : items) {
-            String i = checkItem(item);
+            String i = Inventory.normalizeItem(item);
             if (i == null)
                 throw new DesignException("invalid banned item '%s'", item);
             bannedItems.add(i);
@@ -124,7 +120,7 @@ public class Design {
 
         items = conf.getStringList("allowedItems", new ArrayList<String>());
         for (String item : items) {
-            String i = checkItem(item);
+            String i = Inventory.normalizeItem(item);
             if (i == null)
                 throw new DesignException("invalid allowed item '%s'", item);
             allowedItems.add(i);
@@ -133,11 +129,11 @@ public class Design {
         items = conf.getKeys("replaceItems");
         if (items != null) {
             for (String oldItem : items) {
-                String oi = checkItem(oldItem);
+                String oi = Inventory.normalizeItem(oldItem);
                 if (oi == null)
                     throw new DesignException("invalid replace item '%s'", oldItem);
                 String newItem = conf.getString("replaceItems." + oldItem);
-                String ni = checkItem(newItem);
+                String ni = Inventory.normalizeItem(newItem);
                 if (ni == null)
                     throw new DesignException("invalid replace item '%s'", newItem);
                 replaceItems.put(oi, ni);

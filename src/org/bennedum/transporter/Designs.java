@@ -26,12 +26,12 @@ import org.bukkit.Location;
  *
  * @author frdfsnlght <frdfsnlght@gmail.com>
  */
-public class DesignCollection {
+public final class Designs {
 
-    private Map<String,Design> designs = new HashMap<String,Design>();
+    private static final Map<String,Design> designs = new HashMap<String,Design>();
 
-    public void loadAll(Context ctx) {
-        designs = new HashMap<String,Design>();
+    public static void loadAll(Context ctx) {
+        designs.clear();
         File designsFolder = new File(Global.plugin.getDataFolder(), "designs");
         for (File designFile : Utils.listYAMLFiles(designsFolder)) {
             try {
@@ -50,13 +50,13 @@ public class DesignCollection {
             ctx.sendLog("no designs loaded");
     }
 
-    private void add(Design design) throws DesignException {
+    private static void add(Design design) throws DesignException {
         if (designs.containsKey(design.getName()))
             throw new DesignException("a design with the same type already exists");
         designs.put(design.getName(), design);
     }
 
-    public Design get(String name) {
+    public static Design get(String name) {
         if (designs.containsKey(name)) return designs.get(name);
         Design design = null;
         name = name.toLowerCase();
@@ -69,30 +69,31 @@ public class DesignCollection {
         return design;
     }
 
-    public List<Design> getAll() {
+    public static List<Design> getAll() {
         return new ArrayList<Design>(designs.values());
     }
 
-    public boolean isEmpty() {
+    public static boolean isEmpty() {
         return size() == 0;
     }
 
-    public int size() {
+    public static int size() {
         return designs.size();
     }
 
-    public LocalGate create(Context ctx, Location location, String gateName) throws TransporterException {
+    public static LocalGate create(Context ctx, Location location, String gateName) throws TransporterException {
         for (Design design : designs.values()) {
             LocalGate gate = design.create(location, gateName, ctx.getPlayer().getName());
             if (gate == null) continue;
 
-            ctx.requireAllPermissions("trp.create." + gate.getDesignName());
-            Global.gates.add(gate);
+            Permissions.require(ctx.getPlayer(), "trp.create." + gate.getDesignName());
+            Gates.add(gate);
             try {
-                ctx.chargeFunds(design.getCreateCost(), "debited $$ for gate creation");
-            } catch (FundsException fe) {
-                Global.gates.destroy(gate, false);
-                throw fe;
+                if (Economy.deductFunds(ctx.getPlayer(), design.getCreateCost()))
+                    ctx.sendLog("debited %s for gate creation", Economy.format(design.getCreateCost()));
+            } catch (EconomyException e) {
+                Gates.destroy(gate, false);
+                throw e;
             }
             gate.saveInBackground();
             return gate;

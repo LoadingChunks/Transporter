@@ -18,9 +18,11 @@ package org.bennedum.transporter.command;
 import java.util.List;
 import org.bennedum.transporter.Context;
 import org.bennedum.transporter.Gate;
+import org.bennedum.transporter.Gates;
 import org.bennedum.transporter.Global;
-import org.bennedum.transporter.Teleport;
-import org.bennedum.transporter.TeleportException;
+import org.bennedum.transporter.Permissions;
+import org.bennedum.transporter.Reservation;
+import org.bennedum.transporter.ReservationException;
 import org.bennedum.transporter.TransporterException;
 import org.bukkit.command.Command;
 
@@ -46,7 +48,7 @@ public class GoCommand extends TrpCommandProcessor {
         super.process(ctx, cmd, args);
         Gate gate = null;
         if (! args.isEmpty()) {
-            gate = Global.gates.get(ctx, args.get(0));
+            gate = Gates.get(ctx, args.get(0));
             if (gate == null)
                 throw new CommandException("unknown gate '%s'", args.get(0));
             args.remove(0);
@@ -55,11 +57,12 @@ public class GoCommand extends TrpCommandProcessor {
         if (gate == null)
             throw new CommandException("gate name required");
 
-        ctx.requireAllPermissions("trp.go." + gate.getName());
+        Permissions.require(ctx.getPlayer(), "trp.go." + gate.getName());
         try {
-            Teleport.sendDirect(ctx.getPlayer(), gate);
-        } catch (TeleportException te) {
-            ctx.warnLog(te.getMessage());
+            Reservation r = new Reservation(ctx.getPlayer(), gate);
+            r.depart();
+        } catch (ReservationException e) {
+            ctx.warnLog(e.getMessage());
         }
     }
     

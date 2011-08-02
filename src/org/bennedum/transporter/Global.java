@@ -46,9 +46,6 @@ public final class Global {
     public static String pluginName;
     public static String pluginVersion;
     public static Configuration config;
-    public static DesignCollection designs = new DesignCollection();
-    public static GateCollection gates = new GateCollection();
-    public static ServerCollection servers = new ServerCollection();
     public static Network network = new Network();
 
     public static final List<CommandProcessor> commands = new ArrayList<CommandProcessor>();

@@ -15,10 +15,7 @@
  */
 package org.bennedum.transporter;
 
-import com.iConomy.iConomy;
-import java.util.Map;
 import org.bukkit.ChatColor;
-import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -102,8 +99,8 @@ public class Context {
         return (Player)sender;
     }
 
-    // TODO: maybe not use permissions stuff here
-    
+    // TODO: remove
+    /*
     public boolean hasAllPermissions(String ... perms) {
         try {
             requireAllPermissions(perms);
@@ -126,9 +123,10 @@ public class Context {
         Player player = getPlayer();
         Permissions.requirePermissions(player, requireAll, perms);
     }
-
-    // TODO: move this stuff to new Economy class
+*/
     
+    // TODO: remove
+    /*
     public void requireFunds(double amount) throws FundsException {
         if (isOp() || isSystem() || (! isPlayer())) return;
         Player player = getPlayer();
@@ -143,9 +141,9 @@ public class Context {
             sendLog(msg, args);
         }
     }
-
-    // TODO: move this stuff to new Inventory class
-    
+*/
+    // TODO: remove
+    /*
     public void requireInventory(Map<Material,Integer> blocks) throws InventoryException {
         if (isSystem() || (! isPlayer())) return;
         Player player = getPlayer();
@@ -164,5 +162,6 @@ public class Context {
         if (Utils.deductInventory(player, blocks, false) && (msg != null))
             sendLog(msg, args);
     }
-
+*/
+    
 }

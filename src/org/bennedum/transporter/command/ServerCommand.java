@@ -15,12 +15,16 @@
  */
 package org.bennedum.transporter.command;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.regex.PatternSyntaxException;
 import org.bennedum.transporter.Context;
 import org.bennedum.transporter.Global;
+import org.bennedum.transporter.Permissions;
 import org.bennedum.transporter.Server;
+import org.bennedum.transporter.Servers;
 import org.bennedum.transporter.TransporterException;
 import org.bennedum.transporter.Utils;
 import org.bennedum.transporter.net.Network;
@@ -43,7 +47,7 @@ public class ServerCommand extends TrpCommandProcessor {
                super.getUsage(ctx) + " set key <key>\n" +
                super.getUsage(ctx) + " get key\n" +
                super.getUsage(ctx) + " list\n" +
-               super.getUsage(ctx) + " add <name> <address> <key> <mcAddr>\n" +
+               super.getUsage(ctx) + " add <name> <plgAddr> <key>\n" +
                super.getUsage(ctx) + " connect <server>\n" +
                super.getUsage(ctx) + " disconnect <server>\n" +
                super.getUsage(ctx) + " enable <server>\n" +
@@ -51,10 +55,12 @@ public class ServerCommand extends TrpCommandProcessor {
                super.getUsage(ctx) + " ping <server> [<timeout>]\n" +
                super.getUsage(ctx) + " refresh <server>\n" +
                super.getUsage(ctx) + " remove <server>\n" +
-               super.getUsage(ctx) + " change <server> <address> <key> <mcAddr>\n" +
+               super.getUsage(ctx) + " change <server> <plgAddr> <key>\n" +
                super.getUsage(ctx) + " ban add <pattern>\n" +
                super.getUsage(ctx) + " ban remove <pattern>|*\n" +
-               super.getUsage(ctx) + " ban list";
+               super.getUsage(ctx) + " ban list\n" +
+               super.getUsage(ctx) + " get <option>|* <server>\n" +
+               super.getUsage(ctx) + " set <option> <value> <server>";
     }
 
     @Override
@@ -66,11 +72,11 @@ public class ServerCommand extends TrpCommandProcessor {
         args.remove(0);
 
         if ("list".startsWith(subCmd)) {
-            ctx.requireAllPermissions("trp.server.list");
-            if (Global.servers.getAll().isEmpty())
+            Permissions.require(ctx.getPlayer(), "trp.server.list");
+            if (Servers.getAll().isEmpty())
                 ctx.send("there are no servers");
             else {
-                List<Server> servers = Global.servers.getAll();
+                List<Server> servers = Servers.getAll();
                 Collections.sort(servers, new Comparator<Server>() {
                     @Override
                     public int compare(Server a, Server b) {
@@ -78,12 +84,14 @@ public class ServerCommand extends TrpCommandProcessor {
                     }
                 });
                 ctx.send("%d servers:", servers.size());
+                // TODO: move stuff from this to new status command
                 for (Server server : servers)
-                    ctx.send("  %s: %s '%s' [%s] %s/%s %s %s %s",
+                    ctx.send("  %s: %s '%s' [%s] [%s] %s/%s %s %s %s",
                                 server.getName(),
                                 server.getPluginAddress(),
                                 server.getKey(),
-                                (server.getMCAddress() == null) ? "*" : server.getMCAddress(),
+                                (server.getPublicAddress() == null) ? "*" : server.getPublicAddress(),
+                                (server.getPrivateAddress() == null) ? "*" : server.getPrivateAddress(),
                                 (server.isEnabled() ? "up" : "down"),
                                 (server.isConnected() ? "up" : "down"),
                                 (server.isConnected() ? (server.isIncoming() ? "incoming" : "outgoing") : ""),
@@ -97,48 +105,91 @@ public class ServerCommand extends TrpCommandProcessor {
         if ("set".startsWith(subCmd)) {
             if (args.isEmpty())
                 throw new CommandException("set what?");
-            String what = args.remove(0).toLowerCase();
+            String option = args.remove(0).toLowerCase();
             if (args.isEmpty())
-                throw new CommandException("set %s to what?", what);
-            if ("listen".startsWith(what)) {
-                ctx.requireAllPermissions("trp.server.set.listen");
-                Network.makeAddress(args.get(0));
-                Global.config.setProperty("listenAddress", args.get(0));
-                what = "listen";
-            } else if ("key".startsWith(what)) {
-                ctx.requireAllPermissions("trp.server.set.key");
-                Global.config.setProperty("serverKey", args.get(0));
-                what = "key";
-            } else
-                throw new CommandException("set what?");
+                throw new CommandException("set %s to what?", option);
+            String value = args.remove(0);
+            
+            if (args.isEmpty()) {
+                // global setting
+                if ("listen".startsWith(option)) {
+                    Permissions.require(ctx.getPlayer(), "trp.server.set.listen");
+                    Network.makeAddress(value);
+                    Global.config.setProperty("listenAddress", value);
+                    option = "listen";
+                } else if ("key".startsWith(option)) {
+                    Permissions.require(ctx.getPlayer(), "trp.server.set.key");
+                    Global.config.setProperty("serverKey", value);
+                    option = "key";
+                } else
+                    throw new CommandException("set what?");
+                ctx.sendLog("set %s to %s", option, value);
+            } else {
+                // server specific
+                String name = args.remove(0);
+                Server server = Servers.get(name);
+                if (server == null)
+                    throw new CommandException("unknown server '%s'", name);
+                option = server.resolveOption(option);
+                Permissions.require(ctx.getPlayer(), "trp.server.option.set." + option);
+                server.setOption(option, value);
+                ctx.sendLog("option '%s' set to '%s' for server '%s'", option, value, server.getName());
+            }
             Utils.saveConfig(ctx);
-            ctx.sendLog("set %s to %s", what, args.get(0));
-            ctx.send("reload server for changes to take effect");
             return;
         }
 
         if ("get".startsWith(subCmd)) {
             if (args.isEmpty())
                 throw new CommandException("get what?");
-            String what = args.remove(0).toLowerCase();
-            if ("listen".startsWith(what)) {
-                ctx.requireAllPermissions("trp.server.get.listen");
-                ctx.sendLog("listen=%s", Global.network.getListenAddress());
-            } else if ("key".startsWith(what)) {
-                ctx.requireAllPermissions("trp.server.get.key");
-                ctx.sendLog("key=%s", Global.network.getKey());
-            } else
-                throw new CommandException("get what?");
+            String option = args.remove(0).toLowerCase();
+            
+            if (args.isEmpty()) {
+                // global setting
+                if ("listen".startsWith(option)) {
+                    Permissions.require(ctx.getPlayer(), "trp.server.get.listen");
+                    ctx.sendLog("listen=%s", Global.network.getListenAddress());
+                } else if ("key".startsWith(option)) {
+                    Permissions.require(ctx.getPlayer(), "trp.server.get.key");
+                    ctx.sendLog("key=%s", Global.network.getKey());
+                } else
+                    throw new CommandException("get what?");
+            } else {
+                // server specific
+                String name = args.remove(0);
+                Server server = Servers.get(name);
+                if (server == null)
+                    throw new CommandException("unknown server '%s'", name);
+                
+                List<String> options = new ArrayList<String>();
+                if (option.equals("*")) option = ".*";
+                for (String opt : Server.OPTIONS)
+                    try {
+                        if ((opt.matches(option)) &&
+                            Permissions.has(ctx.getPlayer(), "trp.server.option.get." + opt))
+                        options.add(opt);
+                    } catch (PatternSyntaxException e) {}
+                if (options.isEmpty())
+                    throw new CommandException("no options match");
+                Collections.sort(options);
+                for (String opt : options) {
+                    if (! Permissions.has(ctx.getPlayer(), "trp.gate.option.get." + opt)) continue;
+                    ctx.send("%s=%s", opt, server.getOption(opt));
+                }
+            }
             return;
         }
 
         if ("add".startsWith(subCmd)) {
             if (args.size() < 3)
                 throw new CommandException("server name, address, and key required");
-            ctx.requireAllPermissions("trp.server.add");
-            Server server = new Server(args.get(0), args.get(1), args.get(2), (args.size() > 3) ? args.get(3) : null);
-            Global.servers.add(server);
-            Global.servers.saveAll();
+            Permissions.require(ctx.getPlayer(), "trp.server.add");
+            String name = args.remove(0);
+            String plgAddr = args.remove(0);
+            String key = args.remove(0);
+            Server server = new Server(name, plgAddr, key);
+            Servers.add(server);
+            Servers.saveAll();
             Utils.saveConfig(ctx);
             ctx.sendLog("added server '%s'", server.getName());
             return;
@@ -147,10 +198,10 @@ public class ServerCommand extends TrpCommandProcessor {
         if ("connect".startsWith(subCmd)) {
             if (args.isEmpty())
                 throw new CommandException("server name required");
-            Server server = Global.servers.get(args.get(0));
+            Server server = Servers.get(args.get(0));
             if (server == null)
                 throw new CommandException("unknown server '%s'", args.get(0));
-            ctx.requireAllPermissions("trp.server.connect");
+            Permissions.require(ctx.getPlayer(), "trp.server.connect");
             if (server.isConnected())
                 ctx.sendLog("server '%s' is already connected", server.getName());
             else {
@@ -163,10 +214,10 @@ public class ServerCommand extends TrpCommandProcessor {
         if ("disconnect".startsWith(subCmd)) {
             if (args.isEmpty())
                 throw new CommandException("server name required");
-            Server server = Global.servers.get(args.get(0));
+            Server server = Servers.get(args.get(0));
             if (server == null)
                 throw new CommandException("unknown server '%s'", args.get(0));
-            ctx.requireAllPermissions("trp.server.disconnect");
+            Permissions.require(ctx.getPlayer(), "trp.server.disconnect");
             ctx.sendLog("requested server disconnect for '%s'", server.getName());
             server.disconnect(false);
             return;
@@ -175,12 +226,12 @@ public class ServerCommand extends TrpCommandProcessor {
         if ("enable".startsWith(subCmd)) {
             if (args.isEmpty())
                 throw new CommandException("server name required");
-            Server server = Global.servers.get(args.get(0));
+            Server server = Servers.get(args.get(0));
             if (server == null)
                 throw new CommandException("unknown server '%s'", args.get(0));
-            ctx.requireAllPermissions("trp.server.enable");
+            Permissions.require(ctx.getPlayer(), "trp.server.enable");
             server.setEnabled(true);
-            Global.servers.saveAll();
+            Servers.saveAll();
             Utils.saveConfig(ctx);
             ctx.sendLog("server '%s' enabled", server.getName());
             return;
@@ -189,12 +240,12 @@ public class ServerCommand extends TrpCommandProcessor {
         if ("disable".startsWith(subCmd)) {
             if (args.isEmpty())
                 throw new CommandException("server name required");
-            Server server = Global.servers.get(args.get(0));
+            Server server = Servers.get(args.get(0));
             if (server == null)
                 throw new CommandException("unknown server '%s'", args.get(0));
-            ctx.requireAllPermissions("trp.server.disable");
+            Permissions.require(ctx.getPlayer(), "trp.server.disable");
             server.setEnabled(false);
-            Global.servers.saveAll();
+            Servers.saveAll();
             Utils.saveConfig(ctx);
             ctx.sendLog("server '%s' disabled", server.getName());
             return;
@@ -203,7 +254,7 @@ public class ServerCommand extends TrpCommandProcessor {
         if ("ping".startsWith(subCmd)) {
             if (args.isEmpty())
                 throw new CommandException("server name required");
-            Server server = Global.servers.get(args.get(0));
+            Server server = Servers.get(args.get(0));
             if (server == null)
                 throw new CommandException("unknown server '%s'", args.get(0));
             args.remove(0);
@@ -215,7 +266,7 @@ public class ServerCommand extends TrpCommandProcessor {
                     ctx.send("'%s' is not a valid number of millis", args.get(0));
                     return;
                 }
-            ctx.requireAllPermissions("trp.server.ping");
+            Permissions.require(ctx.getPlayer(), "trp.server.ping");
             if (! server.isEnabled())
                 throw new CommandException("server '%s' is not enabled", server.getName());
             if (! server.isConnected())
@@ -228,12 +279,15 @@ public class ServerCommand extends TrpCommandProcessor {
         if ("change".startsWith(subCmd)) {
             if (args.size() < 3)
                 throw new CommandException("server name, address, and key required");
-            ctx.requireAllPermissions("trp.server.change");
-            Server server = Global.servers.get(args.get(0));
+            Permissions.require(ctx.getPlayer(), "trp.server.change");
+            String name = args.remove(0);
+            String plgAddr = args.remove(0);
+            String key = args.remove(0);
+            Server server = Servers.get(name);
             if (server == null)
-                throw new CommandException("unknown server '%s'", args.get(0));
-            server.change(args.get(1), args.get(2), (args.size() > 3) ? args.get(3) : null);
-            Global.servers.saveAll();
+                throw new CommandException("unknown server '%s'", name);
+            server.change(plgAddr, key);
+            Servers.saveAll();
             Utils.saveConfig(ctx);
             ctx.sendLog("changed server '%s'", server.getName());
             ctx.sendLog("server must be reconnected for change to take effect");
@@ -243,10 +297,10 @@ public class ServerCommand extends TrpCommandProcessor {
         if ("refresh".startsWith(subCmd)) {
             if (args.isEmpty())
                 throw new CommandException("server name required");
-            Server server = Global.servers.get(args.get(0));
+            Server server = Servers.get(args.get(0));
             if (server == null)
                 throw new CommandException("unknown server '%s'", args.get(0));
-            ctx.requireAllPermissions("trp.server.refresh");
+            Permissions.require(ctx.getPlayer(), "trp.server.refresh");
             if (! server.isConnected())
                 ctx.sendLog("server '%s' is not connected", server.getName());
             else {
@@ -259,12 +313,12 @@ public class ServerCommand extends TrpCommandProcessor {
         if ("remove".startsWith(subCmd)) {
             if (args.isEmpty())
                 throw new CommandException("server name required");
-            Server server = Global.servers.get(args.get(0));
+            Server server = Servers.get(args.get(0));
             if (server == null)
                 throw new CommandException("unknown server '%s'", args.get(0));
-            ctx.requireAllPermissions("trp.server.remove");
-            Global.servers.remove(server);
-            Global.servers.saveAll();
+            Permissions.require(ctx.getPlayer(), "trp.server.remove");
+            Servers.remove(server);
+            Servers.saveAll();
             Utils.saveConfig(ctx);
             ctx.sendLog("removed server '%s'", server.getName());
             return;
@@ -276,7 +330,7 @@ public class ServerCommand extends TrpCommandProcessor {
             subCmd = args.remove(0).toLowerCase();
 
             if ("list".startsWith(subCmd)) {
-                ctx.requireAllPermissions("trp.server.ban.list");
+                Permissions.require(ctx.getPlayer(), "trp.server.ban.list");
                 List<String> banned = Global.network.getBanned();
                 if (banned.isEmpty())
                     ctx.send("there are no banned servers");
@@ -293,7 +347,7 @@ public class ServerCommand extends TrpCommandProcessor {
             String pattern = args.remove(0);
 
             if ("add".startsWith(subCmd)) {
-                ctx.requireAllPermissions("trp.server.ban.add");
+                Permissions.require(ctx.getPlayer(), "trp.server.ban.add");
                 if (Global.network.addBan(args.get(0)))
                     ctx.sendLog("added ban");
                 else
@@ -302,7 +356,7 @@ public class ServerCommand extends TrpCommandProcessor {
             }
 
             if ("remove".startsWith(subCmd)) {
-                ctx.requireAllPermissions("trp.server.ban.remove");
+                Permissions.require(ctx.getPlayer(), "trp.server.ban.remove");
                 if (pattern.equals("*")) {
                     Global.network.removeAllBans();
                     ctx.sendLog("removed all bans");

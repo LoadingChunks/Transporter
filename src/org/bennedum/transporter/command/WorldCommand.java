@@ -21,7 +21,9 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import org.bennedum.transporter.Context;
+import org.bennedum.transporter.Gates;
 import org.bennedum.transporter.Global;
+import org.bennedum.transporter.Permissions;
 import org.bennedum.transporter.TransporterException;
 import org.bennedum.transporter.Utils;
 import org.bukkit.Location;
@@ -57,7 +59,7 @@ public class WorldCommand extends TrpCommandProcessor {
         String subCmd = args.remove(0).toLowerCase();
 
         if ("list".startsWith(subCmd)) {
-            ctx.requireAllPermissions("trp.world.list");
+            Permissions.require(ctx.getPlayer(), "trp.world.list");
             List<World> worlds = new ArrayList<World>(Global.plugin.getServer().getWorlds());
             Collections.sort(worlds, new Comparator<World>() {
                 @Override
@@ -92,7 +94,7 @@ public class WorldCommand extends TrpCommandProcessor {
                         throw new CommandException("unknown environment");
                     }
             }
-            ctx.requireAllPermissions("trp.world.create");
+            Permissions.require(ctx.getPlayer(), "trp.world.create");
 
             ctx.sendLog("creating world '%s'...", newName);
             final Environment fEnv = env;
@@ -120,7 +122,7 @@ public class WorldCommand extends TrpCommandProcessor {
                 throw new CommandException("world name required");
             final String name = args.remove(0);
 
-            ctx.requireAllPermissions("trp.world.load");
+            Permissions.require(ctx.getPlayer(), "trp.world.load");
 
             if (Global.plugin.getServer().getWorld(name) != null)
                 throw new CommandException("world '%s' is already loaded", name);
@@ -148,7 +150,7 @@ public class WorldCommand extends TrpCommandProcessor {
                 throw new CommandException("world name required");
             String name = args.remove(0);
 
-            ctx.requireAllPermissions("trp.world.unload");
+            Permissions.require(ctx.getPlayer(), "trp.world.unload");
 
             final World world = Utils.getWorld(name);
             if (world == null)
@@ -162,7 +164,7 @@ public class WorldCommand extends TrpCommandProcessor {
                         public void run() {
                             ctx.sendLog("unloaded world '%s'", world.getName());
                             // TODO: remove this once bukkit can send onWorldUnload events
-                            Global.gates.remove(world);
+                            Gates.remove(world);
                         }
                     });
                 }
@@ -214,7 +216,7 @@ public class WorldCommand extends TrpCommandProcessor {
                     throw new CommandException("expected 2 or 3 ordinates");
             }
 
-            ctx.requireAllPermissions("trp.world.go");
+            Permissions.require(ctx.getPlayer(), "trp.world.go");
 
             ctx.getPlayer().teleport(location);
             ctx.sendLog("teleported to world '%s'", world.getName());
@@ -266,7 +268,7 @@ public class WorldCommand extends TrpCommandProcessor {
             if (world == null)
                 throw new CommandException("world name required");
 
-            ctx.requireAllPermissions("trp.world.spawn");
+            Permissions.require(ctx.getPlayer(), "trp.world.spawn");
 
             world.setSpawnLocation(location.getBlockX(), location.getBlockY(), location.getBlockZ());
             ctx.sendLog("set spawn location for world '%s'", world.getName());

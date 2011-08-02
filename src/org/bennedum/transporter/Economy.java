@@ -18,6 +18,7 @@ package org.bennedum.transporter;
 import com.iConomy.iConomy;
 import com.iConomy.system.Account;
 import com.iConomy.system.Holdings;
+import cosine.boseconomy.BOSEconomy;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
@@ -28,6 +29,12 @@ import org.bukkit.plugin.Plugin;
 public final class Economy {
 
     private static iConomy iconomyPlugin = null;
+    private static BOSEconomy boseconomyPlugin = null;
+    
+    public static boolean isAvailable() {
+        return iconomyAvailable() ||
+               boseconomyAvailable();
+    }
     
     public static boolean iconomyAvailable() {
         if (! Global.config.getBoolean("useIConomy", false)) return false;
@@ -38,13 +45,23 @@ public final class Economy {
         return true;
     }
 
+    public static boolean boseconomyAvailable() {
+        if (! Global.config.getBoolean("useBOSEconomy", false)) return false;
+        if (boseconomyPlugin != null) return true;
+        Plugin p = Global.plugin.getServer().getPluginManager().getPlugin("BOSEconomy");
+        if ((p == null) || (! p.isEnabled())) return false;
+        boseconomyPlugin = (BOSEconomy)p;
+        return true;
+    }
     
     public static String format(double funds) {
         if (iconomyAvailable())
             return iConomy.format(funds);
+        if (boseconomyAvailable())
+            return boseconomyPlugin.getMoneyFormatted(funds);
         
         // default
-        return String.format("%.2f", funds);
+        return String.format("$%1.2f", funds);
     }
     
     public static boolean requireFunds(Player player, double amount) throws EconomyException {
@@ -59,6 +76,13 @@ public final class Economy {
                 throw new EconomyException("iConomy account '%s' not found", accountName);
             Holdings holdings = account.getHoldings();
             if (holdings.balance() < amount)
+                throw new EconomyException("insufficient funds");
+            return true;
+        }
+
+        if (boseconomyAvailable()) {
+            double balance = boseconomyPlugin.getPlayerMoneyDouble(accountName);
+            if (balance < amount)
                 throw new EconomyException("insufficient funds");
             return true;
         }
@@ -82,6 +106,13 @@ public final class Economy {
                 throw new EconomyException("insufficient funds");
             holdings.subtract(amount);
             return true;
+        }
+
+        if (boseconomyAvailable()) {
+            double balance = boseconomyPlugin.getPlayerMoneyDouble(accountName);
+            if (balance < amount)
+                throw new EconomyException("insufficient funds");
+            return boseconomyPlugin.addPlayerMoney(accountName, -amount, false);
         }
         
         // default

@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import org.bennedum.transporter.Global;
 import org.bennedum.transporter.Server;
+import org.bennedum.transporter.Servers;
 import org.bennedum.transporter.Utils;
 
 /**
@@ -39,7 +40,7 @@ import org.bennedum.transporter.Utils;
 public final class Connection {
 
     private static final int HANDSHAKE_TIMEOUT = 5000;
-    private static final int PROTOCOL_VERSION = 4;
+    private static final int PROTOCOL_VERSION = 5;
     public static final int PROTOCOL_TIMEOUT = 8000;    // 8 seconds
 
     private static final byte ENCRYPTED_FLAG = 0x01;
@@ -135,8 +136,9 @@ public final class Connection {
         state = State.HANDSHAKE;
         // send the handshake message
         Message message = new Message();
-        message.put("protocol", PROTOCOL_VERSION);
-        message.put("version", Global.pluginVersion);
+        message.put("protocolVersion", PROTOCOL_VERSION);
+        message.put("pluginVersion", Global.pluginVersion);
+        
         try {
             MessageDigest dig = MessageDigest.getInstance("SHA1");
             Formatter f = new Formatter();
@@ -334,7 +336,7 @@ public final class Connection {
                     close();
                     return;
                 }
-                for (Server serv : Global.servers.getAll()) {
+                for (Server serv : Servers.getAll()) {
                     try {
                         MessageDigest dig = MessageDigest.getInstance("SHA1");
                         Formatter f = new Formatter();

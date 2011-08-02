@@ -360,9 +360,9 @@ public class LocalGate extends Gate {
     // called from the gate collection when a gate loaded from a file
     public void initialize() {
         if (portalOpen)
-            Global.gates.addPortalBlocks(getPortalBlocks());
+            Gates.addPortalBlocks(getPortalBlocks());
         if (protect)
-            Global.gates.addProtectBlocks(getBuildBlocks());
+            Gates.addProtectBlocks(getBuildBlocks());
     }
 
     // called from the gate collection when a gate is destroyed
@@ -521,9 +521,9 @@ public class LocalGate extends Gate {
 
             if (option.equals("protect")) {
                 if (protect)
-                    Global.gates.addProtectBlocks(getBuildBlocks());
+                    Gates.addProtectBlocks(getBuildBlocks());
                 else
-                    Global.gates.removeProtectBlocks(this);
+                    Gates.removeProtectBlocks(this);
             }
 
             dirty = true;
@@ -533,7 +533,7 @@ public class LocalGate extends Gate {
         } catch (NoSuchFieldException nsfe) {
             throw new GateException("unknown option");
         } catch (IllegalAccessException iae) {
-            throw new GateException("unable to read the option");
+            throw new GateException("unable to set the option");
         }
     }
 
@@ -596,13 +596,13 @@ public class LocalGate extends Gate {
 
     @Override
     protected void attach(Gate fromGate) {
-        String gateName = fromGate.getFullName();
-        if (incoming.contains(gateName)) return;
-
-        incoming.add(gateName);
-        dirty = true;
-        if (! portalOpen)
-            openPortal();
+        if (fromGate != null) {
+            String gateName = fromGate.getFullName();
+            if (incoming.contains(gateName)) return;
+            incoming.add(gateName);
+            dirty = true;
+        }
+        openPortal();
 
         // try to attach to our destination
         if ((outgoing == null) || (! hasLink(outgoing))) {
@@ -613,7 +613,7 @@ public class LocalGate extends Gate {
             updateScreens();
         }
         if (outgoing != null) {
-            Gate gate = Global.gates.get(outgoing);
+            Gate gate = Gates.get(outgoing);
             if (gate != null)
                 gate.attach(this);
         }
@@ -768,7 +768,7 @@ public class LocalGate extends Gate {
             dirty = true;
             updateScreens();
         }
-        Gate gate = Global.gates.get(outgoing);
+        Gate gate = Gates.get(outgoing);
         if (gate == null)
             throw new GateException("unknown or offline gate '%s'", outgoing);
 
@@ -795,7 +795,7 @@ public class LocalGate extends Gate {
 
         // try to detach from our destination
         if (outgoing != null) {
-            Gate gate = Global.gates.get(outgoing);
+            Gate gate = Gates.get(outgoing);
             if (gate != null)
                 gate.detach(this);
         }
@@ -866,7 +866,7 @@ public class LocalGate extends Gate {
 
         // detach from the current gate
         if (portalOpen && (outgoing != null)) {
-            Gate gate = Global.gates.get(outgoing);
+            Gate gate = Gates.get(outgoing);
             if (gate != null)
                 gate.detach(this);
         }
@@ -890,7 +890,7 @@ public class LocalGate extends Gate {
 
         // attach to the next gate
         if (portalOpen && (outgoing != null)) {
-            Gate gate = Global.gates.get(outgoing);
+            Gate gate = Gates.get(outgoing);
             if (gate != null)
                 gate.attach(this);
         }
@@ -919,7 +919,7 @@ public class LocalGate extends Gate {
                 throw new GateException("no link is selected");
         } else if (! hasLink(outgoing))
             throw new GateException("invalid link selected");
-        Gate gate = Global.gates.get(outgoing);
+        Gate gate = Gates.get(outgoing);
         if (gate == null)
             throw new GateException("unknown or offline destination gate '%s'", outgoing);
         return gate;
@@ -1217,7 +1217,7 @@ public class LocalGate extends Gate {
             else
                 lines.add("<unselected>");
         } else {
-            Gate gate = Global.gates.get(null, outgoing);
+            Gate gate = Gates.get(null, outgoing);
             if (gate == null) {
                 lines.add("");
                 lines.add("<offline>");
@@ -1256,7 +1256,7 @@ public class LocalGate extends Gate {
             gb.getDetail().getOpenBlock().build(gb.getLocation());
         }
         if (savedBlocks.isEmpty()) savedBlocks = null;
-        Global.gates.addPortalBlocks(getPortalBlocks());
+        Gates.addPortalBlocks(getPortalBlocks());
         dirty = true;
     }
 
@@ -1297,7 +1297,7 @@ public class LocalGate extends Gate {
                 gb.getLocation().getBlock().setTypeIdAndData(0, (byte)0, false);
             }
         }
-        Global.gates.removePortalBlocks(this);
+        Gates.removePortalBlocks(this);
         dirty = true;
     }
 

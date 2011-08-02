@@ -29,12 +29,12 @@ public class VehicleListenerImpl extends VehicleListener {
     @Override
     public void onVehicleMove(VehicleMoveEvent event) {
         Vehicle vehicle = event.getVehicle();
-        LocalGate fromGate = Global.gates.findGateForPortal(event.getTo());
+        LocalGate fromGate = Gates.findGateForPortal(event.getTo());
         if (fromGate == null) {
-            Teleport.removeGateLock(vehicle);
+            Reservation.removeGateLock(vehicle);
             return;
         }
-        if (Teleport.isGateLocked(vehicle)) return;
+        if (Reservation.isGateLocked(vehicle)) return;
         
         try {
             Reservation r = new Reservation(vehicle, fromGate);
