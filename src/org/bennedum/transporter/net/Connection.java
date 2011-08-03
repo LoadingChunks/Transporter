@@ -74,7 +74,7 @@ public final class Connection {
         this.server = server;
         this.connectAddress = address;
         try {
-            InetSocketAddress addr = Network.makeAddress(address);
+            InetSocketAddress addr = Network.makeInetSocketAddress(address, Network.DEFAULT_PORT, false);
             name = addr.getAddress().getHostAddress() + ":" + addr.getPort();
         } catch (NetworkException e) {}
     }

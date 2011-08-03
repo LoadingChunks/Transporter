@@ -18,17 +18,15 @@ package org.bennedum.transporter;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -60,10 +58,13 @@ public final class Server {
     public static final List<String> OPTIONS = new ArrayList<String>();
 
     static {
+        OPTIONS.add("pluginAddress");
+        OPTIONS.add("key");
         OPTIONS.add("publicAddress");
         OPTIONS.add("privateAddress");
         OPTIONS.add("sendAllChat");
         OPTIONS.add("receiveAllChat");
+        OPTIONS.add("proxied");
     }
     
     public static boolean isValidName(String name) {
@@ -71,178 +72,81 @@ public final class Server {
         return ! (name.contains(".") || name.contains("*"));
     }
 
-    public static Map<String,Set<Pattern>> makeAddressMap(String addrStr, int defaultPort) throws ServerException {
-        Map<String,Set<Pattern>> map = new LinkedHashMap<String,Set<Pattern>>();
-        String addresses[] = addrStr.split("\\s+");
-        for (String address : addresses) {
-            Set<Pattern> patterns = new HashSet<Pattern>();
-            String parts[] = address.split(",");
-            if (parts.length == 1)
-                patterns.add(Pattern.compile(".*"));
-            else
-                for (int i = 1; i < parts.length; i++) {
-                    try {
-                        patterns.add(Pattern.compile(parts[i]));
-                    } catch (PatternSyntaxException e) {
-                        throw new ServerException("invalid pattern '%s'", parts[i]);
-                    }
-                }
-            String addrParts[] = parts[0].split("/");
-            if (addrParts.length > 2)
-                throw new ServerException("address '%s' has too many parts", parts[0]);
-            for (int i = 0; i < addrParts.length; i++)
-                try {
-                    Network.makeAddress(addrParts[i], defaultPort);
-                } catch (NetworkException e) {
-                    throw new ServerException("address '%s': %s", addrParts[i], e.getMessage());
-                }
-            map.put(parts[0], patterns);
-        }
-        return map;
-    }
-
-    private static String makePrivateAddress(String in) throws ServerException {
-        if ((in == null) || in.equals("*")) {
-            in = null;
-            if (Global.network.getListenAddress().getAddress().isAnyLocalAddress()) {
-                // take the first IP address on the first interface
-                try {
-                    for (Enumeration<NetworkInterface> e1 = NetworkInterface.getNetworkInterfaces(); e1.hasMoreElements(); ) {
-                        NetworkInterface iface = e1.nextElement();
-                        if (! iface.isUp()) continue;
-                        if (iface.isLoopback()) continue;
-                        InetAddress addr = getInterfaceAddress(iface);
-                        if (addr != null) {
-                            in = addr.getHostAddress();
-                            break;
-                        }
-                    }
-                } catch (SocketException e) {
-                    Utils.severe(e, "unable to list network addresses:");
-                    throw new ServerException("unable to obtain private address");
-                }
-            }
-            if (in == null) in = "-";
-
-        } else if ((! in.equals("-")) &&
-                   (! in.matches("^[\\d\\.]+$"))) {
-            try {
-                int pos = in.indexOf(':');
-                String port = null;
-                if (pos != -1) {
-                    port = in.substring(pos);
-                    in = in.substring(0, pos);
-                }
-                NetworkInterface iface = NetworkInterface.getByName(in);
-                InetAddress addr = getInterfaceAddress(iface);
-                if (addr != null)
-                    in = addr.getHostAddress();
-                else
-                    throw new ServerException("unable to get address of interface '%s'", in);
-                if (port != null)
-                    in += port;
-            } catch (SocketException e) {
-                throw new ServerException("unable to find interface '%s'", in);
-            }
-        }
-        if ((! in.equals("-")) &&
-            (! in.contains(":")))
-            in += ":" + Global.plugin.getServer().getPort();
-        return in;
-    }
-    
-    private static InetAddress getInterfaceAddress(NetworkInterface iface) {
-        for (Enumeration<InetAddress> e = iface.getInetAddresses(); e.hasMoreElements(); ) {
-            InetAddress addr = e.nextElement();
-            if (addr instanceof Inet4Address) return addr;
-        }
-        return null;
-    }
     
     private String name;
-    private String pluginAddress;
+    private String pluginAddress;   // can be IP/DNS name, with opt port
     private String key;
     private boolean enabled;
-    private Connection connection = null;
-    private boolean allowReconnect = true;
-    private String version = null;
-    private String remotePrivateAddress = null;
-    private int reconnectTask = -1;
-    private boolean connected = false;
 
+    // The address we tell players so they can connect to our MC server.
+    // This address is given to the plugin on the other end of the connection.
+    // The string is a space separated list of values.
+    // Each value is a slash (/) delimited list of 1 or 2 items.
+    // The first item is the address/port a player should connect to.
+    // The second item is a regular expression to match against the player's address.
+    // If no second item is provided, it defaults to ".*".
+    // The first item can be a "*", which means "use the pluginAddress".
+    // The first item can be an interface name, which means use the first address of the named local interface.
+    // The default value is "*".
     private String publicAddress = null;
+    private String normalizedPublicAddress = null;
+    
+    // The address of our MC server host.
+    // This address is given to the plugin on the other end of the connection if global setting detectNAT is true (the default).
+    // This is an address/port.
+    // The value can be "-", which means don't send a private address to the remote side no matter what the detectNAT setting is.
+    // The value can be a "*", which means use the configured MC server address/port. If the wildcard address was configured, use the first address on the first interface.
+    // The value can be an interface name, which means use the first address of the named local interface.
+    // The default value is "*".
     private String privateAddress = null;
+    private InetSocketAddress normalizedPrivateAddress = null;
+    
+    // Should all chat messages on the local server be sent to the remote server?
     private boolean sendAllChat = false;
+    
+    // Should all chat messages received from the remote server be echoed to local users?
     private boolean receiveAllChat = false;
     
+    // Is this MC server behind the same cluster proxy we're behind?
+    // This changes the reconnect message sent when a player teleports to one that the proxy will understand.
+    private boolean proxied = false;
+    
+    private Connection connection = null;
+    private boolean allowReconnect = true;
+    private int reconnectTask = -1;
+    private boolean connected = false;
+    private String remoteVersion = null;
+    private Map<String,Set<Pattern>> remotePublicAddress = null;
+    private String remotePrivateAddress = null;
+    
     public Server(String name, String plgAddr, String key) throws ServerException {
-        this.name = name;
-        pluginAddress = plgAddr;
-        this.key = key;
-        enabled = true;
-        validate();
+        try {
+            setName(name);
+            setPluginAddress(plgAddr);
+            setKey(key);
+            enabled = true;
+        } catch (IllegalArgumentException e) {
+            throw new ServerException(e.getMessage());
+        }
     }
 
     public Server(ConfigurationNode node) throws ServerException {
-        name = node.getString("name");
-        pluginAddress = node.getString("pluginAddress");
-        key = node.getString("key");
-        enabled = node.getBoolean("enabled", true);
-        
         // v6.10 to v6.11
-        publicAddress = node.getString("minecraftAddress");
-        if (publicAddress != null) {
+        if (node.getString("minecraftAddress") != null)
             node.removeProperty("minecraftAddress");
-            node.setProperty("publicAddress", publicAddress);
-        }
         
-        publicAddress = node.getString("publicAddress");
-        privateAddress = node.getString("privateAddress");
-        sendAllChat = node.getBoolean("sendAllChat", false);
-        receiveAllChat = node.getBoolean("receiveAllChat", false);
-        
-        validate();
-    }
-
-    private void validate() throws ServerException {
-        if (name == null)
-            throw new ServerException("name is required");
-        if (! isValidName(name))
-            throw new ServerException("name is not valid");
-        if (pluginAddress == null)
-            throw new ServerException("pluginAddress is required");
         try {
-            Network.makeAddress(pluginAddress);
-        } catch (NetworkException ce) {
-            throw new ServerException("pluginAddress: %s", ce.getMessage());
-        }
-        if ((key == null) || key.isEmpty())
-            throw new ServerException("key is required");
-        
-        if (publicAddress != null)
-            try {
-                makeAddressMap(publicAddress, DEFAULT_MC_PORT);
-            } catch (ServerException e) {
-                throw new ServerException("publicAddress: %s", e.getMessage());
-            }
-        try {
-            privateAddress = makePrivateAddress(privateAddress);
-        } catch (ServerException e) {
-            throw new ServerException("privateAddress: %s", e.getMessage());
-        }
-    }
-
-    public void change(String plgAddr, String key) throws ServerException {
-        String oldPluginAddress = this.pluginAddress;
-        String oldKey = this.key;
-        pluginAddress = plgAddr;
-        this.key = key;
-        try {
-            validate();
-        } catch (ServerException se) {
-            pluginAddress = oldPluginAddress;
-            key = oldKey;
-            throw se;
+            setName(node.getString("name"));
+            setPluginAddress(node.getString("pluginAddress"));
+            setKey(node.getString("key"));
+            enabled = node.getBoolean("enabled", true);
+            setPublicAddress(node.getString("publicAddress", "*"));
+            setPrivateAddress(node.getString("privateAddress", "*"));
+            setSendAllChat(node.getBoolean("sendAllChat", false));
+            setReceiveAllChat(node.getBoolean("receiveAllChat", false));
+            setProxied(node.getBoolean("proxied", false));
+        } catch (IllegalArgumentException e) {
+            throw new ServerException(e.getMessage());
         }
     }
 
@@ -250,8 +154,37 @@ public final class Server {
         return name;
     }
 
+    public void setName(String name) throws ServerException {
+        if (name == null)
+            throw new ServerException("name is required");
+        if (! isValidName(name))
+            throw new ServerException("name is not valid");
+        this.name = name;
+    }
+    
+    public String getPluginAddress() {
+        return pluginAddress;
+    }
+
+    public void setPluginAddress(String addr) {
+        if (addr == null)
+            throw new IllegalArgumentException("pluginAddress is required");
+        try {
+            Network.makeInetSocketAddress(addr, Network.DEFAULT_PORT, true);
+        } catch (NetworkException e) {
+            throw new IllegalArgumentException("pluginAddress: " + e.getMessage());
+        }
+        pluginAddress = addr;
+    }
+    
     public String getKey() {
         return key;
+    }
+
+    public void setKey(String key) {
+        if ((key == null) || key.isEmpty())
+            throw new IllegalArgumentException("key is required");
+        this.key = key;
     }
 
     public boolean isEnabled() {
@@ -266,38 +199,66 @@ public final class Server {
             disconnect(false);
     }
 
-    public String getPluginAddress() {
-        return pluginAddress;
-    }
-
     public String getPublicAddress() {
         return publicAddress;
     }
 
-    public void setPublicAddress(String address) throws ServerException {
-        String saved = publicAddress;
-        publicAddress = address;
+    public void setPublicAddress(String address) {
+        if (address == null)
+            throw new IllegalArgumentException("publicAddress is required");
         try {
-            validate();
-        } catch (ServerException e) {
-            publicAddress = saved;
-            throw e;
+            normalizePublicAddress(address);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("publicAddress: " + e.getMessage());
         }
+        publicAddress = address;
     }
 
+    public String getNormalizedPublicAddress() {
+        return normalizedPublicAddress;
+    }
+    
     public String getPrivateAddress() {
         return publicAddress;
     }
     
-    public void setPrivateAddress(String address) throws ServerException {
-        String saved = privateAddress;
-        privateAddress = address;
+    public void setPrivateAddress(String address) {
+        if (address == null)
+            throw new IllegalArgumentException("privateAddress is required");
         try {
-            validate();
-        } catch (ServerException e) {
-            privateAddress = saved;
-            throw e;
+            normalizePrivateAddress(address);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("privateAddress: " + e.getMessage());
         }
+        privateAddress = address;
+    }
+    
+    public InetSocketAddress getNormalizedPrivateAddress() {
+        return normalizedPrivateAddress;
+    }
+    
+    public boolean getSendAllChat() {
+        return sendAllChat;
+    }
+    
+    public void setSendAllChat(boolean b) {
+        sendAllChat = b;
+    }
+    
+    public boolean getReceiveAllChat() {
+        return receiveAllChat;
+    }
+    
+    public void setReceiveAllChat(boolean b) {
+        receiveAllChat = b;
+    }
+
+    public boolean getProxied() {
+        return proxied;
+    }
+    
+    public void setProxied(boolean b) {
+        proxied = b;
     }
     
     public String resolveOption(String option) throws ServerException {
@@ -375,31 +336,26 @@ public final class Server {
             InetSocketAddress remoteAddr = (InetSocketAddress)connection.getChannel().socket().getRemoteSocketAddress();
             if (remoteAddr != null) {
                 if (remoteAddr.getAddress().getHostAddress().equals(clientAddrStr)) {
-                    Utils.debug("redirect for client %s using private address %s", clientAddrStr, remotePrivateAddress);
+                    Utils.debug("reconnect for client %s using private address %s", clientAddrStr, remotePrivateAddress);
                     return remotePrivateAddress;
                 }
             }
         }
         
-        Map<String,Set<Pattern>> pubAddrs;
-        try {
-            if (publicAddress == null) {
-                String[] parts = pluginAddress.split(":");
-                pubAddrs = makeAddressMap(parts[0], DEFAULT_MC_PORT);
-            } else
-                pubAddrs = makeAddressMap(publicAddress, DEFAULT_MC_PORT);
-        } catch (ServerException e) {
-            return null;
+        if (remotePublicAddress == null) {
+            String[] parts = pluginAddress.split(":");
+            return parts[0] + ":" + DEFAULT_MC_PORT;
         }
-        for (String addr : pubAddrs.keySet()) {
-            Set<Pattern> patterns = pubAddrs.get(addr);
+        
+        for (String address : remotePublicAddress.keySet()) {
+            Set<Pattern> patterns = remotePublicAddress.get(address);
             for (Pattern pattern : patterns)
                 if (pattern.matcher(clientAddrStr).matches())
-                    return addr;
+                    return address;
         }
         return null;
     }
-
+    
     public void setConnection(Connection conn) {
         connection = conn;
     }
@@ -408,8 +364,8 @@ public final class Server {
         return connection;
     }
 
-    public String getVersion() {
-        return version;
+    public String getRemoteVersion() {
+        return remoteVersion;
     }
 
     public Map<String,Object> encode() {
@@ -422,6 +378,7 @@ public final class Server {
         node.put("privateAddress", privateAddress);
         node.put("sendAllChat", sendAllChat);
         node.put("receiveAllChat", receiveAllChat);
+        node.put("proxied", proxied);
         return node;
     }
 
@@ -659,9 +616,9 @@ public final class Server {
     public void onConnected(String version) {
         allowReconnect = true;
         connected = true;
-        this.version = version;
+        remoteVersion = version;
         cancelOutbound();
-        Utils.info("connected to '%s' (%s), running v%s", getName(), connection.getName(), version);
+        Utils.info("connected to '%s' (%s), running v%s", getName(), connection.getName(), remoteVersion);
         sendMessage(handleRefresh());
     }
 
@@ -753,11 +710,13 @@ public final class Server {
         if (! isConnected()) return null;
         Message out = createMessage("refreshData");
 
+        out.put("publicAddress", normalizedPublicAddress);
+        
         // NAT stuff
-        if (Global.config.getBoolean("detectNAT", true)) {
-            if (! "-".equals(privateAddress))
-                out.put("privateAddress", privateAddress);
-        }
+        if (Global.config.getBoolean("detectNAT", true))
+            out.put("privateAddress",
+                    normalizedPrivateAddress.getAddress().getHostAddress() + ":" +
+                    normalizedPrivateAddress.getPort());
         
         // gate list
         List<Message> gates = new ArrayList<Message>();
@@ -775,6 +734,13 @@ public final class Server {
     }
 
     private void handleRefreshData(Message message) throws ServerException {
+        try {
+            expandPublicAddress(message.getString("publicAddress"));
+        } catch (IllegalArgumentException e) {
+            throw new ServerException(e.getMessage());
+        }
+        Utils.debug("received publicAddress '%s' from '%s'", message.getString("publicAddress"), name);
+        
         // NAT stuff
         remotePrivateAddress = message.getString("privateAddress");
         Utils.debug("received privateAddress '%s' from '%s'", privateAddress, name);
@@ -954,7 +920,7 @@ public final class Server {
             for (int i = 0; i < toGates.size(); i++)
                 toGates.set(i, Gate.makeLocalName(toGates.get(i)));
 
-        Chat.receive(player, displayName, world, name, msg, toGates);
+        Chat.receive(player, displayName, world, this, msg, toGates);
     }
 
     // Utility methods
@@ -970,6 +936,142 @@ public final class Server {
         connection.sendMessage(message, true);
     }
 
+    private void normalizePrivateAddress(String addrStr) {
+        if (addrStr.equals("-")) {
+            normalizedPrivateAddress = null;
+            return;
+        }
+        String[] parts = addrStr.split(":");
+        String address = parts[0];
+        int port = DEFAULT_MC_PORT;
+        if (parts.length > 1) {
+            try {
+                port = Integer.parseInt(parts[1]);
+                if ((port < 1) || (port > 65535))
+                    throw new IllegalArgumentException("invalid port " + parts[1]);
+            } catch (NumberFormatException nfe) {
+                throw new IllegalArgumentException("invalid port " + parts[1]);
+            }
+        }
+        
+        if (address.equals("*")) {
+            address = Global.plugin.getServer().getIp();
+            if (parts.length == 1) port = Global.plugin.getServer().getPort();
+            if ((address == null) || address.equals("0.0.0.0") || address.isEmpty()) {
+                try {
+                    InetAddress a = Network.getInterfaceAddress();
+                    if (a == null)
+                        throw new IllegalArgumentException("unable to get local interface address");
+                    address = a.getHostAddress();
+                } catch (NetworkException e) {
+                    throw new IllegalArgumentException(e.getMessage());
+                }
+            }
+        } else {
+            try {
+                NetworkInterface iface = NetworkInterface.getByName(address);
+                InetAddress a = Network.getInterfaceAddress(iface);
+                if (a == null)
+                    throw new IllegalArgumentException("unable to get local interface address for interface " + address);
+                address = a.getHostAddress();    
+            } catch (SocketException e) {
+                // assume address is a DNS name or IP address
+            }
+        }
+        normalizedPrivateAddress = new InetSocketAddress(address, port);
+    }
+    
+    private void normalizePublicAddress(String addrStr) {
+        StringBuilder sb = new StringBuilder();
+        
+        String patternMaps[] = addrStr.split("\\s+");
+        for (String patternMap : patternMaps) {
+            String items[] = patternMap.split("/");
+            if (items.length > 1)
+                for (int i = 1; i < items.length; i++) {
+                    try {
+                        Pattern.compile(items[i]);
+                    } catch (PatternSyntaxException e) {
+                        throw new IllegalArgumentException("invalid pattern: " + items[i]);
+                    }
+                }
+            
+            String[] parts = items[0].split(":");
+            String address = parts[0];
+            int port = DEFAULT_MC_PORT;
+            if (parts.length > 1) {
+                try {
+                    port = Integer.parseInt(parts[1]);
+                    if ((port < 1) || (port > 65535))
+                        throw new IllegalArgumentException("invalid port " + parts[1]);
+                } catch (NumberFormatException nfe) {
+                    throw new IllegalArgumentException("invalid port " + parts[1]);
+                }
+            }
+            if (! address.equals("*")) {
+                try {
+                    NetworkInterface iface = NetworkInterface.getByName(address);
+                    InetAddress a = Network.getInterfaceAddress(iface);
+                    if (a == null)
+                        throw new IllegalArgumentException("unable to get local interface address for interface " + address);
+                    address = a.getHostAddress();    
+                } catch (SocketException e) {
+                    // assume address is a DNS name or IP address
+                }
+            }
+
+            sb.append(address).append(":").append(port);
+            if (items.length > 1)
+                for (int i = 1; i < items.length; i++)
+                    sb.append("/").append(items[i]);
+            sb.append(" ");
+        }
+     
+        normalizedPublicAddress = sb.toString().trim();
+    }
+    
+    // called on the receiving side to expand the address given by the sending side
+    private void expandPublicAddress(String addrStr) {
+        if (addrStr == null)
+            throw new IllegalArgumentException("publicAddress is required");
+        
+        remotePublicAddress = new HashMap<String,Set<Pattern>>();
+        
+        String patternMaps[] = addrStr.split("\\s+");
+        for (String patternMap : patternMaps) {
+            Set<Pattern> patterns = new HashSet<Pattern>();
+            String items[] = patternMap.split("/");
+            if (items.length == 1)
+                patterns.add(Pattern.compile(".*"));
+            else
+                for (int i = 1; i < items.length; i++) {
+                    try {
+                        patterns.add(Pattern.compile(items[i]));
+                    } catch (PatternSyntaxException e) {
+                        throw new IllegalArgumentException("invalid pattern: " + items[i]);
+                    }
+                }
+            
+            String[] parts = items[0].split(":");
+            String address = parts[0];
+            int port = DEFAULT_MC_PORT;
+            if (parts.length > 1) {
+                try {
+                    port = Integer.parseInt(parts[1]);
+                    if ((port < 1) || (port > 65535))
+                        throw new IllegalArgumentException("invalid port " + parts[1]);
+                } catch (NumberFormatException nfe) {
+                    throw new IllegalArgumentException("invalid port " + parts[1]);
+                }
+            }
+            if (address.equals("*"))
+                address = pluginAddress.split(":")[0];
+            
+            remotePublicAddress.put(address + ":" + port, patterns);
+        }
+    }
+    
+    
     @Override
     public String toString() {
         StringBuilder buf = new StringBuilder("Server[");

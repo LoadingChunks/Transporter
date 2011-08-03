@@ -84,20 +84,31 @@ public class ServerCommand extends TrpCommandProcessor {
                     }
                 });
                 ctx.send("%d servers:", servers.size());
-                // TODO: move stuff from this to new status command
-                for (Server server : servers)
-                    ctx.send("  %s: %s '%s' [%s] [%s] %s/%s %s %s %s",
+                for (Server server : servers) {
+                    ctx.send("  %s: %s '%s' %s/%s",
                                 server.getName(),
                                 server.getPluginAddress(),
                                 server.getKey(),
-                                (server.getPublicAddress() == null) ? "*" : server.getPublicAddress(),
-                                (server.getPrivateAddress() == null) ? "*" : server.getPrivateAddress(),
                                 (server.isEnabled() ? "up" : "down"),
-                                (server.isConnected() ? "up" : "down"),
-                                (server.isConnected() ? (server.isIncoming() ? "incoming" : "outgoing") : ""),
-                                (server.isConnected() ? server.getConnection().getName() : ""),
-                                (server.isConnected() ? "v" + server.getVersion() : "")
+                                (server.isConnected() ? "up" : "down"));
+                    ctx.send("     pubAddr: %s (%s)",
+                            server.getPublicAddress(),
+                            server.getNormalizedPublicAddress());
+                    ctx.send("     prvAddr: %s",
+                            (server.getPrivateAddress().equals("-") || (! Global.config.getBoolean("detectNAT", true))) ?
+                                "-" :
+                                String.format("%s (%s:%d)",
+                                    server.getPrivateAddress(),
+                                    server.getNormalizedPrivateAddress().getAddress().getHostAddress(),
+                                    server.getNormalizedPrivateAddress().getPort()));
+                    if (server.isConnected()) {
+                        ctx.send("%s %s v%s",
+                                server.isIncoming() ? "incoming" : "outgoing",
+                                server.getConnection().getName(),
+                                server.getRemoteVersion()
                             );
+                    }
+                }
             }
             return;
         }
@@ -114,7 +125,7 @@ public class ServerCommand extends TrpCommandProcessor {
                 // global setting
                 if ("listen".startsWith(option)) {
                     Permissions.require(ctx.getPlayer(), "trp.server.set.listen");
-                    Network.makeAddress(value);
+                    Network.makeInetSocketAddress(value, Network.DEFAULT_PORT, true);
                     Global.config.setProperty("listenAddress", value);
                     option = "listen";
                 } else if ("key".startsWith(option)) {
@@ -276,6 +287,8 @@ public class ServerCommand extends TrpCommandProcessor {
             return;
         }
 
+        // TODO: remove
+        /*
         if ("change".startsWith(subCmd)) {
             if (args.size() < 3)
                 throw new CommandException("server name, address, and key required");
@@ -293,7 +306,8 @@ public class ServerCommand extends TrpCommandProcessor {
             ctx.sendLog("server must be reconnected for change to take effect");
             return;
         }
-
+*/
+        
         if ("refresh".startsWith(subCmd)) {
             if (args.isEmpty())
                 throw new CommandException("server name required");

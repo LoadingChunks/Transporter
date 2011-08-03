@@ -449,6 +449,8 @@ public class Utils {
                 }
             });
             writer.format("%d servers:\n", servers.size());
+            // TODO: redo this to use new shit
+            /*
             for (Server server : servers)
                 writer.format("  %s: %s '%s' [%s] [%s] %s/%s %s %s %s\n",
                             server.getName(),
@@ -462,6 +464,7 @@ public class Utils {
                             (server.isConnected() ? server.getConnection().getName() : ""),
                             (server.isConnected() ? "v" + server.getVersion() : "")
                         );
+             */
             writer.println();
 
             // list of gates...

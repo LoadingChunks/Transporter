@@ -446,6 +446,13 @@ public final class Reservation {
     public void receive() {
         try {
             Utils.info("received reservation for %s to %s from %s...", getTraveler(), getDestination(), fromServer.getName());
+            if (playerName != null) {
+                try {
+                    Permissions.connect(playerName);
+                } catch (PermissionsException e) {
+                    throw new ReservationException(e.getMessage());
+                }
+            }
             checkLocalArrivalGate();
             synchronized (reservations) {
                 reservations.put(localId, this);

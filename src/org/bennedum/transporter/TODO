@@ -7,10 +7,14 @@
 
 Testing:
     * new teleportation shit
+    * behavior of connection state when, e.g., a player is banned on destination server
+    * server-server chat format
+    * server-server send/receiveAllChat options
 
 Wiki Updates:
     * update GateDesign with lightning
     * update server add/change commands with new/renamed args
+    * add UsingServers page with info about server options
     * update ServerToServer:
         * heading note about experimental NAT support
         * scenario 1 new "trp server list" output format

@@ -16,9 +16,12 @@
 package org.bennedum.transporter.net;
 
 import java.io.IOException;
+import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.NetworkInterface;
 import java.net.Socket;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
@@ -27,6 +30,7 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -53,20 +57,20 @@ public final class Network extends Thread {
     
     public static final int DEFAULT_PORT = 25555;
 
-    public static InetSocketAddress makeAddress(String addrStr) throws NetworkException {
-        return makeAddress(addrStr, DEFAULT_PORT);
-    }
-
-    public static InetSocketAddress makeAddress(String addrStr, int defaultPort) throws NetworkException {
+    public static InetSocketAddress makeInetSocketAddress(String addrStr, int defPort, boolean allowWildcard) throws NetworkException {
         String[] parts = addrStr.split(":");
         InetAddress address = null;
-        int port = defaultPort;
-        if (! parts[0].equals("0.0.0.0"))
+        int port = defPort;
+        if (parts[0].equals("0.0.0.0") || parts[0].equals("*")) {
+            if (! allowWildcard)
+                throw new NetworkException("wildcard address not allowed");
+        } else {
             try {
                 address = InetAddress.getByName(parts[0]);
             } catch (UnknownHostException uhe) {
                 throw new NetworkException("unknown host address");
             }
+        }
         if (parts.length > 1)
             try {
                 port = Integer.parseInt(parts[1]);
@@ -77,10 +81,35 @@ public final class Network extends Thread {
             throw new NetworkException("invalid port '%d'", port);
         return new InetSocketAddress(address, port);
     }
-
+    
+    public static InetAddress getInterfaceAddress() throws NetworkException {
+        try {
+            for (Enumeration<NetworkInterface> e = NetworkInterface.getNetworkInterfaces(); e.hasMoreElements(); ) {
+                NetworkInterface iface = e.nextElement();
+                if (! iface.isUp()) continue;
+                if (iface.isLoopback()) continue;
+                InetAddress addr = getInterfaceAddress(iface);
+                if (addr == null) continue;
+                return addr;
+            }
+            return null;
+        } catch (SocketException e) {
+            throw new NetworkException("unable to get local interfaces");
+        }
+    }
+    
+    public static InetAddress getInterfaceAddress(NetworkInterface iface) {
+        for (Enumeration<InetAddress> e = iface.getInetAddresses(); e.hasMoreElements(); ) {
+            InetAddress addr = e.nextElement();
+            if (addr.isLoopbackAddress()) continue;
+            if (addr instanceof Inet4Address) return addr;
+        }
+        return null;
+    }
+    
     private State state = State.STOPPED;
-    private String listenAddressRaw;
-    private InetSocketAddress listenAddress;
+    private String listenAddress;
+    private InetSocketAddress listenInetSocketAddress;
     private String serverKey;
     
     private final Set<Pattern> banned = new HashSet<Pattern>();
@@ -96,11 +125,11 @@ public final class Network extends Thread {
     // called from main thread
     public void start(Context ctx) {
         try {
-            listenAddressRaw = Global.config.getString("listenAddress");
-            if (listenAddressRaw == null)
+            listenAddress = Global.config.getString("listenAddress");
+            if (listenAddress == null)
                 throw new TransporterException("listenAddress is not set");
             try {
-                listenAddress = makeAddress(listenAddressRaw);
+                listenInetSocketAddress = makeInetSocketAddress(listenAddress, DEFAULT_PORT, true);
             } catch (NetworkException e) {
                 throw new TransporterException("listenAddress: " + e.getMessage());
             }
@@ -121,7 +150,7 @@ public final class Network extends Thread {
                 }
 
             ctx.send("starting network manager");
-            ctx.send("listen address is %s", listenAddressRaw);
+            ctx.send("listen address is %s", listenAddress);
             ctx.send("server key is '%s'", serverKey);
             start();
 
@@ -135,12 +164,12 @@ public final class Network extends Thread {
         return serverKey;
     }
     
-    public String getListenAddressRaw() {
-        return listenAddressRaw;
+    public String getListenAddress() {
+        return listenAddress;
     }
 
-    public InetSocketAddress getListenAddress() {
-        return listenAddress;
+    public InetSocketAddress getListenInetSocketAddress() {
+        return listenInetSocketAddress;
     }
     
     // called from main thread
@@ -253,10 +282,10 @@ public final class Network extends Thread {
             serverChannel.configureBlocking(false);
 
             // bind to address and port
-            serverChannel.socket().bind(listenAddress);
+            serverChannel.socket().bind(listenInetSocketAddress);
             serverChannel.register(selector, SelectionKey.OP_ACCEPT);
 
-            Utils.info("network manager listening on %s:%d", listenAddress.getAddress().getHostAddress(), listenAddress.getPort());
+            Utils.info("network manager listening on %s:%d", listenInetSocketAddress.getAddress().getHostAddress(), listenInetSocketAddress.getPort());
             state = State.RUNNING;
 
             // processing
@@ -295,7 +324,7 @@ public final class Network extends Thread {
                                 SocketChannel channel = SocketChannel.open();
                                 channel.configureBlocking(false);
                                 try {
-                                    InetSocketAddress address = makeAddress(conn.getConnectAddress());
+                                    InetSocketAddress address = makeInetSocketAddress(conn.getConnectAddress(), Server.DEFAULT_MC_PORT, false);
                                     channel.connect(address);
                                 } catch (NetworkException e) {}
                                 channel.register(selector, SelectionKey.OP_CONNECT);

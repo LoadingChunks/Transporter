@@ -136,12 +136,15 @@ public final class Permissions {
             throw new PermissionsException("not permitted (basic)");
     }
 
-    public static boolean isAllowedToConnect(String playerName, String ipAddress) {
-        if (Global.plugin.getServer().getOnlinePlayers().length >= Global.plugin.getServer().getMaxPlayers()) return false;
-        if (getList(new File(BANNEDIPS_FILE)).contains(ipAddress)) return false;
+    // can't check player's IP because it might not be what it is on the sending side due to NAT
+    public static void connect(String playerName) throws PermissionsException {
+        if (Global.plugin.getServer().getOnlinePlayers().length >= Global.plugin.getServer().getMaxPlayers())
+            throw new PermissionsException("maximim players already connected");
         if (getProperties(new File(SERVERPROPERTIES_FILE)).getProperty("white-list", "false").equalsIgnoreCase("true"))
-            return getList(new File(WHITELIST_FILE)).contains(playerName);
-        return ! getList(new File(BANNEDPLAYERS_FILE)).contains(playerName);
+            if (! getList(new File(WHITELIST_FILE)).contains(playerName))
+                throw new PermissionsException("player is not white-listed");
+        if (getList(new File(BANNEDPLAYERS_FILE)).contains(playerName))
+            throw new PermissionsException("player is banned");
     }
 
     public static boolean isOp(Player player) {

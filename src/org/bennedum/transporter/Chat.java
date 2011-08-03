@@ -33,7 +33,14 @@ import org.bukkit.entity.Player;
 public final class Chat {
     
     public static void send(Player player, String message) {
-        Map<Server,Set<RemoteGate>> gates = new HashMap<Server,Set<RemoteGate>>();
+        Map<Server,Set<RemoteGate>> servers = new HashMap<Server,Set<RemoteGate>>();
+        
+        // add all servers that relay all chat
+        for (Server server : Servers.getAll())
+            if (server.getSendAllChat())
+                servers.put(server, null);
+        
+        // find all remote gates within range
         Location loc = player.getLocation();
         Gate destGate;
         Server destServer;
@@ -43,20 +50,20 @@ public final class Chat {
                     destGate = gate.getDestinationGate();
                     if (! destGate.isSameServer()) {
                         destServer = Servers.get(destGate.getServerName());
-                        if (gates.get(destServer) == null)
-                            gates.put(destServer, new HashSet<RemoteGate>());
-                        gates.get(destServer).add((RemoteGate)destGate);
+                        if (servers.get(destServer) == null)
+                            servers.put(destServer, new HashSet<RemoteGate>());
+                        servers.get(destServer).add((RemoteGate)destGate);
                     }
                 } catch (GateException e) {
                 }
             }
         }
-        for (Server server : gates.keySet()) {
-            server.doRelayChat(player, player.getWorld().getName(), message, gates.get(server));
+        for (Server server : servers.keySet()) {
+            server.doRelayChat(player, player.getWorld().getName(), message, servers.get(server));
         }
     }
 
-    public static void receive(String playerName, String displayName, String worldName, String serverName, String message, List<String> toGates) {
+    public static void receive(String playerName, String displayName, String fromWorldName, Server fromServer, String message, List<String> toGates) {
         Future<Map<String,Location>> future = Utils.call(new Callable<Map<String,Location>>() {
             @Override
             public Map<String,Location> call() {
@@ -75,21 +82,26 @@ public final class Chat {
         if (players == null) return;
 
         final Set<String> playersToReceive = new HashSet<String>();
-        for (String gateName : toGates) {
-            Gate gate = Gates.get(gateName);
-            if (gate == null) continue;
-            if (! gate.isSameServer()) continue;
-            for (String player : players.keySet())
-                if (((LocalGate)gate).isInChatProximity(players.get(player)))
-                    playersToReceive.add(player);
+        
+        if (fromServer.getReceiveAllChat())
+            playersToReceive.addAll(players.keySet());
+        else {
+            for (String gateName : toGates) {
+                Gate gate = Gates.get(gateName);
+                if (gate == null) continue;
+                if (! gate.isSameServer()) continue;
+                for (String player : players.keySet())
+                    if (((LocalGate)gate).isInChatProximity(players.get(player)))
+                        playersToReceive.add(player);
+            }
         }
 
         if (playersToReceive.isEmpty()) return;
 
         String format = Global.config.getString("chatFormat", "<%player%@%server%> %message%");
         format.replace("%player%", displayName);
-        format.replace("%server%", serverName);
-        format.replace("%world%", worldName);
+        format.replace("%server%", fromServer.getName());
+        format.replace("%world%", fromWorldName);
         format.replace("%message%", message);
         final String msg = format;
         Utils.fire(new Runnable() {
