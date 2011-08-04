@@ -142,7 +142,7 @@ public final class Connection {
         try {
             MessageDigest dig = MessageDigest.getInstance("SHA1");
             Formatter f = new Formatter();
-            byte[] out = dig.digest((network.getKey() + ":" + server.getKey()).getBytes("UTF-8"));
+            byte[] out = dig.digest((network.getServerKey() + ":" + server.getKey()).getBytes("UTF-8"));
             for (Byte b : out) f.format("%02x", b);
             message.put("key", f.toString());
             sendMessage(message, false);
@@ -194,7 +194,7 @@ public final class Connection {
                     byte[] messageData = Arrays.copyOfRange(readBuffer, 4, recLen + 4);
                     if ((flags & ENCRYPTED_FLAG) == ENCRYPTED_FLAG) {
                         Cipher cipher = new Cipher(CIPHER_PAD_SIZE);
-                        cipher.initDecrypt(Global.network.getKey().getBytes("UTF-8"));
+                        cipher.initDecrypt(Global.network.getServerKey().getBytes("UTF-8"));
                         messageData = cipher.doFinal(messageData);
                     }
                     String encoded = new String(messageData, "UTF-8");
@@ -255,8 +255,6 @@ public final class Connection {
 
     // outbound connection
     public void open() {
-        // TODO: remove
-        //state = State.ESTABLISHED;
         Global.network.open(this);
     }
 
@@ -315,15 +313,20 @@ public final class Connection {
         lastMessageReceivedTime = System.currentTimeMillis();
         if (state == State.HANDSHAKE) {
             // handle handshake message
-            int protocol = message.getInt("protocol", 0);
+            if (! message.containsKey("protocolVersion")) {
+                Utils.warning("expected protocolVersion on connection with '%s'", getName());
+                close();
+                return;
+            }
+            int protocol = message.getInt("protocolVersion", 0);
             if (protocol != PROTOCOL_VERSION) {
                 Utils.warning("protocol version mismatch on connection with '%s', wanted '%d', got '%d'", getName(), PROTOCOL_VERSION, protocol);
                 close();
                 return;
             }
-            String version = message.getString("version");
+            String version = message.getString("pluginVersion");
             if (version == null) {
-                Utils.warning("expected version string on connection with '%s'", getName());
+                Utils.warning("expected pluginVersion on connection with '%s'", getName());
                 close();
                 return;
             }
@@ -340,7 +343,7 @@ public final class Connection {
                     try {
                         MessageDigest dig = MessageDigest.getInstance("SHA1");
                         Formatter f = new Formatter();
-                        byte[] out = dig.digest((serv.getKey() + ":" + network.getKey()).getBytes("UTF-8"));
+                        byte[] out = dig.digest((serv.getKey() + ":" + network.getServerKey()).getBytes("UTF-8"));
                         for (Byte b : out) f.format("%02x", b);
                         if (f.toString().equals(key)) {
                             Utils.info("server key match detected for '%s' on connection with %s", serv.getName(), getName());
@@ -357,8 +360,8 @@ public final class Connection {
                                 
                                 // send handshake
                                 message = new Message();
-                                message.put("protocol", PROTOCOL_VERSION);
-                                message.put("version", Global.pluginVersion);
+                                message.put("protocolVersion", PROTOCOL_VERSION);
+                                message.put("pluginVersion", Global.pluginVersion);
                                 sendMessage(message, false);
                                 
                                 server.onConnected(version);
@@ -388,6 +391,12 @@ public final class Connection {
             }
             
         } else if (state == State.ESTABLISHED) {
+            // sanity check
+            if (server.getConnection() != this) {
+                Utils.warning("connection '%s' has been orphaned from server '%s'!?!", getName(), server.getName());
+                server = null;
+                close();
+            }
             if (message.containsKey("responseId")) {
                 int responseId = message.getInt("responseId");
                 Result result;

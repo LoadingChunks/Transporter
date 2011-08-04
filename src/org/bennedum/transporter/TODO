@@ -7,20 +7,25 @@
 
 Testing:
     * new teleportation shit
+    * banned player detection when teleporting
     * behavior of connection state when, e.g., a player is banned on destination server
     * server-server chat format
     * server-server send/receiveAllChat options
 
 Wiki Updates:
     * update GateDesign with lightning
-    * update server add/change commands with new/renamed args
-    * add UsingServers page with info about server options
+    * update server add commands with renamed args
+    * remove server change command
     * update ServerToServer:
         * heading note about experimental NAT support
         * scenario 1 new "trp server list" output format
+        * section about network and server options
     * global configuration:
-        * detectNAT setting (default true)
+        * sendPrivateAddress (default true)
+        * usePrivateAddress (default true)
         * useBOSEconomy (default false)
+        * deleteDebugFile (default true)
+        * clusterName (default null)
     * home page
         * BOSEconomy support
     * gate design: iConomy -> Economy

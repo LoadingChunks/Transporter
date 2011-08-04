@@ -15,6 +15,7 @@
  */
 package org.bennedum.transporter.command;
 
+import java.util.ArrayList;
 import java.util.List;
 import org.bennedum.transporter.Context;
 import org.bennedum.transporter.Gate;
@@ -33,27 +34,29 @@ import org.bukkit.command.Command;
  */
 public class DebugCommand extends TrpCommandProcessor {
 
+    private static final String GROUP = "debug ";
+    
     @Override
-    public boolean isHidden() { return true; }
-
+    public boolean matches(Context ctx, Command cmd, List<String> args) {
+        return super.matches(ctx, cmd, args) &&
+               GROUP.startsWith(args.get(0).toLowerCase()) &&
+               ctx.isConsole();
+    }
+    
     @Override
-    public boolean requiresConsole() { return true; }
-
-    @Override
-    protected String[] getSubCommands() { return new String[] {"debug"}; }
-
-    @Override
-    public String getUsage(Context ctx) {
-        return
-                super.getUsage(ctx) + " true|false\n" +
-                super.getUsage(ctx) + " submit <message>\n" +
-                super.getUsage(ctx) + " dump gate <name>\n" +
-                super.getUsage(ctx) + " dump design <name>";
+    public List<String> getUsage(Context ctx) {
+        if (! ctx.isConsole()) return null;
+        List<String> cmds = new ArrayList<String>();
+        cmds.add(getPrefix(ctx) + GROUP + "true|false");
+        cmds.add(getPrefix(ctx) + GROUP + "submit <message>");
+        cmds.add(getPrefix(ctx) + GROUP + "dump gate <name>");
+        cmds.add(getPrefix(ctx) + GROUP + "dump design <name>");
+        return cmds;
     }
 
     @Override
     public void process(Context ctx, Command cmd, List<String> args)  throws TransporterException {
-        super.process(ctx, cmd, args);
+        args.remove(0);
         if (args.isEmpty())
             throw new CommandException("debug what?");
         String subCmd = args.remove(0).toLowerCase();

@@ -22,7 +22,6 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -64,7 +63,6 @@ public final class Server {
         OPTIONS.add("privateAddress");
         OPTIONS.add("sendAllChat");
         OPTIONS.add("receiveAllChat");
-        OPTIONS.add("proxied");
     }
     
     public static boolean isValidName(String name) {
@@ -92,9 +90,9 @@ public final class Server {
     private String normalizedPublicAddress = null;
     
     // The address of our MC server host.
-    // This address is given to the plugin on the other end of the connection if global setting detectNAT is true (the default).
+    // This address is given to the plugin on the other end of the connection if global setting sendPrivateAddress is true (the default).
     // This is an address/port.
-    // The value can be "-", which means don't send a private address to the remote side no matter what the detectNAT setting is.
+    // The value can be "-", which means don't send a private address to the remote side no matter what the sendPrivateAddress setting is.
     // The value can be a "*", which means use the configured MC server address/port. If the wildcard address was configured, use the first address on the first interface.
     // The value can be an interface name, which means use the first address of the named local interface.
     // The default value is "*".
@@ -107,17 +105,15 @@ public final class Server {
     // Should all chat messages received from the remote server be echoed to local users?
     private boolean receiveAllChat = false;
     
-    // Is this MC server behind the same cluster proxy we're behind?
-    // This changes the reconnect message sent when a player teleports to one that the proxy will understand.
-    private boolean proxied = false;
-    
     private Connection connection = null;
     private boolean allowReconnect = true;
     private int reconnectTask = -1;
     private boolean connected = false;
     private String remoteVersion = null;
-    private Map<String,Set<Pattern>> remotePublicAddress = null;
+    private Map<String,Set<Pattern>> remotePublicAddressMap = null;
+    private String remotePublicAddress = null;
     private String remotePrivateAddress = null;
+    private String remoteCluster = null;
     
     public Server(String name, String plgAddr, String key) throws ServerException {
         try {
@@ -144,7 +140,6 @@ public final class Server {
             setPrivateAddress(node.getString("privateAddress", "*"));
             setSendAllChat(node.getBoolean("sendAllChat", false));
             setReceiveAllChat(node.getBoolean("receiveAllChat", false));
-            setProxied(node.getBoolean("proxied", false));
         } catch (IllegalArgumentException e) {
             throw new ServerException(e.getMessage());
         }
@@ -199,6 +194,8 @@ public final class Server {
             disconnect(false);
     }
 
+    /* Begin options */
+    
     public String getPublicAddress() {
         return publicAddress;
     }
@@ -219,7 +216,7 @@ public final class Server {
     }
     
     public String getPrivateAddress() {
-        return publicAddress;
+        return privateAddress;
     }
     
     public void setPrivateAddress(String address) {
@@ -253,14 +250,14 @@ public final class Server {
         receiveAllChat = b;
     }
 
-    public boolean getProxied() {
-        return proxied;
+    public String getRemotePublicAddress() {
+        return remotePublicAddress;
     }
-    
-    public void setProxied(boolean b) {
-        proxied = b;
+
+    public String getRemotePrivateAddress() {
+        return remotePrivateAddress;
     }
-    
+
     public String resolveOption(String option) throws ServerException {
         for (String opt : OPTIONS) {
             if (opt.toLowerCase().startsWith(option.toLowerCase()))
@@ -312,9 +309,7 @@ public final class Server {
                 option.substring(0, 1).toUpperCase() +
                 option.substring(1);
         try {
-            Field f = getClass().getDeclaredField(option);
-            Class c = f.getType();
-            Method m = getClass().getMethod(methodName, c);
+            Method m = getClass().getMethod(methodName);
             Object value = m.invoke(this);
             if (value == null) return "(null)";
             return value.toString();
@@ -322,17 +317,17 @@ public final class Server {
             throw (ServerException)ite.getCause();
         } catch (NoSuchMethodException nsme) {
             throw new ServerException("invalid method");
-        } catch (NoSuchFieldException nsfe) {
-            throw new ServerException("unknown option");
         } catch (IllegalAccessException iae) {
             throw new ServerException("unable to read the option");
         }
     }
     
+    /* End options */
+    
     public String getReconnectAddressForClient(InetSocketAddress clientAddress) {
         String clientAddrStr = clientAddress.getAddress().getHostAddress();
         
-        if (remotePrivateAddress != null) {
+        if (Global.config.getBoolean("usePrivateAddress", true) && (remotePrivateAddress != null)) {
             InetSocketAddress remoteAddr = (InetSocketAddress)connection.getChannel().socket().getRemoteSocketAddress();
             if (remoteAddr != null) {
                 if (remoteAddr.getAddress().getHostAddress().equals(clientAddrStr)) {
@@ -342,13 +337,13 @@ public final class Server {
             }
         }
         
-        if (remotePublicAddress == null) {
+        if (remotePublicAddressMap == null) {
             String[] parts = pluginAddress.split(":");
             return parts[0] + ":" + DEFAULT_MC_PORT;
         }
         
-        for (String address : remotePublicAddress.keySet()) {
-            Set<Pattern> patterns = remotePublicAddress.get(address);
+        for (String address : remotePublicAddressMap.keySet()) {
+            Set<Pattern> patterns = remotePublicAddressMap.get(address);
             for (Pattern pattern : patterns)
                 if (pattern.matcher(clientAddrStr).matches())
                     return address;
@@ -368,6 +363,10 @@ public final class Server {
         return remoteVersion;
     }
 
+    public String getRemoteCluster() {
+        return remoteCluster;
+    }
+    
     public Map<String,Object> encode() {
         Map<String,Object> node = new HashMap<String,Object>();
         node.put("name", name);
@@ -378,7 +377,6 @@ public final class Server {
         node.put("privateAddress", privateAddress);
         node.put("sendAllChat", sendAllChat);
         node.put("receiveAllChat", receiveAllChat);
-        node.put("proxied", proxied);
         return node;
     }
 
@@ -711,9 +709,11 @@ public final class Server {
         Message out = createMessage("refreshData");
 
         out.put("publicAddress", normalizedPublicAddress);
+        out.put("cluster", Global.network.getClusterName());
         
         // NAT stuff
-        if (Global.config.getBoolean("detectNAT", true))
+        if (Global.config.getBoolean("sendPrivateAddress", true) &&
+            (! privateAddress.equals("-")))
             out.put("privateAddress",
                     normalizedPrivateAddress.getAddress().getHostAddress() + ":" +
                     normalizedPrivateAddress.getPort());
@@ -734,16 +734,18 @@ public final class Server {
     }
 
     private void handleRefreshData(Message message) throws ServerException {
+        remotePublicAddress = message.getString("publicAddress");
+        remoteCluster = message.getString("cluster");
         try {
-            expandPublicAddress(message.getString("publicAddress"));
+            expandPublicAddress(remotePublicAddress);
         } catch (IllegalArgumentException e) {
             throw new ServerException(e.getMessage());
         }
-        Utils.debug("received publicAddress '%s' from '%s'", message.getString("publicAddress"), name);
+        Utils.debug("received publicAddress '%s' from '%s'", remotePublicAddress, name);
         
         // NAT stuff
         remotePrivateAddress = message.getString("privateAddress");
-        Utils.debug("received privateAddress '%s' from '%s'", privateAddress, name);
+        Utils.debug("received privateAddress '%s' from '%s'", remotePrivateAddress, name);
         
         // gate list
         Collection<Message> gates = message.getMessageList("gates");
@@ -943,7 +945,7 @@ public final class Server {
         }
         String[] parts = addrStr.split(":");
         String address = parts[0];
-        int port = DEFAULT_MC_PORT;
+        int port = Global.plugin.getServer().getPort();
         if (parts.length > 1) {
             try {
                 port = Integer.parseInt(parts[1]);
@@ -998,7 +1000,7 @@ public final class Server {
             
             String[] parts = items[0].split(":");
             String address = parts[0];
-            int port = DEFAULT_MC_PORT;
+            int port = Global.plugin.getServer().getPort();
             if (parts.length > 1) {
                 try {
                     port = Integer.parseInt(parts[1]);
@@ -1035,7 +1037,8 @@ public final class Server {
         if (addrStr == null)
             throw new IllegalArgumentException("publicAddress is required");
         
-        remotePublicAddress = new HashMap<String,Set<Pattern>>();
+        remotePublicAddressMap = new HashMap<String,Set<Pattern>>();
+        StringBuilder sb = new StringBuilder();
         
         String patternMaps[] = addrStr.split("\\s+");
         for (String patternMap : patternMaps) {
@@ -1067,8 +1070,14 @@ public final class Server {
             if (address.equals("*"))
                 address = pluginAddress.split(":")[0];
             
-            remotePublicAddress.put(address + ":" + port, patterns);
+            remotePublicAddressMap.put(address + ":" + port, patterns);
+            sb.append(address).append(":").append(port);
+            if (items.length > 1)
+                for (int i = 1; i < items.length; i++)
+                    sb.append("/").append(items[i]);
+            sb.append(" ");
         }
+        remotePublicAddress = sb.toString().trim();
     }
     
     

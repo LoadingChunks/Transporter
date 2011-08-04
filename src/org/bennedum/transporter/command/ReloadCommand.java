@@ -32,17 +32,24 @@ import org.bukkit.command.Command;
  */
 public class ReloadCommand extends TrpCommandProcessor {
 
+    private static final String GROUP = "reload ";
+    
     @Override
-    protected String[] getSubCommands() { return new String[] {"reload"}; }
-
-    @Override
-    public String getUsage(Context ctx) {
-        return super.getUsage(ctx) + " [config|designs|gates]";
+    public boolean matches(Context ctx, Command cmd, List<String> args) {
+        return super.matches(ctx, cmd, args) &&
+               GROUP.startsWith(args.get(0).toLowerCase());
     }
-
+    
+    @Override
+    public List<String> getUsage(Context ctx) {
+        List<String> cmds = new ArrayList<String>();
+        cmds.add(getPrefix(ctx) + GROUP + "[config|designs|gates]");
+        return cmds;
+    }
+    
     @Override
     public void process(Context ctx, Command cmd, List<String> args) throws TransporterException {
-        super.process(ctx, cmd, args);
+        args.remove(0);
         List<String> what = new ArrayList<String>();
         if (args.isEmpty()) {
             if (Permissions.has(ctx.getPlayer(), "trp.reload.config"))

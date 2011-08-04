@@ -46,7 +46,7 @@ public final class Global {
     public static String pluginName;
     public static String pluginVersion;
     public static Configuration config;
-    public static Network network = new Network();
+    public static Network network = null;
 
     public static final List<CommandProcessor> commands = new ArrayList<CommandProcessor>();
 

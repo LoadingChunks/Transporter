@@ -15,6 +15,7 @@
  */
 package org.bennedum.transporter.command;
 
+import java.util.ArrayList;
 import java.util.List;
 import org.bennedum.transporter.Context;
 import org.bennedum.transporter.Reservation;
@@ -27,20 +28,26 @@ import org.bukkit.command.Command;
  */
 public class PinCommand extends TrpCommandProcessor {
 
-    @Override
-    public boolean requiresPlayer() { return true; }
+    private static final String GROUP = "pin ";
     
     @Override
-    protected String[] getSubCommands() { return new String[] {"pin"}; }
-
+    public boolean matches(Context ctx, Command cmd, List<String> args) {
+        return super.matches(ctx, cmd, args) &&
+               GROUP.startsWith(args.get(0).toLowerCase()) &&
+               ctx.isPlayer();
+    }
+    
     @Override
-    public String getUsage(Context ctx) {
-        return super.getUsage(ctx) + " <pin>";
+    public List<String> getUsage(Context ctx) {
+        if (! ctx.isPlayer()) return null;
+        List<String> cmds = new ArrayList<String>();
+        cmds.add(getPrefix(ctx) + GROUP + "<pin>");
+        return cmds;
     }
 
     @Override
     public void process(Context ctx, Command cmd, List<String> args) throws TransporterException {
-        super.process(ctx, cmd, args);
+        args.remove(0);
         if (args.isEmpty())
             throw new CommandException("pin required");
         String pin = args.remove(0);

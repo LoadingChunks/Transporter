@@ -59,13 +59,16 @@ public final class Reservation {
         }
     }
     
-    public static Reservation get(Player player) {
-        String name = player.getName();
+    public static Reservation get(String playerName) {
         synchronized (reservations) {
             for (Reservation r : reservations.values())
-                if (name.equals(r.playerName)) return r;
+                if (playerName.equals(r.playerName)) return r;
         }
         return null;
+    }
+    
+    public static Reservation get(Player player) {
+        return get(player.getName());
     }
     
     public static void removeGateLock(Entity entity) {
@@ -208,8 +211,12 @@ public final class Reservation {
         }
         remoteEntityId = in.getInt("entityId");
         playerName = in.getString("playerName");
-        if (playerName != null)
+        if (playerName != null) {
+            Reservation other = get(playerName);
+            if (other != null)
+                throw new ReservationException("a reservation for player '%s' already exists", playerName);
             player = Global.plugin.getServer().getPlayer(playerName);
+        }
         playerPin = in.getString("playerPin");
         clientAddress = in.getString("clientAddress");
         fromLocation = new Location(null, in.getDouble("fromX"), in.getDouble("fromY"), in.getDouble("fromZ"), in.getFloat("pitch"), in.getFloat("yaw"));
@@ -560,6 +567,8 @@ public final class Reservation {
 
             completeLocalDepartureGate();
             
+            // TODO: handle cluster setting
+            // if toServer.getCluster().equals(Network.getCluster()) then send Cluster Redirect, otherwise send Client Redirect
             String addr = toServer.getReconnectAddressForClient(player.getAddress());
             if (addr == null) {
                 Utils.warning("reconnect address for '%s' is null?", toServer.getName());

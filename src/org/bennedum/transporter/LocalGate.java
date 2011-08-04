@@ -17,6 +17,8 @@ package org.bennedum.transporter;
 
 import java.io.File;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -25,7 +27,6 @@ import java.util.Map;
 import java.util.Set;
 import org.bennedum.transporter.GateMap.Entry;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -347,6 +348,11 @@ public class LocalGate extends Gate {
         conf.save();
     }
 
+    public void forceSave() {
+        dirty = true;
+        saveInBackground();
+    }
+    
     public void saveInBackground() {
         if (! dirty) return;
         Utils.worker(new Runnable() {
@@ -418,82 +424,196 @@ public class LocalGate extends Gate {
         return creatorName;
     }
 
-    public boolean getMultiLink() {
-        return multiLink;
+    public BlockFace getDirection() {
+        return direction;
+    }
+
+    /* Begin options */
+    
+    public int getDuration() {
+        return duration;
+    }
+
+    public void setDuration(int i) {
+        duration = i;
+        forceSave();
     }
 
     public boolean getLinkLocal() {
         return linkLocal;
     }
 
+    public void setLinkLocal(boolean b) {
+        linkLocal = b;
+        forceSave();
+    }
+
     public boolean getLinkWorld() {
         return linkWorld;
+    }
+
+    public void setLinkWorld(boolean b) {
+        linkWorld = b;
+        forceSave();
     }
 
     public boolean getLinkServer() {
         return linkServer;
     }
 
-    public BlockFace getDirection() {
-        return direction;
+    public void setLinkServer(boolean b) {
+        linkServer = b;
+        forceSave();
     }
 
-    public boolean getRequirePin() {
-        return requirePin;
+    public boolean getMultiLink() {
+        return multiLink;
     }
 
-    public boolean getRequireValidPin() {
-        return requireValidPin;
-    }
-
-    public int getInvalidPinDamage() {
-        return invalidPinDamage;
-    }
-
-    public boolean getRequireAllowedItems() {
-        return requireAllowedItems;
-    }
-
-    public double getLinkLocalCost() {
-        return linkLocalCost;
-    }
-
-    public double getLinkWorldCost() {
-        return linkWorldCost;
-    }
-
-    public double getLinkServerCost() {
-        return linkServerCost;
-    }
-
-    public double getSendLocalCost() {
-        return sendLocalCost;
-    }
-
-    public double getSendWorldCost() {
-        return sendWorldCost;
-    }
-
-    public double getSendServerCost() {
-        return sendServerCost;
-    }
-
-    public double getReceiveLocalCost() {
-        return receiveLocalCost;
-    }
-
-    public double getReceiveWorldCost() {
-        return receiveWorldCost;
-    }
-
-    public double getReceiveServerCost() {
-        return receiveServerCost;
+    public void setMultiLink(boolean b) {
+        multiLink = b;
+        forceSave();
     }
 
     public boolean getProtect() {
         return protect;
     }
 
+    public void setProtect(boolean b) {
+        protect = b;
+        forceSave();
+        if (protect)
+            Gates.addProtectBlocks(getBuildBlocks());
+        else
+            Gates.removeProtectBlocks(this);
+    }
+
+    public boolean getRestoreOnClose() {
+        return restoreOnClose;
+    }
+    
+    public void setRestoreOnClose(boolean b) {
+        restoreOnClose = b;
+        forceSave();
+    }
+
+    public boolean getRequirePin() {
+        return requirePin;
+    }
+
+    public void setRequirePin(boolean b) {
+        requirePin = b;
+        forceSave();
+    }
+    
+    public boolean getRequireValidPin() {
+        return requireValidPin;
+    }
+
+    public void setRequireValidPin(boolean b) {
+        requireValidPin = b;
+        forceSave();
+    }
+    
+    public int getInvalidPinDamage() {
+        return invalidPinDamage;
+    }
+
+    public void setInvalidPinDamage(int i) {
+        invalidPinDamage = i;
+        forceSave();
+    }
+    
+    public boolean getRequireAllowedItems() {
+        return requireAllowedItems;
+    }
+
+    public void setRequireAllowedItems(boolean b) {
+        requireAllowedItems = b;
+        forceSave();
+    }
+    
+    public double getLinkLocalCost() {
+        return linkLocalCost;
+    }
+
+    public void setLinkLocalCost(double cost) {
+        linkLocalCost = cost;
+        forceSave();
+    }
+    
+    public double getLinkWorldCost() {
+        return linkWorldCost;
+    }
+
+    public void setLinkWorldCost(double cost) {
+        linkWorldCost = cost;
+        forceSave();
+    }
+    
+    public double getLinkServerCost() {
+        return linkServerCost;
+    }
+
+    public void setLinkServerCost(double cost) {
+        linkServerCost = cost;
+        forceSave();
+    }
+    
+    public double getSendLocalCost() {
+        return sendLocalCost;
+    }
+
+    public void setSendLocalCost(double cost) {
+        sendLocalCost = cost;
+        forceSave();
+    }
+    
+    public double getSendWorldCost() {
+        return sendWorldCost;
+    }
+
+    public void setSendWorldCost(double cost) {
+        sendWorldCost = cost;
+        forceSave();
+    }
+    
+    public double getSendServerCost() {
+        return sendServerCost;
+    }
+
+    public void setSendServerCost(double cost) {
+        sendServerCost = cost;
+        forceSave();
+    }
+    
+    public double getReceiveLocalCost() {
+        return receiveLocalCost;
+    }
+
+    public void setReceiveLocalCost(double cost) {
+        receiveLocalCost = cost;
+        forceSave();
+    }
+    
+    public double getReceiveWorldCost() {
+        return receiveWorldCost;
+    }
+
+    public void setReceiveWorldCost(double cost) {
+        receiveWorldCost = cost;
+        forceSave();
+    }
+    
+    public double getReceiveServerCost() {
+        return receiveServerCost;
+    }
+
+    public void setReceiveServerCost(double cost) {
+        receiveServerCost = cost;
+        forceSave();
+    }
+    
     public String resolveOption(String option) throws GateException {
         for (String opt : OPTIONS) {
             if (opt.toLowerCase().startsWith(option.toLowerCase()))
@@ -505,29 +625,29 @@ public class LocalGate extends Gate {
     public void setOption(String option, String value) throws GateException {
         if (! OPTIONS.contains(option))
             throw new GateException("unknown option");
+        String methodName = "set" +
+                option.substring(0, 1).toUpperCase() +
+                option.substring(1);
         try {
             Field f = getClass().getDeclaredField(option);
             Class c = f.getType();
+            Method m = getClass().getMethod(methodName, c);
             if (c == Boolean.TYPE)
-                f.setBoolean(this, Boolean.parseBoolean(value));
+                m.invoke(this, Boolean.parseBoolean(value));
             else if (c == Integer.TYPE)
-                f.setInt(this, Integer.parseInt(value));
+                m.invoke(this, Integer.parseInt(value));
             else if (c == Float.TYPE)
-                f.setFloat(this, Float.parseFloat(value));
+                m.invoke(this, Float.parseFloat(value));
             else if (c == Double.TYPE)
-                f.setDouble(this, Double.parseDouble(value));
+                m.invoke(this, Double.parseDouble(value));
+            else if (c == String.class)
+                m.invoke(this, value);
             else
                 throw new GateException("unsupported option type");
-
-            if (option.equals("protect")) {
-                if (protect)
-                    Gates.addProtectBlocks(getBuildBlocks());
-                else
-                    Gates.removeProtectBlocks(this);
-            }
-
-            dirty = true;
-            saveInBackground();
+        } catch (InvocationTargetException ite) {
+            throw (GateException)ite.getCause();
+        } catch (NoSuchMethodException nsme) {
+            throw new GateException("invalid method");
         } catch (IllegalArgumentException iae) {
             throw new GateException("invalid value");
         } catch (NoSuchFieldException nsfe) {
@@ -540,18 +660,25 @@ public class LocalGate extends Gate {
     public String getOption(String option) throws GateException {
         if (! OPTIONS.contains(option))
             throw new GateException("unknown option");
+        String methodName = "get" +
+                option.substring(0, 1).toUpperCase() +
+                option.substring(1);
         try {
-            Field f = getClass().getDeclaredField(option);
-            Object v = f.get(this);
-            if (v == null) return "(null)";
-            return v.toString();
-        } catch (NoSuchFieldException nsfe) {
-            throw new GateException("unknown option");
+            Method m = getClass().getMethod(methodName);
+            Object value = m.invoke(this);
+            if (value == null) return "(null)";
+            return value.toString();
+        } catch (InvocationTargetException ite) {
+            throw (GateException)ite.getCause();
+        } catch (NoSuchMethodException nsme) {
+            throw new GateException("invalid method");
         } catch (IllegalAccessException iae) {
             throw new GateException("unable to read the option");
         }
     }
 
+    /* End options */
+    
     /* Gate interface */
 
     @Override
@@ -997,13 +1124,6 @@ public class LocalGate extends Gate {
         saveInBackground();
     }
 
-    // TODO: remove
-    /*
-    public boolean hasBannedItem(String item) {
-        return Inventory.itemListContains(bannedItems, item);
-    }
-*/
-    
     public boolean addAllowedItem(String item) throws GateException {
         try {
             if (! Inventory.appendItemList(allowedItems, item)) return false;
@@ -1034,22 +1154,6 @@ public class LocalGate extends Gate {
         saveInBackground();
     }
 
-    // TODO: remove
-    /*
-    public boolean hasAllowedItems() {
-        synchronized (allowedItems) {
-            return ! allowedItems.isEmpty();
-        }
-    }
-*/
-    
-    // TODO: remove
-    /*
-    public boolean hasAllowedItem(String item) {
-        return Inventory.itemListContains(allowedItems, item);
-    }
-*/
-    
     public boolean addReplaceItem(String fromItem, String toItem) throws GateException {
         try {
             if (! Inventory.appendItemMap(replaceItems, fromItem, toItem)) return false;
@@ -1080,19 +1184,6 @@ public class LocalGate extends Gate {
         saveInBackground();
     }
 
-    // TODO: remove
-    /*
-    public String getReplaceItem(String item) {
-        String parts[] = item.split(":");
-        synchronized (replaceItems) {
-            if (replaceItems.containsKey(parts[0]))
-                return replaceItems.get(parts[0]);
-            return replaceItems.get(item);
-        }
-    }
-
-     */
-    
     public boolean isAcceptableInventory(ItemStack[] stacks) {
         if (stacks == null) return true;
         if (! requireAllowedItems) return true;

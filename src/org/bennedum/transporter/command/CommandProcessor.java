@@ -26,12 +26,17 @@ import org.bukkit.command.Command;
  */
 public abstract class CommandProcessor {
 
-    public abstract boolean matches(Command cmd, List<String> args);
+    public abstract boolean matches(Context ctx, Command cmd, List<String> args);
+    public abstract void process(Context ctx, Command cmd, List<String> args) throws TransporterException;
+    public abstract List<String> getUsage(Context ctx);
+    
+    /*
     public boolean isHidden() { return false; }
     public boolean requiresPlayer() { return false; }
     public boolean requiresOp() { return false; }
     public boolean requiresConsole() { return false; }
     public abstract String getUsage(Context ctx);
-    public abstract void process(Context ctx, Command cmd, List<String> args) throws TransporterException;
+     * 
+     */
     
 }

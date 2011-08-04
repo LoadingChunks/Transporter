@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.bennedum.transporter.command.CommandException;
 import org.bennedum.transporter.command.CommandProcessor;
+import org.bennedum.transporter.net.Network;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.event.Event.Priority;
@@ -87,7 +88,9 @@ public class Transporter extends JavaPlugin {
         
         Global.config.removeProperty("craftProxy");
         
-        Global.network.start(ctx);
+        Global.network = new Network();
+        Global.network.start();
+        
         Designs.loadAll(ctx);
         Gates.loadAll(ctx);
         Servers.loadAll(ctx);
@@ -163,10 +166,7 @@ public class Transporter extends JavaPlugin {
         // Find the matching commands
         List<CommandProcessor> cps = new ArrayList<CommandProcessor>();
         for (CommandProcessor cp : Global.commands) {
-            if (! cp.matches(cmd, args)) continue;
-            if (cp.requiresPlayer() && (! ctx.isPlayer())) continue;
-            if (cp.requiresOp() && (! ctx.isOp())) continue;
-            if (cp.requiresConsole() && (! ctx.isConsole())) continue;
+            if (! cp.matches(ctx, cmd, args)) continue;
             cps.add(cp);
         }
         // Execute the matching command

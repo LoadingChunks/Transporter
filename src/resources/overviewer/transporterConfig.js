@@ -16,7 +16,7 @@ var transporterConfig = {
     gateInfo: true,
     
     // what image to use for markers on the map
-    gateInfoIcon: 'transporter/gate-info.png',
+    gateInfoIcon: 'transporter/gate-info.png'
     
     
 };

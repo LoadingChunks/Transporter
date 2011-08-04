@@ -155,16 +155,16 @@ public final class Gates {
                 out.println("    \"z\": " + center.getZ() + ",");
                 if (Economy.isAvailable()) {
                     if (gate.getLinkLocal()) {
-                        out.println("    \"onWorldSend\": \"" + iConomy.format(gate.getSendLocalCost()) + "\",");
-                        out.println("    \"onWorldReceive\": \"" + iConomy.format(gate.getReceiveLocalCost()) + "\",");
+                        out.println("    \"onWorldSend\": \"" + Economy.format(gate.getSendLocalCost()) + "\",");
+                        out.println("    \"onWorldReceive\": \"" + Economy.format(gate.getReceiveLocalCost()) + "\",");
                     }
                     if (gate.getLinkWorld()) {
-                        out.println("    \"offWorldSend\": \"" + iConomy.format(gate.getSendWorldCost()) + "\",");
-                        out.println("    \"offWorldReceive\": \"" + iConomy.format(gate.getReceiveWorldCost()) + "\",");
+                        out.println("    \"offWorldSend\": \"" + Economy.format(gate.getSendWorldCost()) + "\",");
+                        out.println("    \"offWorldReceive\": \"" + Economy.format(gate.getReceiveWorldCost()) + "\",");
                     }
                     if (gate.getLinkServer()) {
-                        out.println("    \"offServerSend\": \"" + iConomy.format(gate.getSendServerCost()) + "\",");
-                        out.println("    \"offServerReceive\": \"" + iConomy.format(gate.getReceiveServerCost()) + "\",");
+                        out.println("    \"offServerSend\": \"" + Economy.format(gate.getSendServerCost()) + "\",");
+                        out.println("    \"offServerReceive\": \"" + Economy.format(gate.getReceiveServerCost()) + "\",");
                     }
                 }
                 out.println("    \"design\": \"" + gate.getDesignName() + "\",");

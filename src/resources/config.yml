@@ -19,7 +19,8 @@ exportedGatesFile: dynmap/gates.json
 
 chatFormat: <%player%@%server%> %message%
 
-detectNAT: true
+sendPrivateAddress: true
+usePrivateAddress: true
 
 usePermissions: false
 useIConomy: false

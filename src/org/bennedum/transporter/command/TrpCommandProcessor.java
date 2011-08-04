@@ -27,30 +27,14 @@ import org.bukkit.command.Command;
 public abstract class TrpCommandProcessor extends CommandProcessor {
     
     @Override
-    public boolean matches(Command cmd, List<String> args) {
+    public boolean matches(Context ctx, Command cmd, List<String> args) {
         if (! cmd.getName().toLowerCase().equals("trp")) return false;
         if (args.isEmpty()) return false;
-        String sub = args.get(0).toLowerCase();
-        for (String subCmd : getSubCommands())
-            if (subCmd.startsWith(sub)) return true;
-        return false;
+        return true;
     }
 
-    protected abstract String[] getSubCommands();
-    
-    @Override
-    public String getUsage(Context ctx) {
-        String cmds = "";
-        for (String cmd : getSubCommands()) {
-            if (cmds.length() > 0) cmds += "|";
-            cmds += cmd;
-        }
-        return (ctx.isPlayer() ? "/" : "") + "trp " + cmds;
+    protected String getPrefix(Context ctx) {
+        return (ctx.isPlayer() ? "/" : "") + "trp ";
     }
 
-    @Override
-    public void process(Context ctx, Command cmd, List<String> args) throws TransporterException {
-        args.remove(0);
-    }
-    
 }

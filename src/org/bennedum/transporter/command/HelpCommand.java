@@ -16,7 +16,6 @@
 package org.bennedum.transporter.command;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import org.bennedum.transporter.Context;
 import org.bennedum.transporter.Global;
@@ -29,28 +28,31 @@ import org.bukkit.command.Command;
  */
 public class HelpCommand extends TrpCommandProcessor {
 
+    private static final String GROUP = "help ";
     private static final int linesPerPage = 19;
-
+    
     @Override
-    protected String[] getSubCommands() { return new String[] {"help", "?"}; }
-
-    @Override
-    public String getUsage(Context ctx) {
-        return super.getUsage(ctx) + " [pageno]";
+    public boolean matches(Context ctx, Command cmd, List<String> args) {
+        return super.matches(ctx, cmd, args) &&
+               GROUP.startsWith(args.get(0).toLowerCase());
     }
-
+    
+    @Override
+    public List<String> getUsage(Context ctx) {
+        List<String> cmds = new ArrayList<String>();
+        cmds.add(getPrefix(ctx) + GROUP + "[page]");
+        return cmds;
+    }
+    
     @Override
     public void process(Context ctx, Command cmd, List<String> args)  throws TransporterException {
-        super.process(ctx, cmd, args);
+        args.remove(0);
         List<String> help = new ArrayList<String>();
         for (CommandProcessor cp : Global.commands) {
-            if (cp.isHidden()) continue;
-            if (cp.requiresPlayer() && (! ctx.isPlayer())) continue;
-            if (cp.requiresOp() && (! ctx.isOp())) continue;
-            if (cp.requiresConsole() && (! ctx.isConsole())) continue;
-            String usage = cp.getUsage(ctx);
+            List<String> usage = cp.getUsage(ctx);
+            if ((usage == null) || usage.isEmpty()) continue;
             if (usage != null)
-                help.addAll(Arrays.asList(usage.split("\n")));
+                help.addAll(usage);
         }
 
         if (ctx.isConsole()) {

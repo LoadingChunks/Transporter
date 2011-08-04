@@ -16,6 +16,9 @@
 package org.bennedum.transporter.net;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -43,7 +46,6 @@ import org.bennedum.transporter.Context;
 import org.bennedum.transporter.Global;
 import org.bennedum.transporter.Server;
 import org.bennedum.transporter.Servers;
-import org.bennedum.transporter.TransporterException;
 import org.bennedum.transporter.Utils;
 
 /**
@@ -57,6 +59,14 @@ public final class Network extends Thread {
     
     public static final int DEFAULT_PORT = 25555;
 
+    public static final List<String> OPTIONS = new ArrayList<String>();
+
+    static {
+        OPTIONS.add("listenAddress");
+        OPTIONS.add("serverKey");
+        OPTIONS.add("clusterName");
+    }
+    
     public static InetSocketAddress makeInetSocketAddress(String addrStr, int defPort, boolean allowWildcard) throws NetworkException {
         String[] parts = addrStr.split(":");
         InetAddress address = null;
@@ -111,6 +121,7 @@ public final class Network extends Thread {
     private String listenAddress;
     private InetSocketAddress listenInetSocketAddress;
     private String serverKey;
+    private String clusterName;
     
     private final Set<Pattern> banned = new HashSet<Pattern>();
 
@@ -120,24 +131,25 @@ public final class Network extends Thread {
     private final Set<Connection> closing = new HashSet<Connection>();
 
 
-    public Network() {}
+    public Network() {
+        try {
+            setListenAddress(Global.config.getString("listenAddress"));
+        } catch (IllegalArgumentException e) {
+            Utils.warning(e.getMessage());
+        }
+        try {
+            setServerKey(Global.config.getString("serverKey"));
+        } catch (IllegalArgumentException e) {
+            Utils.warning(e.getMessage());
+        }
+        setClusterName(Global.config.getString("clusterName"));
+    }
 
     // called from main thread
     public void start(Context ctx) {
-        try {
-            listenAddress = Global.config.getString("listenAddress");
-            if (listenAddress == null)
-                throw new TransporterException("listenAddress is not set");
-            try {
-                listenInetSocketAddress = makeInetSocketAddress(listenAddress, DEFAULT_PORT, true);
-            } catch (NetworkException e) {
-                throw new TransporterException("listenAddress: " + e.getMessage());
-            }
-            
-            serverKey = Global.config.getString("serverKey");
-            if ((serverKey == null) || serverKey.equals("none"))
-                throw new TransporterException("serverKey is not set");
-
+        if ((listenAddress == null) || (serverKey == null))
+            Utils.warning("network manager cannot be started");
+        else {
             List<String> addresses = Global.config.getStringList("bannedAddresses", null);
             if (addresses != null)
                 for (String addressPattern : addresses) {
@@ -150,27 +162,117 @@ public final class Network extends Thread {
                 }
 
             ctx.send("starting network manager");
-            ctx.send("listen address is %s", listenAddress);
-            ctx.send("server key is '%s'", serverKey);
             start();
-
-        } catch (TransporterException te) {
-            ctx.warn(te.getMessage());
-            ctx.warn("network manager can't be started");
         }
     }
 
-    public String getKey() {
-        return serverKey;
-    }
-    
+    /* Begin options */
+
     public String getListenAddress() {
         return listenAddress;
     }
 
+    public void setListenAddress(String address) {
+        if (address == null)
+            throw new IllegalArgumentException("listenAddress is required");
+        try {
+            listenInetSocketAddress = makeInetSocketAddress(address, DEFAULT_PORT, true);
+        } catch (NetworkException e) {
+            throw new IllegalArgumentException("listenAddress: " + e.getMessage());
+        }
+        listenAddress = address;
+        Global.config.setProperty("listenAddress", listenAddress);
+    }
+    
     public InetSocketAddress getListenInetSocketAddress() {
         return listenInetSocketAddress;
     }
+    
+    public String getServerKey() {
+        return serverKey;
+    }
+    
+    public void setServerKey(String key) {
+        if ((key == null) || key.equals("none"))
+            throw new IllegalArgumentException("serverKey is required");
+        serverKey = key;
+        Global.config.setProperty("serverKey", serverKey);
+    }
+    
+    public String getClusterName() {
+        return clusterName;
+    }
+    
+    public void setClusterName(String name) {
+        clusterName = name;
+        Global.config.setProperty("clusterName", clusterName);
+    }
+
+    public String resolveOption(String option) throws NetworkException {
+        for (String opt : OPTIONS) {
+            if (opt.toLowerCase().startsWith(option.toLowerCase()))
+                return opt;
+        }
+        throw new NetworkException("unknown option");
+    }
+
+    public void setOption(String option, String value) throws NetworkException {
+        if (! OPTIONS.contains(option))
+            throw new NetworkException("unknown option");
+        String methodName = "set" +
+                option.substring(0, 1).toUpperCase() +
+                option.substring(1);
+        try {
+            Field f = getClass().getDeclaredField(option);
+            Class c = f.getType();
+            Method m = getClass().getMethod(methodName, c);
+            if (c == Boolean.TYPE)
+                m.invoke(this, Boolean.parseBoolean(value));
+            else if (c == Integer.TYPE)
+                m.invoke(this, Integer.parseInt(value));
+            else if (c == Float.TYPE)
+                m.invoke(this, Float.parseFloat(value));
+            else if (c == Double.TYPE)
+                m.invoke(this, Double.parseDouble(value));
+            else if (c == String.class)
+                m.invoke(this, value);
+            else
+                throw new NetworkException("unsupported option type");
+
+        } catch (InvocationTargetException ite) {
+            throw (NetworkException)ite.getCause();
+        } catch (NoSuchMethodException nsme) {
+            throw new NetworkException("invalid method");
+        } catch (IllegalArgumentException iae) {
+            throw new NetworkException("invalid value");
+        } catch (NoSuchFieldException nsfe) {
+            throw new NetworkException("unknown option");
+        } catch (IllegalAccessException iae) {
+            throw new NetworkException("unable to set the option");
+        }
+    }
+
+    public String getOption(String option) throws NetworkException {
+        if (! OPTIONS.contains(option))
+            throw new NetworkException("unknown option");
+        String methodName = "get" +
+                option.substring(0, 1).toUpperCase() +
+                option.substring(1);
+        try {
+            Method m = getClass().getMethod(methodName);
+            Object value = m.invoke(this);
+            if (value == null) return "(null)";
+            return value.toString();
+        } catch (InvocationTargetException ite) {
+            throw (NetworkException)ite.getCause();
+        } catch (NoSuchMethodException nsme) {
+            throw new NetworkException("invalid method");
+        } catch (IllegalAccessException iae) {
+            throw new NetworkException("unable to read the option");
+        }
+    }
+    
+    /* End options */
     
     // called from main thread
     public void stop(Context ctx) {
@@ -324,7 +426,7 @@ public final class Network extends Thread {
                                 SocketChannel channel = SocketChannel.open();
                                 channel.configureBlocking(false);
                                 try {
-                                    InetSocketAddress address = makeInetSocketAddress(conn.getConnectAddress(), Server.DEFAULT_MC_PORT, false);
+                                    InetSocketAddress address = makeInetSocketAddress(conn.getConnectAddress(), DEFAULT_PORT, false);
                                     channel.connect(address);
                                 } catch (NetworkException e) {}
                                 channel.register(selector, SelectionKey.OP_CONNECT);

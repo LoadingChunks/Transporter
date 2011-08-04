@@ -61,7 +61,7 @@ public class Design {
     private int relayChatDistance;
     private boolean requireAllowedItems;
 
-    // iConomy
+    // Economy
     private double buildCost;
     private double createCost;
     private double linkLocalCost;
@@ -140,7 +140,7 @@ public class Design {
             }
         }
 
-        // iConomy
+        // Economy
         buildCost = conf.getDouble("buildCost", 0);
         createCost = conf.getDouble("createCost", 0);
         linkLocalCost = conf.getDouble("linkLocalCost", 0);

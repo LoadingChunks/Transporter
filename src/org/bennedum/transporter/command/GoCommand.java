@@ -15,6 +15,7 @@
  */
 package org.bennedum.transporter.command;
 
+import java.util.ArrayList;
 import java.util.List;
 import org.bennedum.transporter.Context;
 import org.bennedum.transporter.Gate;
@@ -32,20 +33,28 @@ import org.bukkit.command.Command;
  */
 public class GoCommand extends TrpCommandProcessor {
     
-    @Override
-    public boolean requiresPlayer() { return true; }
+    // TODO: move this command into "gate"
+    
+    private static final String GROUP = "go ";
     
     @Override
-    protected String[] getSubCommands() { return new String[] {"go"}; }
+    public boolean matches(Context ctx, Command cmd, List<String> args) {
+        return super.matches(ctx, cmd, args) &&
+               GROUP.startsWith(args.get(0).toLowerCase()) &&
+               ctx.isPlayer();
+    }
     
     @Override
-    public String getUsage(Context ctx) {
-        return super.getUsage(ctx) + " [<gate>]";
+    public List<String> getUsage(Context ctx) {
+        if (! ctx.isPlayer()) return null;
+        List<String> cmds = new ArrayList<String>();
+        cmds.add(getPrefix(ctx) + GROUP + "[<gate>]");
+        return cmds;
     }
 
     @Override
     public void process(Context ctx, Command cmd, List<String> args) throws TransporterException {
-        super.process(ctx, cmd, args);
+        args.remove(0);
         Gate gate = null;
         if (! args.isEmpty()) {
             gate = Gates.get(ctx, args.get(0));

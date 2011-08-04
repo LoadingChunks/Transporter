@@ -85,6 +85,7 @@ public final class Permissions {
     }
 
     public static boolean has(Player player, String perm) {
+        if (player == null) return true;
         try {
             require(player.getWorld().getName(), player.getName(), true, perm);
             return true;

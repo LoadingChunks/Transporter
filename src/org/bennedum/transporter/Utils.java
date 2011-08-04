@@ -28,7 +28,11 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.HttpURLConnection;
+import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.InterfaceAddress;
+import java.net.NetworkInterface;
 import java.net.Proxy;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -36,6 +40,7 @@ import java.net.URLEncoder;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
@@ -181,28 +186,6 @@ public class Utils {
     public static File worldPluginFolder(World world) {
         return new File(worldFolder(world), Global.pluginName);
     }
-
-    // TODO: remove
-    /*
-    public static BlockFace yawToDirection(float yaw, boolean course) {
-        while (yaw < 0) yaw += 360;
-        if (course) {
-            if ((yaw > 315) || (yaw <= 45)) return BlockFace.WEST;
-            if ((yaw > 45) && (yaw <= 135)) return BlockFace.NORTH;
-            if ((yaw > 135) && (yaw <= 225)) return BlockFace.EAST;
-            return BlockFace.SOUTH;
-        } else {
-            if ((yaw > 337.5) || (yaw <= 22.5)) return BlockFace.WEST;
-            if ((yaw > 22.5) || (yaw <= 67.5)) return BlockFace.NORTH_WEST;
-            if ((yaw > 67.5) && (yaw <= 112.5)) return BlockFace.NORTH;
-            if ((yaw > 112.5) && (yaw <= 157.5)) return BlockFace.NORTH_EAST;
-            if ((yaw > 157.5) && (yaw <= 202.5)) return BlockFace.EAST;
-            if ((yaw > 202.5) && (yaw <= 247.5)) return BlockFace.SOUTH_EAST;
-            if ((yaw > 247.5) && (yaw <= 292.5)) return BlockFace.SOUTH;
-            return BlockFace.SOUTH_WEST;
-        }
-    }
-    */
 
     public static int directionToYaw(BlockFace direction) {
         switch (direction) {
@@ -449,22 +432,41 @@ public class Utils {
                 }
             });
             writer.format("%d servers:\n", servers.size());
-            // TODO: redo this to use new shit
-            /*
-            for (Server server : servers)
-                writer.format("  %s: %s '%s' [%s] [%s] %s/%s %s %s %s\n",
+            for (Server server : servers) {
+                writer.format("  %s: %s '%s' %s/%s\n",
                             server.getName(),
                             server.getPluginAddress(),
                             server.getKey(),
-                            (server.getPublicAddress() == null) ? "*" : server.getPublicAddress(),
-                            (server.getPrivateAddress() == null) ? "*" : server.getPrivateAddress(),
                             (server.isEnabled() ? "up" : "down"),
-                            (server.isConnected() ? "up" : "down"),
-                            (server.isConnected() ? (server.isIncoming() ? "incoming" : "outgoing") : ""),
-                            (server.isConnected() ? server.getConnection().getName() : ""),
-                            (server.isConnected() ? "v" + server.getVersion() : "")
+                            (! server.isConnected() ? "down" :
+                                String.format("up %s %s v%s",
+                                    server.isIncoming() ? "incoming" : "outgoing",
+                                    server.getConnection().getName(),
+                                    server.getRemoteVersion()))
                         );
-             */
+                writer.format("    publicAddress:        %s (%s)\n",
+                        server.getPublicAddress(),
+                        server.getNormalizedPublicAddress()
+                        );
+                writer.format("    privateAddress:       %s\n",
+                        server.getPrivateAddress().equals("-") ?
+                            "-" :
+                            String.format("%s (%s:%d)",
+                                server.getPrivateAddress(),
+                                server.getNormalizedPrivateAddress().getAddress().getHostAddress(),
+                                server.getNormalizedPrivateAddress().getPort()));
+                if (server.isConnected()) {
+                    writer.format("    remotePublicAddress:  %s\n",
+                            server.getRemotePublicAddress());
+                    writer.format("    remotePrivateAddress: %s\n",
+                            (server.getRemotePrivateAddress() == null) ?
+                                "-" : server.getRemotePrivateAddress());
+                    writer.format("    remoteCluster:        %s\n",
+                            (server.getRemoteCluster() == null) ?
+                                "-" : server.getRemoteCluster());
+                    
+                }
+            }
             writer.println();
 
             // list of gates...
@@ -501,7 +503,20 @@ public class Utils {
             }
             writer.println();
 
-
+            // list of interfaces/addresses
+            writer.println("Network interfaces:");
+            for (Enumeration<NetworkInterface> e = NetworkInterface.getNetworkInterfaces(); e.hasMoreElements(); ) {
+                NetworkInterface iface = e.nextElement();
+                writer.format("%s (%s) %s\n", iface.getName(), iface.getDisplayName(), iface.isUp() ? "UP" : "DOWN");
+                if (! iface.isUp()) continue;
+                for (InterfaceAddress address : iface.getInterfaceAddresses()) {
+                    InetAddress addr = address.getAddress();
+                    if (! (addr instanceof Inet4Address)) continue;
+                    writer.format("  %s/%s\n", addr.getHostAddress(), address.getNetworkPrefixLength());
+                }
+            }
+            writer.println();
+            
             writer.flush();
             zipOut.closeEntry();
 
@@ -557,7 +572,8 @@ public class Utils {
         } catch (IOException e) {
             severe(e, "unable to submit debug data:");
         } finally {
-            zipFile.delete();
+            if (Global.config.getBoolean("deleteDebugFile", true))
+                zipFile.delete();
         }
 
     }

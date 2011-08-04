@@ -15,6 +15,7 @@
  */
 package org.bennedum.transporter.command;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -37,19 +38,26 @@ import org.bukkit.entity.Player;
  */
 public class DesignCommand extends TrpCommandProcessor {
 
+    private static final String GROUP = "design ";
+    
     @Override
-    protected String[] getSubCommands() { return new String[] {"design"}; }
-
+    public boolean matches(Context ctx, Command cmd, List<String> args) {
+        return super.matches(ctx, cmd, args) &&
+               GROUP.startsWith(args.get(0).toLowerCase());
+    }
+    
     @Override
-    public String getUsage(Context ctx) {
-        return
-               super.getUsage(ctx) + " list\n" +
-               super.getUsage(ctx) + " build <name>|undo";
+    public List<String> getUsage(Context ctx) {
+        List<String> cmds = new ArrayList<String>();
+        cmds.add(getPrefix(ctx) + GROUP + "list");
+        if (ctx.isPlayer())
+            cmds.add(getPrefix(ctx) + GROUP + "build <name>|undo");
+        return cmds;
     }
 
     @Override
     public void process(Context ctx, Command cmd, List<String> args) throws TransporterException {
-        super.process(ctx, cmd, args);
+        args.remove(0);
         if (args.isEmpty())
             throw new CommandException("do what with a design?");
         String subCmd = args.remove(0).toLowerCase();
