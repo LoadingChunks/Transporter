@@ -71,6 +71,26 @@ public final class Reservation {
         return get(player.getName());
     }
     
+    private static boolean put(Reservation r) {
+        synchronized (reservations) {
+            if (reservations.put(r.localId, r) == null) {
+                Utils.debug("put reservation %s", r.localId);
+                return true;
+            }
+            return false;
+        }
+    }
+    
+    private static boolean remove(Reservation r) {
+        synchronized (reservations) {
+            if (reservations.remove(r.localId) != null) {
+                Utils.debug("removed reservation %s", r.localId);
+                return true;
+            }
+            return false;
+        }
+    }
+    
     public static void removeGateLock(Entity entity) {
         if (entity == null) return;
         synchronized (gateLocks) {
@@ -419,10 +439,7 @@ public final class Reservation {
     
     // called to handle departure on the sending side
     public void depart() throws ReservationException {
-        synchronized (reservations) {
-            reservations.put(localId, this);
-        }
-        
+        put(this);
         addGateLock(entity);
         addGateLock(player);
         
@@ -441,9 +458,7 @@ public final class Reservation {
                 toServer.doSendReservation(this);
             } catch (ServerException e) {
                 Utils.severe(e, "reservation send for %s to %s failed:", getTraveler(), getDestination());
-                synchronized (reservations) {
-                    reservations.remove(localId);
-                }
+                remove(this);
                 throw new ReservationException("teleport %s to %s failed", getTraveler(), getDestination());
             }
         }
@@ -461,16 +476,12 @@ public final class Reservation {
                 }
             }
             checkLocalArrivalGate();
-            synchronized (reservations) {
-                reservations.put(localId, this);
-            }
+            put(this);
             try {
                 fromServer.doReservationApproved(remoteId);
             } catch (ServerException e) {
                 Utils.severe(e, "send reservation approval for %s to %s to %s failed:", getTraveler(), getDestination(), fromServer.getName());
-                synchronized (reservations) {
-                    reservations.remove(localId);
-                }
+                remove(this);
                 return;
             }
             
@@ -491,13 +502,11 @@ public final class Reservation {
                 });
             } else {
                 // set up a delayed task to cancel the arrival if they never arrive
+                final Reservation res = this;
                 Utils.fireDelayed(new Runnable() {
                     @Override
                     public void run() {
-                        synchronized (reservations) {
-                            if (! reservations.containsKey(localId)) return;
-                            reservations.remove(localId);
-                        }
+                        if (! remove(res)) return;
                         Utils.warning("reservation for %s to %s timed out", getTraveler(), getDestination());
                         try {
                             fromServer.doReservationTimeout(remoteId);
@@ -511,9 +520,7 @@ public final class Reservation {
                 
         } catch (ReservationException e) {
             Utils.info("reservation for %s to %s denied: %s", getTraveler(), getDestination(), e.getMessage());
-            synchronized (reservations) {
-                reservations.remove(localId);
-            }
+            remove(this);
             try {
                 fromServer.doReservationDenied(remoteId, e.getMessage());
             } catch (ServerException e2) {
@@ -524,9 +531,7 @@ public final class Reservation {
 
     // called on the receiving side to handle arrival
     public void arrive() throws ReservationException {
-        synchronized (reservations) {
-            reservations.remove(localId);
-        }
+        remove(this);
         
         if (toGateLocal != null)
             toGateLocal.attach(fromGate);
@@ -605,17 +610,13 @@ public final class Reservation {
     
     // called on the sending side to indicate an expeceted arrival arrived on the receiving side
     public void arrived() {
-        synchronized (reservations) {
-            reservations.remove(localId);
-        }
+        remove(this);
         Utils.info("reservation to send %s to %s was completed", getTraveler(), getDestination());
     }
 
     // called on the sending side to indicate an expected arrival never happened on the receiving side
     public void timeout() {
-        synchronized (reservations) {
-            reservations.remove(localId);
-        }
+        remove(this);
         Utils.warning("reservation to send %s to %s timed out", getTraveler(), getDestination());
     }
     
