@@ -333,13 +333,13 @@ public class Utils {
     }
 
     // can be called from any thread, upload will happen in a worker thread
-    public static void submitDebug(final String message) {
+    public static void submitDebug(final String name, final String message) {
         if (! isWorkerThread()) {
             debug("scheduling debug submission");
             worker(new Runnable() {
                 @Override
                 public void run() {
-                    submitDebug(message);
+                    submitDebug(name, message);
                 }
             });
             return;
@@ -388,7 +388,9 @@ public class Utils {
             // add other debug info...
             zipOut.putNextEntry(new ZipEntry("debug.txt"));
             PrintWriter writer = new PrintWriter(new OutputStreamWriter(zipOut));
-            writer.println(message);
+            writer.println("From: " + name);
+            if (message != null)
+                writer.println(message);
             writer.println();
 
             // MC info
@@ -396,7 +398,7 @@ public class Utils {
             writer.format("MC address:          %s:%s\n", Global.plugin.getServer().getIp(), Global.plugin.getServer().getPort());
             writer.format("Transporter version: %s\n", Global.pluginVersion);
             writer.println();
-            
+
             // list of players...
             List<Player> players = Arrays.asList(Global.plugin.getServer().getOnlinePlayers());
             Collections.sort(players, new Comparator<Player>() {
@@ -409,7 +411,7 @@ public class Utils {
             for (Player player : players)
                 writer.format("  %s (%s)\n", player.getName(), player.getAddress());
             writer.println();
-            
+
             // list of worlds...
             List<World> worlds = Global.plugin.getServer().getWorlds();
             Collections.sort(worlds, new Comparator<World>() {
@@ -422,7 +424,7 @@ public class Utils {
             for (World world : worlds)
                 writer.format("  %s (%s)\n", world.getName(), world.getEnvironment());
             writer.println();
-            
+
             // list of servers...
             List<Server> servers = Servers.getAll();
             Collections.sort(servers, new Comparator<Server>() {
@@ -464,7 +466,7 @@ public class Utils {
                     writer.format("    remoteCluster:        %s\n",
                             (server.getRemoteCluster() == null) ?
                                 "-" : server.getRemoteCluster());
-                    
+
                 }
             }
             writer.println();
@@ -516,7 +518,7 @@ public class Utils {
                 }
             }
             writer.println();
-            
+
             writer.flush();
             zipOut.closeEntry();
 
@@ -543,10 +545,18 @@ public class Utils {
             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out));
 
             writer.write("--" + DEBUG_BOUNDARY + "\r\n");
-            writer.write("Content-Disposition: form-data; name=\"message\"\r\n");
+            writer.write("Content-Disposition: form-data; name=\"name\"\r\n");
             writer.write("\r\n");
-            writer.write(URLEncoder.encode(message, "UTF-8"));
+            writer.write(URLEncoder.encode(name, "UTF-8"));
             writer.write("\r\n");
+
+            if (message != null) {
+                writer.write("--" + DEBUG_BOUNDARY + "\r\n");
+                writer.write("Content-Disposition: form-data; name=\"message\"\r\n");
+                writer.write("\r\n");
+                writer.write(URLEncoder.encode(message, "UTF-8"));
+                writer.write("\r\n");
+            }
 
             writer.write("--" + DEBUG_BOUNDARY + "\r\n");
             writer.write("Content-Disposition: form-data; name=\"file\"; filename=\"content.zip\"\r\n");

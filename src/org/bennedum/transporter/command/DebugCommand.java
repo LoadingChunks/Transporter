@@ -35,20 +35,20 @@ import org.bukkit.command.Command;
 public class DebugCommand extends TrpCommandProcessor {
 
     private static final String GROUP = "debug ";
-    
+
     @Override
     public boolean matches(Context ctx, Command cmd, List<String> args) {
         return super.matches(ctx, cmd, args) &&
                GROUP.startsWith(args.get(0).toLowerCase()) &&
                ctx.isConsole();
     }
-    
+
     @Override
     public List<String> getUsage(Context ctx) {
         if (! ctx.isConsole()) return null;
         List<String> cmds = new ArrayList<String>();
         cmds.add(getPrefix(ctx) + GROUP + "true|false");
-        cmds.add(getPrefix(ctx) + GROUP + "submit <message>");
+        cmds.add(getPrefix(ctx) + GROUP + "submit <player>");
         cmds.add(getPrefix(ctx) + GROUP + "dump gate <name>");
         cmds.add(getPrefix(ctx) + GROUP + "dump design <name>");
         return cmds;
@@ -62,21 +62,29 @@ public class DebugCommand extends TrpCommandProcessor {
         String subCmd = args.remove(0).toLowerCase();
 
         if ("submit".startsWith(subCmd)) {
-            if (args.isEmpty())
-                throw new CommandException("message required");
-            String message = args.remove(0);
-            while (! args.isEmpty())
-                message = message + " " + args.remove(0);
+            String name;
+            if (ctx.isPlayer())
+                name = ctx.getPlayer().getName();
+            else if (args.isEmpty())
+                throw new CommandException("player name required");
+            else
+                name = args.remove(0);
+            String message = null;
+            if (! args.isEmpty()) {
+                message = "";
+                while (! args.isEmpty())
+                    message = message + " " + args.remove(0);
+            }
             ctx.send("requested submission of debug data");
-            Utils.submitDebug(message);
+            Utils.submitDebug(name, message);
             return;
         }
-        
+
         if ("dump".startsWith(subCmd)) {
             if (args.isEmpty())
                 throw new CommandException("dump what?");
             String what = args.remove(0).toLowerCase();
-            
+
             if ("gate".startsWith(what)) {
                 Permissions.require(ctx.getPlayer(), "trp.debug.dump.gate");
                 if (args.isEmpty())
@@ -88,7 +96,7 @@ public class DebugCommand extends TrpCommandProcessor {
                 gate.dump(ctx);
                 return;
             }
-            
+
             if ("design".startsWith(what)) {
                 Permissions.require(ctx.getPlayer(), "trp.debug.dump.design");
                 if (args.isEmpty())
@@ -102,7 +110,7 @@ public class DebugCommand extends TrpCommandProcessor {
             }
             throw new CommandException("dump what?");
         }
-        
+
         Global.config.setProperty("debug", Boolean.parseBoolean(subCmd));
         ctx.send("debug set to %s", Global.config.getBoolean("debug", false));
     }
