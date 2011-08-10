@@ -94,7 +94,7 @@ public class Utils {
     }
 
     public static String blockCoords(Location loc) {
-        return String.format("%d,%d,%d", loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
+        return String.format("%s@%d,%d,%d", loc.getWorld().getName(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
     }
 
     public static String coords(Location loc) {

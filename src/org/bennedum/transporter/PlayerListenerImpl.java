@@ -95,7 +95,9 @@ public class PlayerListenerImpl extends PlayerListener {
             Reservation.removeGateLock(player);
             return;
         }
-        if (Reservation.isGateLocked(player)) return;
+        if (Reservation.isGateLocked(player)) {
+            return;
+        }
 
         Context ctx = new Context(player);
         try {

@@ -128,7 +128,8 @@ public final class GateMap {
             Location l = block.getLocation();
             return (l.getBlockX() == loc.getBlockX()) &&
                     (l.getBlockY() == loc.getBlockY()) &&
-                    (l.getBlockZ() == loc.getBlockZ());
+                    (l.getBlockZ() == loc.getBlockZ()) &&
+                    (l.getWorld().getName().equals(loc.getWorld().getName()));
         }
     }
 

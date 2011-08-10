@@ -15,7 +15,6 @@
  */
 package org.bennedum.transporter;
 
-import com.iConomy.iConomy;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -397,16 +396,16 @@ public final class Gates {
         return portalBlocks.getGate(loc);
     }
 
-    public static void addPortalBlocks(GateMap portalBlocks) {
-        portalBlocks.putAll(portalBlocks);
+    public static void addPortalBlocks(GateMap blocks) {
+        portalBlocks.putAll(blocks);
     }
 
     public static void removePortalBlocks(LocalGate gate) {
         portalBlocks.removeGate(gate);
     }
 
-    public static void addProtectBlocks(GateMap protectBlocks) {
-        protectBlocks.putAll(protectBlocks);
+    public static void addProtectBlocks(GateMap blocks) {
+        protectBlocks.putAll(blocks);
     }
 
     public static void removeProtectBlocks(LocalGate gate) {
