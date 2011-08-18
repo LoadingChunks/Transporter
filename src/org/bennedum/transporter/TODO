@@ -1,9 +1,7 @@
 
 * Implement gate permissions when Permissions plugin supports adding a gate to a group.
 * Implement new gate design: Jail
-* fix minecarts - too fast same world, no velocity on exit between servers
-* fix exit direction from gates - inconsistent
-* add back call to gate's to do lightning
+* add back call to gate's to do lightning/effects
 
 Testing:
     * new teleportation shit
@@ -26,6 +24,9 @@ Wiki Updates:
         * useBOSEconomy (default false)
         * deleteDebugFile (default true)
         * clusterName (default null)
+        * usePermissionsEx (default false)
+        * gateLockExpiration (default 2000ms)
+        * arrivalWindow (default 20000ms)
     * home page
         * BOSEconomy support
     * gate design: iConomy -> Economy

@@ -52,6 +52,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitWorker;
@@ -93,6 +94,10 @@ public class Utils {
         logger.log(Level.INFO, String.format("[DEBUG] %s", msg));
     }
 
+    public static String block(Block b) {
+        return String.format("Block[%s,%d]", b.getType(), b.getData());
+    }
+    
     public static String blockCoords(Location loc) {
         return String.format("%s@%d,%d,%d", loc.getWorld().getName(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
     }
@@ -249,6 +254,9 @@ public class Utils {
     public static void saveConfig(Context ctx) {
         File configDir = Global.plugin.getDataFolder();
         if (! configDir.exists()) configDir.mkdirs();
+        // save everything that goes in the main config
+        Servers.saveAll();
+        // TODO: Worlds.saveAll();
         Global.config.save();
         ctx.sendLog("saved configuration");
     }

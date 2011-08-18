@@ -23,6 +23,7 @@ sendPrivateAddress: true
 usePrivateAddress: true
 
 usePermissions: false
+usePermissionsEx: false
 useIConomy: false
 useBOSEconomy: false
 

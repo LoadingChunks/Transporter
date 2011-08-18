@@ -41,6 +41,7 @@ public class Transporter extends JavaPlugin {
     private PlayerListenerImpl playerListener = new PlayerListenerImpl();
     private VehicleListenerImpl vehicleListener = new VehicleListenerImpl();
     private WorldListenerImpl worldListener = new WorldListenerImpl();
+    private EntityListenerImpl entityListener = new EntityListenerImpl();
 
     @Override
     public void onEnable() {
@@ -85,12 +86,12 @@ public class Transporter extends JavaPlugin {
         Utils.loadConfig(ctx);
 
         // Clean out old config options
-        
+
         Global.config.removeProperty("craftProxy");
-        
+
         Global.network = new Network();
         Global.network.start();
-        
+
         Designs.loadAll(ctx);
         Gates.loadAll(ctx);
         Servers.loadAll(ctx);
@@ -109,6 +110,7 @@ public class Transporter extends JavaPlugin {
         pm.registerEvent(Type.VEHICLE_MOVE, vehicleListener, Priority.Monitor, this); // outgoing vehicle teleport
         pm.registerEvent(Type.WORLD_LOAD, worldListener, Priority.Normal, this); // add gates on a world
         pm.registerEvent(Type.WORLD_UNLOAD, worldListener, Priority.Normal, this); // remove gates on a world
+        pm.registerEvent(Type.ENTITY_DAMAGE, entityListener, Priority.Normal, this); // nullify damage in portal blocks
 
         ctx.sendLog("ready");
 

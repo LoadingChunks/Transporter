@@ -30,22 +30,22 @@ import org.bukkit.command.Command;
  * @author frdfsnlght <frdfsnlght@gmail.com>
  */
 public class SaveCommand extends TrpCommandProcessor {
-    
+
     private static final String GROUP = "save ";
-    
+
     @Override
     public boolean matches(Context ctx, Command cmd, List<String> args) {
         return super.matches(ctx, cmd, args) &&
                GROUP.startsWith(args.get(0).toLowerCase());
     }
-    
+
     @Override
     public List<String> getUsage(Context ctx) {
         List<String> cmds = new ArrayList<String>();
         cmds.add(getPrefix(ctx) + GROUP + "[config|gates]");
         return cmds;
     }
-    
+
     @Override
     public void process(Context ctx, Command cmd, List<String> args) throws TransporterException {
         args.remove(0);
@@ -67,12 +67,11 @@ public class SaveCommand extends TrpCommandProcessor {
             }
         }
         for (String arg : what) {
-            if (arg.equals("config")) {
-                Servers.saveAll();
+            if (arg.equals("config"))
                 Utils.saveConfig(ctx);
-            } else if (arg.equals("gates"))
+            else if (arg.equals("gates"))
                 Gates.saveAll(ctx);
         }
     }
-    
+
 }

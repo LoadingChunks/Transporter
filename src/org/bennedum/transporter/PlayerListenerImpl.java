@@ -28,7 +28,7 @@ import org.bukkit.event.player.PlayerMoveEvent;
  *
  * @author frdfsnlght <frdfsnlght@gmail.com>
  */
-public class PlayerListenerImpl extends PlayerListener {
+public final class PlayerListenerImpl extends PlayerListener {
 
     @Override
     public void onPlayerInteract(PlayerInteractEvent event) {

@@ -38,6 +38,7 @@ public final class Servers {
         servers.clear();
 
         // check for pre v6.10 file and convert to main config
+        /*
         File file = new File(Global.plugin.getDataFolder(), "servers.yml");
         if (file.exists()) {
             ctx.sendLog("converting servers.yml to global configuration...");
@@ -65,7 +66,8 @@ public final class Servers {
                 ctx.warnLog("unable to load servers: %s", se.getMessage());
             }
         }
-        
+         */
+
         List<ConfigurationNode> serverNodes = Global.config.getNodeList("servers", null);
         if (serverNodes != null) {
             for (ConfigurationNode node : serverNodes) {

@@ -26,13 +26,12 @@ public class ServerListenerImpl extends ServerListener {
 
     @Override
     public void onServerCommand(ServerCommandEvent event) {
-        // PENDING: bukkit doesn't supply this event yet
-        System.out.println("Yeeehaaa! we got an onServerCommand event!");
-
-//        Transporter.instance.saveConfig();
-//        ctx.info("saved configuration");
-//        Transporter.instance.gates.saveAll(ctx);
-
+        Context ctx = new Context(event.getSender());
+        String cmd = event.getCommand();
+        if (cmd.equalsIgnoreCase("save-all")) {
+            Utils.saveConfig(ctx);
+            Gates.saveAll(ctx);
+        }
     }
 
 }

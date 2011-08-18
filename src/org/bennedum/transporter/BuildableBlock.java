@@ -178,9 +178,26 @@ public final class BuildableBlock {
     }
 
     public boolean matches(Block block) {
-        if (block.getTypeId() != type) return false;
+        Utils.debug("match %s to %s", this, Utils.block(block));
 
-        // can't simply compare data values because signs can have multiple values indicate
+        if (block.getTypeId() != type) {
+            // handle liquids special
+            switch (block.getType()) {
+                case WATER:
+                case STATIONARY_WATER:
+                    if ((type == Material.WATER.getId()) ||
+                        (type == Material.STATIONARY_WATER.getId())) return true;
+                    break;
+                case LAVA:
+                case STATIONARY_LAVA:
+                    if ((type == Material.LAVA.getId()) ||
+                        (type == Material.STATIONARY_LAVA.getId())) return true;
+                    break;
+            }
+            return false;
+        }
+
+        // can't simply compare data values because signs can have multiple values indicating
         // the same facing direction!
         MaterialData myMd = Material.getMaterial(type).getNewData(data);
         MaterialData otherMd = block.getType().getNewData(block.getData());

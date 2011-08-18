@@ -39,13 +39,13 @@ import org.bukkit.command.Command;
 public class ServerCommand extends TrpCommandProcessor {
 
     private static final String GROUP = "server ";
-    
+
     @Override
     public boolean matches(Context ctx, Command cmd, List<String> args) {
         return super.matches(ctx, cmd, args) &&
                GROUP.startsWith(args.get(0).toLowerCase());
     }
-    
+
     @Override
     public List<String> getUsage(Context ctx) {
         List<String> cmds = new ArrayList<String>();
@@ -132,7 +132,7 @@ public class ServerCommand extends TrpCommandProcessor {
             if (args.isEmpty())
                 throw new CommandException("set %s to what?", option);
             String value = args.remove(0);
-            
+
             if (args.isEmpty()) {
                 // network setting
                 option = Global.network.resolveOption(option);
@@ -154,12 +154,12 @@ public class ServerCommand extends TrpCommandProcessor {
             Utils.saveConfig(ctx);
             return;
         }
-        
+
         if ("get".startsWith(subCmd)) {
             if (args.isEmpty())
                 throw new CommandException("get what?");
             String option = args.remove(0).toLowerCase();
-            
+
             if (args.isEmpty()) {
                 // network setting
                 List<String> options = new ArrayList<String>();
@@ -190,7 +190,7 @@ public class ServerCommand extends TrpCommandProcessor {
                 Server server = Servers.get(name);
                 if (server == null)
                     throw new CommandException("unknown server '%s'", name);
-                
+
                 List<String> options = new ArrayList<String>();
                 try {
                     String opt = server.resolveOption(option);
@@ -226,7 +226,6 @@ public class ServerCommand extends TrpCommandProcessor {
             String key = args.remove(0);
             Server server = new Server(name, plgAddr, key);
             Servers.add(server);
-            Servers.saveAll();
             Utils.saveConfig(ctx);
             ctx.sendLog("added server '%s'", server.getName());
             return;
@@ -268,7 +267,6 @@ public class ServerCommand extends TrpCommandProcessor {
                 throw new CommandException("unknown server '%s'", args.get(0));
             Permissions.require(ctx.getPlayer(), "trp.server.enable");
             server.setEnabled(true);
-            Servers.saveAll();
             Utils.saveConfig(ctx);
             ctx.sendLog("server '%s' enabled", server.getName());
             return;
@@ -282,7 +280,6 @@ public class ServerCommand extends TrpCommandProcessor {
                 throw new CommandException("unknown server '%s'", args.get(0));
             Permissions.require(ctx.getPlayer(), "trp.server.disable");
             server.setEnabled(false);
-            Servers.saveAll();
             Utils.saveConfig(ctx);
             ctx.sendLog("server '%s' disabled", server.getName());
             return;
@@ -337,7 +334,6 @@ public class ServerCommand extends TrpCommandProcessor {
                 throw new CommandException("unknown server '%s'", args.get(0));
             Permissions.require(ctx.getPlayer(), "trp.server.remove");
             Servers.remove(server);
-            Servers.saveAll();
             Utils.saveConfig(ctx);
             ctx.sendLog("removed server '%s'", server.getName());
             return;
@@ -371,6 +367,7 @@ public class ServerCommand extends TrpCommandProcessor {
                     ctx.sendLog("added ban");
                 else
                     throw new CommandException("'%s' is already banned");
+                Utils.saveConfig(ctx);
                 return;
             }
 
@@ -383,6 +380,7 @@ public class ServerCommand extends TrpCommandProcessor {
                     ctx.sendLog("removed ban");
                 else
                     throw new CommandException("'%s' is not banned");
+                Utils.saveConfig(ctx);
                 return;
             }
             throw new CommandException("do what with a ban?");

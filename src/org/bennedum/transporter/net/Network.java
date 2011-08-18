@@ -56,7 +56,7 @@ public final class Network extends Thread {
 
     private static final int READ_BUFFER_SIZE = 4096;
     private static final int SELECT_INTERVAL = 30000;
-    
+
     public static final int DEFAULT_PORT = 25555;
 
     public static final List<String> OPTIONS = new ArrayList<String>();
@@ -66,7 +66,7 @@ public final class Network extends Thread {
         OPTIONS.add("serverKey");
         OPTIONS.add("clusterName");
     }
-    
+
     public static InetSocketAddress makeInetSocketAddress(String addrStr, int defPort, boolean allowWildcard) throws NetworkException {
         String[] parts = addrStr.split(":");
         InetAddress address = null;
@@ -91,7 +91,7 @@ public final class Network extends Thread {
             throw new NetworkException("invalid port '%d'", port);
         return new InetSocketAddress(address, port);
     }
-    
+
     public static InetAddress getInterfaceAddress() throws NetworkException {
         try {
             for (Enumeration<NetworkInterface> e = NetworkInterface.getNetworkInterfaces(); e.hasMoreElements(); ) {
@@ -107,7 +107,7 @@ public final class Network extends Thread {
             throw new NetworkException("unable to get local interfaces");
         }
     }
-    
+
     public static InetAddress getInterfaceAddress(NetworkInterface iface) {
         for (Enumeration<InetAddress> e = iface.getInetAddresses(); e.hasMoreElements(); ) {
             InetAddress addr = e.nextElement();
@@ -116,13 +116,13 @@ public final class Network extends Thread {
         }
         return null;
     }
-    
+
     private State state = State.STOPPED;
     private String listenAddress;
     private InetSocketAddress listenInetSocketAddress;
     private String serverKey;
     private String clusterName;
-    
+
     private final Set<Pattern> banned = new HashSet<Pattern>();
 
     private Selector selector = null;
@@ -183,26 +183,26 @@ public final class Network extends Thread {
         listenAddress = address;
         Global.config.setProperty("listenAddress", listenAddress);
     }
-    
+
     public InetSocketAddress getListenInetSocketAddress() {
         return listenInetSocketAddress;
     }
-    
+
     public String getServerKey() {
         return serverKey;
     }
-    
+
     public void setServerKey(String key) {
         if ((key == null) || key.equals("none"))
             throw new IllegalArgumentException("serverKey is required");
         serverKey = key;
         Global.config.setProperty("serverKey", serverKey);
     }
-    
+
     public String getClusterName() {
         return clusterName;
     }
-    
+
     public void setClusterName(String name) {
         clusterName = name;
         Global.config.setProperty("clusterName", clusterName);
@@ -271,9 +271,9 @@ public final class Network extends Thread {
             throw new NetworkException("unable to read the option");
         }
     }
-    
+
     /* End options */
-    
+
     // called from main thread
     public void stop(Context ctx) {
         if ((! isAlive()) || (state != State.RUNNING)) return;
@@ -337,7 +337,6 @@ public final class Network extends Thread {
         for (Pattern p : banned)
             bannedAddresses.add(p.pattern());
         Global.config.setProperty("bannedAddresses", bannedAddresses);
-        Utils.saveConfig(new Context());
     }
 
     public List<String> getBanned() {
@@ -445,7 +444,7 @@ public final class Network extends Thread {
                     server.sendKeepAlive();
                     server.checkKeepAlive();
                 }
-                
+
                 if (selector.select(SELECT_INTERVAL) > 0) {
                     Iterator keys = selector.selectedKeys().iterator();
                     while (keys.hasNext()) {
@@ -618,7 +617,7 @@ public final class Network extends Thread {
         } catch (Throwable t) {
             Utils.debug("wantWrite to %s: got throwable: %s: %s", conn, t.getClass().getName(), t.getMessage());
         }
-                
+
         selector.wakeup();
     }
 

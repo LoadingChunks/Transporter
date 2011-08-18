@@ -15,24 +15,19 @@
  */
 package org.bennedum.transporter;
 
-import org.bukkit.event.world.WorldListener;
-import org.bukkit.event.world.WorldLoadEvent;
-import org.bukkit.event.world.WorldUnloadEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityListener;
 
 /**
  *
- * @author frdfsnlght <frdfsnlght@gmail.com>
+ * @author Thomas Bennedum <frdfsnlght@gmail.com>
  */
-public class WorldListenerImpl extends WorldListener {
+public final class EntityListenerImpl extends EntityListener {
 
     @Override
-    public void onWorldLoad(WorldLoadEvent event) {
-        Gates.loadGatesForWorld(new Context(), event.getWorld());
-    }
-
-    @Override
-    public void onWorldUnload(WorldUnloadEvent event) {
-        Gates.remove(event.getWorld());
+    public void onEntityDamage(EntityDamageEvent event) {
+        if (Reservation.isGateLocked(event.getEntity()))
+            event.setCancelled(true);
     }
 
 }

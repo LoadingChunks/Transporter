@@ -43,13 +43,13 @@ import org.bukkit.util.Vector;
  * @author frdfsnlght <frdfsnlght@gmail.com>
  */
 public final class Reservation {
-    
+
     private static final int DEFAULT_ARRIVAL_WINDOW = 20000;
-    private static final int DEFAULT_LOCK_EXPIRATION = 5000;
-    
+    private static final int DEFAULT_LOCK_EXPIRATION = 2000;
+
     private static final Map<String,String> pins = new HashMap<String,String>();
     private static final Map<Integer,Long> gateLocks = new HashMap<Integer,Long>();
-    
+
     private static long nextId = 1;
     private static final Map<Long,Reservation> reservations = new HashMap<Long,Reservation>();
 
@@ -58,7 +58,7 @@ public final class Reservation {
             return reservations.get(id);
         }
     }
-    
+
     public static Reservation get(String playerName) {
         synchronized (reservations) {
             for (Reservation r : reservations.values())
@@ -66,11 +66,11 @@ public final class Reservation {
         }
         return null;
     }
-    
+
     public static Reservation get(Player player) {
         return get(player.getName());
     }
-    
+
     private static boolean put(Reservation r) {
         synchronized (reservations) {
             if (reservations.put(r.localId, r) == null) {
@@ -80,7 +80,7 @@ public final class Reservation {
             return false;
         }
     }
-    
+
     private static boolean remove(Reservation r) {
         synchronized (reservations) {
             if (reservations.remove(r.localId) != null) {
@@ -90,7 +90,7 @@ public final class Reservation {
             return false;
         }
     }
-    
+
     public static void removeGateLock(Entity entity) {
         if (entity == null) return;
         synchronized (gateLocks) {
@@ -113,7 +113,7 @@ public final class Reservation {
     public static void addGateLock(Entity entity) {
         if (entity == null) return;
         synchronized (gateLocks) {
-            gateLocks.put(entity.getEntityId(), System.currentTimeMillis() + DEFAULT_LOCK_EXPIRATION);
+            gateLocks.put(entity.getEntityId(), System.currentTimeMillis() + Global.config.getInt("gateLockExpiration", DEFAULT_LOCK_EXPIRATION));
             Utils.debug("added gate lock for entity %d", entity.getEntityId());
         }
     }
@@ -134,27 +134,27 @@ public final class Reservation {
             return pins.get(playerName);
         }
     }
-    
+
     private long localId = nextId++;
     private long remoteId = 0;
-    
+
     private EntityType entityType = null;
     private Entity entity = null;
     private int localEntityId = 0;
     private int remoteEntityId = 0;
-    
+
     private Player player = null;
     private String playerName = null;
     private String playerPin = null;
     private String clientAddress = null;
-    
+
     private ItemStack[] inventory = null;
     private int health = 0;
     private int remainingAir = 0;
     private int fireTicks = 0;
     private int heldItemSlot = 0;
     private ItemStack[] armor = null;
-    
+
     private Location fromLocation = null;
     private Vector fromVelocity = null;
     private Gate fromGate = null;
@@ -163,7 +163,7 @@ public final class Reservation {
     private LocalGate fromGateLocal = null; // local gate
     private World fromWorld = null;         // local gate
     private Server fromServer = null;       // remote gate
-    
+
     private Location toLocation = null;
     private Vector toVelocity = null;
     private Gate toGate = null;
@@ -173,15 +173,15 @@ public final class Reservation {
     private String toWorldName = null;
     private World toWorld = null;           // local gate
     private Server toServer = null;         // remote gate
-    
+
     private boolean createdEntity = false;
-    
+
     // player stepping into gate
     public Reservation(Player player, LocalGate fromGate) throws ReservationException {
         extractPlayer(player);
         extractFromGate(fromGate);
     }
-    
+
     // vehicle moving into gate
     public Reservation(Vehicle vehicle, LocalGate fromGate) throws ReservationException {
         extractVehicle(vehicle);
@@ -193,26 +193,26 @@ public final class Reservation {
         extractPlayer(player);
         extractToGate(toGate);
     }
-    
+
     // player direct to location on this server
     public Reservation(Player player, Location location) throws ReservationException {
         extractPlayer(player);
         toLocation = location;
     }
-    
+
     // player direct to remote server, default world, spawn location
     public Reservation(Player player, Server server) throws ReservationException {
         extractPlayer(player);
         toServer = server;
     }
-    
+
     // player direct to remote server, specified world, spawn location
     public Reservation(Player player, Server server, String worldName) throws ReservationException {
         extractPlayer(player);
         toServer = server;
         toWorldName = worldName;
     }
-    
+
     // player direct to remote server, specified world, specified location
     public Reservation(Player player, Server server, String worldName, double x, double y, double z) throws ReservationException {
         extractPlayer(player);
@@ -220,7 +220,7 @@ public final class Reservation {
         toWorldName = worldName;
         toLocation = new Location(null, x, y, z);
     }
-    
+
     // reception of reservation from sending server
     public Reservation(Message in, Server server) throws ReservationException {
         remoteId = in.getInt("id");
@@ -247,19 +247,19 @@ public final class Reservation {
         fireTicks = in.getInt("fireTicks");
         heldItemSlot = in.getInt("heldItemSlot");
         armor = decodeItemStackArray(in.getMessageList("armor"));
-        
+
         fromServer = server;
-        
+
         if (in.get("toX") != null)
             toLocation = new Location(null, in.getDouble("toX"), in.getDouble("toY"), in.getDouble("toZ"));
-        
+
         toWorldName = in.getString("toWorldName");
         if (toWorldName != null) {
             toWorld = Global.plugin.getServer().getWorld(toWorldName);
             if (toWorld == null)
                 throw new ReservationException("unknown world '%s'", toWorldName);
         }
-        
+
         fromGateName = in.getString("fromGate");
         if (fromGateName != null) {
             fromGate = Gates.get(fromGateName);
@@ -273,7 +273,7 @@ public final class Reservation {
                 throw new ReservationException("unknown fromGateDirection '%s'", in.getString("fromGateDirection"));
             }
         }
-        
+
         toGateName = in.getString("toGate");
         if (toGateName != null) {
             toGate = Gates.get(toGateName);
@@ -289,7 +289,7 @@ public final class Reservation {
                 fromGateDirection = toGateDirection;
         }
     }
-    
+
     private void extractPlayer(Player player) {
         entityType = EntityType.PLAYER;
         entity = player;
@@ -307,8 +307,10 @@ public final class Reservation {
         armor = inv.getArmorContents();
         fromLocation = player.getLocation();
         fromVelocity = player.getVelocity();
+        Utils.debug("player location: %s", fromLocation);
+        Utils.debug("player velocity: %s", fromVelocity);
     }
-    
+
     private void extractVehicle(Vehicle vehicle) {
         if (vehicle.getPassenger() instanceof Player)
             extractPlayer((Player)vehicle.getPassenger());
@@ -330,6 +332,8 @@ public final class Reservation {
         fireTicks = vehicle.getFireTicks();
         fromLocation = vehicle.getLocation();
         fromVelocity = vehicle.getVelocity();
+        Utils.debug("vehicle location: %s", fromLocation);
+        Utils.debug("vehicle velocity: %s", fromVelocity);
     }
 
     private void extractFromGate(LocalGate fromGate) throws ReservationException {
@@ -337,13 +341,13 @@ public final class Reservation {
         fromGateName = fromGate.getFullName();
         fromGateDirection = fromGate.getDirection();
         fromWorld = fromGate.getWorld();
-        
+
         try {
             toGate = fromGateLocal.getDestinationGate();
         } catch (GateException e) {
             throw new ReservationException(e.getMessage());
         }
-        
+
         toGateName = toGate.getFullName();
         if (toGate.isSameServer()) {
             toGateLocal = (LocalGate)toGate;
@@ -360,7 +364,7 @@ public final class Reservation {
             toWorld = toGateLocal.getWorld();
         }
     }
-    
+
     public Message encode() {
         Message out = new Message();
         out.put("id", localId);
@@ -410,7 +414,7 @@ public final class Reservation {
             inventory[slot] = decodeItemStack(inv.get(slot));
         return inventory;
     }
-    
+
     private Message encodeItemStack(ItemStack stack) {
         if (stack == null) return null;
         Message s = new Message();
@@ -422,7 +426,7 @@ public final class Reservation {
             s.put("data", (int)data.getData());
         return s;
     }
-    
+
     private ItemStack decodeItemStack(Message s) {
         if (s == null) return null;
         ItemStack stack = new ItemStack(
@@ -436,25 +440,25 @@ public final class Reservation {
         }
         return stack;
     }
-    
+
     // called to handle departure on the sending side
     public void depart() throws ReservationException {
         put(this);
         addGateLock(entity);
         addGateLock(player);
-        
+
         checkLocalDepartureGate();
-            
+
         if (toServer == null) {
             // staying on this server
             checkLocalArrivalGate();
             arrive();
             completeLocalDepartureGate();
-            
+
         } else {
             // going to remote server
             try {
-                Utils.info("sending reservation for %s to %s...", getTraveler(), getDestination());
+                Utils.debug("sending reservation for %s to %s...", getTraveler(), getDestination());
                 toServer.doSendReservation(this);
             } catch (ServerException e) {
                 Utils.severe(e, "reservation send for %s to %s failed:", getTraveler(), getDestination());
@@ -463,11 +467,11 @@ public final class Reservation {
             }
         }
     }
-    
+
     // called on the receiving side to indicate this reservation has been sent from the sender
     public void receive() {
         try {
-            Utils.info("received reservation for %s to %s from %s...", getTraveler(), getDestination(), fromServer.getName());
+            Utils.debug("received reservation for %s to %s from %s...", getTraveler(), getDestination(), fromServer.getName());
             if (playerName != null) {
                 try {
                     Permissions.connect(playerName);
@@ -484,8 +488,8 @@ public final class Reservation {
                 remove(this);
                 return;
             }
-            
-            Utils.info("reservation for %s to %s approved", getTraveler(), getDestination());
+
+            Utils.debug("reservation for %s to %s approved", getTraveler(), getDestination());
 
             if (playerName == null) {
                 // there's no player coming, so handle the "arrival" now
@@ -497,7 +501,7 @@ public final class Reservation {
                         } catch (ReservationException e) {
                             Utils.warning("reservation arrival for %s to %s to %s failed:", getTraveler(), getDestination(), fromServer.getName(), e.getMessage());
                         }
-                        
+
                     }
                 });
             } else {
@@ -514,12 +518,12 @@ public final class Reservation {
                             Utils.severe(e, "send reservation timeout for %s to %s to %s failed:", getTraveler(), getDestination(), fromServer.getName());
                         }
                     }
-                }, Global.config.getInt("arrivalWindow", DEFAULT_ARRIVAL_WINDOW));
-                
+                }, Global.config.getInt("arrivalWindow", Global.config.getInt("arrivalWindow", DEFAULT_ARRIVAL_WINDOW)));
+
             }
-                
+
         } catch (ReservationException e) {
-            Utils.info("reservation for %s to %s denied: %s", getTraveler(), getDestination(), e.getMessage());
+            Utils.debug("reservation for %s to %s denied: %s", getTraveler(), getDestination(), e.getMessage());
             remove(this);
             try {
                 fromServer.doReservationDenied(remoteId, e.getMessage());
@@ -532,10 +536,10 @@ public final class Reservation {
     // called on the receiving side to handle arrival
     public void arrive() throws ReservationException {
         remove(this);
-        
+
         if (toGateLocal != null)
             toGateLocal.attach(fromGate);
-        
+
         prepareDestination();
         prepareTraveler();
         addGateLock(entity);
@@ -548,7 +552,7 @@ public final class Reservation {
         }
         commitTraveler();
 
-        Utils.info("teleported %s to %s", getTraveler(), getDestination());
+        Utils.debug("%s arrived at %s", getTraveler(), getDestination());
 
         completeLocalArrivalGate();
 
@@ -561,17 +565,17 @@ public final class Reservation {
                 Utils.severe(e, "send reservation arrival for %s to %s to %s failed:", getTraveler(), getDestination(), fromServer.getName());
             }
     }
-    
+
     // called on the sending side to confirm reception of the valid reservation on the receiving side
     public void approved() {
-        Utils.info("reservation to send %s to %s was approved", getTraveler(), getDestination());
-        
+        Utils.debug("reservation to send %s to %s was approved", getTraveler(), getDestination());
+
         if (player != null) {
             Context ctx = new Context(player);
             ctx.send(ChatColor.GOLD + "teleporting to '%s'...", toGateName);
 
             completeLocalDepartureGate();
-            
+
             // TODO: handle cluster setting
             // if toServer.getCluster().equals(Network.getCluster()) then send Cluster Redirect, otherwise send Client Redirect
             String addr = toServer.getReconnectAddressForClient(player.getAddress());
@@ -582,18 +586,18 @@ public final class Reservation {
             String[] addrParts = addr.split("/");
             if (addrParts.length == 1) {
                 // this is a client based reconnect
-                Utils.info("sending player '%s' to '%s' via client reconnect", player.getName(), addrParts[0]);
+                Utils.debug("sending player '%s' to '%s' via client reconnect", player.getName(), addrParts[0]);
                 player.kickPlayer("[Redirect] please reconnect to: " + addrParts[0]);
             } else {
                 // this is a proxy based reconnect
-                Utils.info("sending player '%s' to '%s,%s' via proxy reconnect", player.getName(), addrParts[0], addrParts[1]);
+                Utils.debug("sending player '%s' to '%s,%s' via proxy reconnect", player.getName(), addrParts[0], addrParts[1]);
                 player.kickPlayer("[Redirect] please reconnect to: " + addrParts[0] + "," + addrParts[1]);
             }
         }
         if ((entity != null) && (entity != player))
             entity.remove();
     }
-    
+
     // called on the sending side to indicate a reservation was denies by the receiving side
     public void denied(final String reason) {
         if (player == null)
@@ -607,11 +611,11 @@ public final class Reservation {
                 }
             });
     }
-    
+
     // called on the sending side to indicate an expeceted arrival arrived on the receiving side
     public void arrived() {
         remove(this);
-        Utils.info("reservation to send %s to %s was completed", getTraveler(), getDestination());
+        Utils.debug("reservation to send %s to %s was completed", getTraveler(), getDestination());
     }
 
     // called on the sending side to indicate an expected arrival never happened on the receiving side
@@ -619,23 +623,23 @@ public final class Reservation {
         remove(this);
         Utils.warning("reservation to send %s to %s timed out", getTraveler(), getDestination());
     }
-    
-    
-    
-    
+
+
+
+
     // called after arrival to get the destination on the local server where the entity arrived
     public Location getToLocation() {
         return toLocation;
     }
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
     private void checkLocalDepartureGate() throws ReservationException {
         if (fromGateLocal == null) return;
-        
+
         if (player != null) {
             // player permission
             try {
@@ -668,7 +672,7 @@ public final class Reservation {
                     }
             }
         }
-        
+
         // check gate permission
         if ((toGate != null) && Global.config.getBoolean("useGatePermissions", false)) {
             try {
@@ -678,10 +682,10 @@ public final class Reservation {
             }
         }
     }
-    
+
     private void checkLocalArrivalGate() throws ReservationException {
         if (toGateLocal == null) return;
-            
+
         if (player != null) {
             // player permission
             try {
@@ -723,18 +727,18 @@ public final class Reservation {
                 throw new ReservationException("the remote gate is not permitted to receive from this gate");
             }
         }
-            
+
     }
-    
+
     private void completeLocalDepartureGate() {
         if (fromGateLocal == null) return;
 
         // TODO: trigger lightning
-        
+
         if (player != null) {
-            
+
             Context ctx = new Context(player);
-            
+
             // player cost
             double cost = fromGateLocal.getSendCost(toGate);
             if (toGate != null)
@@ -748,29 +752,29 @@ public final class Reservation {
                     Utils.warning("unable to debit travel costs for %s: %s", getTraveler(), e.getMessage());
                 }
         }
-        
+
     }
-            
+
     private void completeLocalArrivalGate() {
         if (toGateLocal == null) return;
 
         // TODO: trigger lightning
-        
+
         if (player != null) {
-            
+
             Context ctx = new Context(player);
-            
-            ctx.sendLog(ChatColor.GOLD + "teleported to '%s'", toGateLocal.getName(ctx));
-            
+
+            ctx.send(ChatColor.GOLD + "teleported to '%s'", toGateLocal.getName(ctx));
+
             // player PIN
             if (toGateLocal.getRequirePin() &&
                 (! toGateLocal.hasPin(playerPin)) &&
                 (! toGateLocal.getRequireValidPin()) &&
                 (toGateLocal.getInvalidPinDamage() > 0)) {
-                ctx.sendLog("invalid pin");
+                ctx.send("invalid pin");
                 player.damage(toGateLocal.getInvalidPinDamage());
             }
-            
+
             // player cost
             if (fromServer != null) {
                 // only deduct this side since the departure side already deducted itself
@@ -784,8 +788,8 @@ public final class Reservation {
                         Utils.warning("unable to debit travel costs for %s: %s", getTraveler(), e.getMessage());
                     }
             }
-        } else {
-            Utils.info("teleported %s to '%s'", getTraveler(), toGateLocal.getFullName());
+//        } else {
+//            Utils.debug("%s arrived at '%s'", getTraveler(), toGateLocal.getFullName());
         }
 
         // filter inventory
@@ -793,12 +797,12 @@ public final class Reservation {
         boolean armorFiltered = toGateLocal.filterInventory(armor);
         if (invFiltered || armorFiltered) {
             if (player == null)
-                Utils.info("some inventory items where filtered by the remote gate");
+                Utils.debug("some inventory items where filtered by the remote gate");
             else
-                (new Context(player)).sendLog("some inventory items where filtered by the remote gate");
+                (new Context(player)).send("some inventory items where filtered by the remote gate");
         }
     }
-    
+
     private void prepareDestination() {
         if (toGateLocal != null) {
             GateBlock block = toGateLocal.getSpawnBlocks().randomBlock();
@@ -808,21 +812,46 @@ public final class Reservation {
             toLocation.setPitch(fromLocation.getPitch());
             toVelocity = fromVelocity.clone();
             Utils.rotate(toVelocity, fromGateDirection, toGateLocal.getDirection());
-            Utils.prepareChunk(toLocation);
-            return;
+        } else {
+            if (toLocation == null) {
+                if (toWorld == null)
+                    toWorld = Global.plugin.getServer().getWorlds().get(0);
+                toLocation = toWorld.getSpawnLocation();
+            } else if (toLocation.getWorld() == null)
+                toLocation.setWorld(Global.plugin.getServer().getWorlds().get(0));
+            toLocation.setYaw(fromLocation.getYaw());
+            toLocation.setPitch(fromLocation.getPitch());
+            toVelocity = fromVelocity.clone();
         }
-        if (toLocation == null) {
-            if (toWorld == null)
-                toWorld = Global.plugin.getServer().getWorlds().get(0);
-            toLocation = toWorld.getSpawnLocation();
-        } else if (toLocation.getWorld() == null)
-            toLocation.setWorld(Global.plugin.getServer().getWorlds().get(0));
-        toLocation.setYaw(fromLocation.getYaw());
-        toLocation.setPitch(fromLocation.getPitch());
-        toVelocity = fromVelocity.clone();
         Utils.prepareChunk(toLocation);
+
+        // tweak velocity so we don't get buried in a block
+        Location nextLocation = toLocation.clone().add(toVelocity.getX(), toVelocity.getY(), toVelocity.getZ());
+        Utils.prepareChunk(nextLocation);
+        switch (nextLocation.getBlock().getType()) {
+            // there are probably others
+            case AIR:
+            case WATER:
+            case STATIONARY_WATER:
+            case LAVA:
+            case STATIONARY_LAVA:
+            case WEB:
+            case TORCH:
+            case REDSTONE_TORCH_OFF:
+            case REDSTONE_TORCH_ON:
+            case SIGN_POST:
+            case RAILS:
+                break;
+            default:
+                Utils.debug("zeroing velocity to avoid block");
+                toVelocity.zero();
+                break;
+        }
+
+        Utils.debug("destination location: %s", toLocation);
+        Utils.debug("destination velocity: %s", toVelocity);
     }
-    
+
     private void prepareTraveler() throws ReservationException {
         if ((player == null) && (playerName != null)) {
             player = Global.plugin.getServer().getPlayer(playerName);
@@ -856,11 +885,13 @@ public final class Reservation {
                     throw new ReservationException("unknown entity type '%s'", entityType);
             }
         }
+        if (player != null) {
+            player.setHealth(health);
+            player.setRemainingAir(remainingAir);
+        }
         switch (entityType) {
             case PLAYER:
-                player.setHealth(health);
                 player.setFireTicks(fireTicks);
-                player.setRemainingAir(remainingAir);
                 player.setVelocity(toVelocity);
                 if (inventory != null) {
                     PlayerInventory inv = player.getInventory();
@@ -877,17 +908,17 @@ public final class Reservation {
                 }
                 break;
             case MINECART:
-                player.setFireTicks(fireTicks);
+                entity.setFireTicks(fireTicks);
                 entity.setVelocity(toVelocity);
-                if (player != null)
+                if ((player != null) && (entity.getPassenger() != player))
                     entity.setPassenger(player);
                 break;
             case POWERED_MINECART:
-                player.setFireTicks(fireTicks);
+                entity.setFireTicks(fireTicks);
                 entity.setVelocity(toVelocity);
                 break;
             case STORAGE_MINECART:
-                player.setFireTicks(fireTicks);
+                entity.setFireTicks(fireTicks);
                 entity.setVelocity(toVelocity);
                 if (inventory != null) {
                     StorageMinecart mc = (StorageMinecart)entity;
@@ -897,23 +928,23 @@ public final class Reservation {
                 }
                 break;
             case BOAT:
-                player.setFireTicks(fireTicks);
+                entity.setFireTicks(fireTicks);
                 entity.setVelocity(toVelocity);
-                if (player != null)
+                if ((player != null) && (entity.getPassenger() != player))
                     entity.setPassenger(player);
                 break;
         }
     }
-    
+
     private void rollbackTraveler() {
         if (createdEntity)
             entity.remove();
     }
-    
+
     private void commitTraveler() {
         // TODO: something?
     }
-    
+
     public String getTraveler() {
         if (entityType == EntityType.PLAYER)
             return String.format("player '%s'", playerName);
@@ -921,7 +952,7 @@ public final class Reservation {
             return entityType.toString();
         return String.format("player '%s' as a passenger on a %s", playerName, entityType);
     }
-    
+
     public String getDestination() {
         if (toGateName != null)
             return "'" + toGateName + "'";
@@ -936,7 +967,7 @@ public final class Reservation {
             dst += String.format(" @ %s,%s,%s", toLocation.getBlockX(), toLocation.getBlockY(), toLocation.getBlockZ());
         return dst;
     }
-    
+
     private enum EntityType {
         PLAYER,
         MINECART,
@@ -944,5 +975,5 @@ public final class Reservation {
         STORAGE_MINECART,
         BOAT
     }
-    
+
 }

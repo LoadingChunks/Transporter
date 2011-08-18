@@ -27,6 +27,7 @@ import org.bennedum.transporter.Permissions;
 import org.bennedum.transporter.TransporterException;
 import org.bennedum.transporter.Utils;
 import org.bukkit.command.Command;
+import org.bukkit.entity.Player;
 
 /**
  *
@@ -49,6 +50,7 @@ public class DebugCommand extends TrpCommandProcessor {
         List<String> cmds = new ArrayList<String>();
         cmds.add(getPrefix(ctx) + GROUP + "true|false");
         cmds.add(getPrefix(ctx) + GROUP + "submit <player>");
+        cmds.add(getPrefix(ctx) + GROUP + "dump player [<player>]");
         cmds.add(getPrefix(ctx) + GROUP + "dump gate <name>");
         cmds.add(getPrefix(ctx) + GROUP + "dump design <name>");
         return cmds;
@@ -84,6 +86,22 @@ public class DebugCommand extends TrpCommandProcessor {
             if (args.isEmpty())
                 throw new CommandException("dump what?");
             String what = args.remove(0).toLowerCase();
+
+            if ("player".startsWith(what)) {
+                Permissions.require(ctx.getPlayer(), "trp.debug.dump.player");
+                Player p = ctx.getPlayer();
+                if (! args.isEmpty()) {
+                    String pname = args.remove(0);
+                    p = Global.plugin.getServer().getPlayer(pname);
+                    if (p == null)
+                        throw new CommandException("unknown player '%s'", pname);
+                }
+                if (p == null)
+                    throw new CommandException("player name required");
+                ctx.send("location: %s", p.getLocation());
+                ctx.send("velocity: %s", p.getVelocity());
+                return;
+            }
 
             if ("gate".startsWith(what)) {
                 Permissions.require(ctx.getPlayer(), "trp.debug.dump.gate");

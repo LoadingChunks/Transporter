@@ -530,6 +530,8 @@ public class Design {
     // The location must contain a sign block that matches one the design's screens.
     public LocalGate create(Location location, String gateName, String playerName) throws GateException {
 
+        Utils.debug("checking design '%s'", name);
+
         // must be in a buildable world
         World world = location.getWorld();
         String worldName = world.getName();
@@ -540,6 +542,7 @@ public class Design {
                 break;
             }
         if (! matched) return null;
+        Utils.debug("world is OK");
 
         Block targetBlock = location.getBlock();
         location = null;
@@ -570,6 +573,7 @@ public class Design {
                 default:
                     continue;
             }
+            Utils.debug("matched a screen");
 
             gateBlocks = generateGateBlocks(location, direction);
 
@@ -583,9 +587,14 @@ public class Design {
                 }
             }
             if (matched) break;
+            Utils.debug("blocks don't match");
         }
 
-        if (! matched) return null;
+        if (! matched) {
+            Utils.debug("didn't match design");
+            return null;
+        }
+        Utils.debug("matched design!");
 
         // create the gate
         LocalGate gate = new LocalGate(world, gateName, playerName, this, gateBlocks, direction);
