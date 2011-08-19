@@ -64,13 +64,13 @@ public final class Server {
         OPTIONS.add("sendAllChat");
         OPTIONS.add("receiveAllChat");
     }
-    
+
     public static boolean isValidName(String name) {
         if ((name.length() == 0) || (name.length() > 15)) return false;
         return ! (name.contains(".") || name.contains("*"));
     }
 
-    
+
     private String name;
     private String pluginAddress;   // can be IP/DNS name, with opt port
     private String key;
@@ -88,7 +88,7 @@ public final class Server {
     // The default value is "*".
     private String publicAddress = null;
     private String normalizedPublicAddress = null;
-    
+
     // The address of our MC server host.
     // This address is given to the plugin on the other end of the connection if global setting sendPrivateAddress is true (the default).
     // This is an address/port.
@@ -98,13 +98,13 @@ public final class Server {
     // The default value is "*".
     private String privateAddress = null;
     private InetSocketAddress normalizedPrivateAddress = null;
-    
+
     // Should all chat messages on the local server be sent to the remote server?
     private boolean sendAllChat = false;
-    
+
     // Should all chat messages received from the remote server be echoed to local users?
     private boolean receiveAllChat = false;
-    
+
     private Connection connection = null;
     private boolean allowReconnect = true;
     private int reconnectTask = -1;
@@ -114,7 +114,7 @@ public final class Server {
     private String remotePublicAddress = null;
     private String remotePrivateAddress = null;
     private String remoteCluster = null;
-    
+
     public Server(String name, String plgAddr, String key) throws ServerException {
         try {
             setName(name);
@@ -130,7 +130,7 @@ public final class Server {
         // v6.10 to v6.11
         if (node.getString("minecraftAddress") != null)
             node.removeProperty("minecraftAddress");
-        
+
         try {
             setName(node.getString("name"));
             setPluginAddress(node.getString("pluginAddress"));
@@ -156,7 +156,7 @@ public final class Server {
             throw new ServerException("name is not valid");
         this.name = name;
     }
-    
+
     public String getPluginAddress() {
         return pluginAddress;
     }
@@ -171,7 +171,7 @@ public final class Server {
         }
         pluginAddress = addr;
     }
-    
+
     public String getKey() {
         return key;
     }
@@ -195,7 +195,7 @@ public final class Server {
     }
 
     /* Begin options */
-    
+
     public String getPublicAddress() {
         return publicAddress;
     }
@@ -214,11 +214,11 @@ public final class Server {
     public String getNormalizedPublicAddress() {
         return normalizedPublicAddress;
     }
-    
+
     public String getPrivateAddress() {
         return privateAddress;
     }
-    
+
     public void setPrivateAddress(String address) {
         if (address == null)
             throw new IllegalArgumentException("privateAddress is required");
@@ -229,23 +229,23 @@ public final class Server {
         }
         privateAddress = address;
     }
-    
+
     public InetSocketAddress getNormalizedPrivateAddress() {
         return normalizedPrivateAddress;
     }
-    
+
     public boolean getSendAllChat() {
         return sendAllChat;
     }
-    
+
     public void setSendAllChat(boolean b) {
         sendAllChat = b;
     }
-    
+
     public boolean getReceiveAllChat() {
         return receiveAllChat;
     }
-    
+
     public void setReceiveAllChat(boolean b) {
         receiveAllChat = b;
     }
@@ -321,12 +321,12 @@ public final class Server {
             throw new ServerException("unable to read the option");
         }
     }
-    
+
     /* End options */
-    
+
     public String getReconnectAddressForClient(InetSocketAddress clientAddress) {
         String clientAddrStr = clientAddress.getAddress().getHostAddress();
-        
+
         if (Global.config.getBoolean("usePrivateAddress", true) && (remotePrivateAddress != null)) {
             InetSocketAddress remoteAddr = (InetSocketAddress)connection.getChannel().socket().getRemoteSocketAddress();
             if (remoteAddr != null) {
@@ -336,12 +336,12 @@ public final class Server {
                 }
             }
         }
-        
+
         if (remotePublicAddressMap == null) {
             String[] parts = pluginAddress.split(":");
             return parts[0] + ":" + DEFAULT_MC_PORT;
         }
-        
+
         for (String address : remotePublicAddressMap.keySet()) {
             Set<Pattern> patterns = remotePublicAddressMap.get(address);
             for (Pattern pattern : patterns)
@@ -350,7 +350,7 @@ public final class Server {
         }
         return null;
     }
-    
+
     public void setConnection(Connection conn) {
         connection = conn;
     }
@@ -366,7 +366,7 @@ public final class Server {
     public String getRemoteCluster() {
         return remoteCluster;
     }
-    
+
     public Map<String,Object> encode() {
         Map<String,Object> node = new HashMap<String,Object>();
         node.put("name", name);
@@ -554,7 +554,7 @@ public final class Server {
         message.put("reservation", res.encode());
         sendMessage(message);
     }
-    
+
     public void doReservationApproved(long id) throws ServerException {
         if (! isConnected())
             throw new ServerException("server '%s' is offline", name);
@@ -562,7 +562,7 @@ public final class Server {
         message.put("id", id);
         sendMessage(message);
     }
-    
+
     public void doReservationDenied(long id, String reason) throws ServerException {
         if (! isConnected())
             throw new ServerException("server '%s' is offline", name);
@@ -571,7 +571,7 @@ public final class Server {
         message.put("reason", reason);
         sendMessage(message);
     }
-    
+
     public void doReservationArrived(long id) throws ServerException {
         if (! isConnected())
             throw new ServerException("server '%s' is offline", name);
@@ -603,7 +603,7 @@ public final class Server {
         }
         sendMessage(message);
     }
-    
+
 
 
 
@@ -675,14 +675,19 @@ public final class Server {
                 handleReservationArrived(message);
             else if (command.equals("reservationTimeout"))
                 handleReservationTimeout(message);
-                    
+
             else if (command.equals("relayChat"))
                 handleRelayChat(message);
 
             else
                 throw new ServerException("unknown command");
+        } catch (TransporterException te) {
+            Utils.warning("while processing command '%s' from '%s': %s", command, getName(), te.getMessage());
+            response = new Message();
+            response.put("success", false);
+            response.put("error", te.getMessage());
         } catch (Throwable t) {
-            Utils.warning("while processing command '%s' from '%s': %s", command, getName(), t.getMessage());
+            Utils.severe(t, "while processing command '%s' from '%s':", command, getName());
             response = new Message();
             response.put("success", false);
             response.put("error", t.getMessage());
@@ -710,14 +715,14 @@ public final class Server {
 
         out.put("publicAddress", normalizedPublicAddress);
         out.put("cluster", Global.network.getClusterName());
-        
+
         // NAT stuff
         if (Global.config.getBoolean("sendPrivateAddress", true) &&
             (! privateAddress.equals("-")))
             out.put("privateAddress",
                     normalizedPrivateAddress.getAddress().getHostAddress() + ":" +
                     normalizedPrivateAddress.getPort());
-        
+
         // gate list
         List<Message> gates = new ArrayList<Message>();
         for (LocalGate gate : Gates.getLocalGates()) {
@@ -728,8 +733,8 @@ public final class Server {
             gates.add(m);
         }
         out.put("gates", gates);
-        
-        
+
+
         return out;
     }
 
@@ -742,11 +747,11 @@ public final class Server {
             throw new ServerException(e.getMessage());
         }
         Utils.debug("received publicAddress '%s' from '%s'", remotePublicAddress, name);
-        
+
         // NAT stuff
         remotePrivateAddress = message.getString("privateAddress");
         Utils.debug("received privateAddress '%s' from '%s'", remotePrivateAddress, name);
-        
+
         // gate list
         Collection<Message> gates = message.getMessageList("gates");
         if (gates != null) {
@@ -864,7 +869,7 @@ public final class Server {
             throw new ServerException("invalid reservation: %s", e.getMessage());
         }
     }
-    
+
     private void handleReservationApproved(Message message) throws ServerException {
         long id = message.getLong("id");
         Reservation res = Reservation.get(id);
@@ -872,7 +877,7 @@ public final class Server {
             throw new ServerException("unknown reservation id %s", id);
         res.approved();
     }
-    
+
     private void handleReservationDenied(Message message) throws ServerException {
         long id = message.getLong("id");
         Reservation res = Reservation.get(id);
@@ -883,7 +888,7 @@ public final class Server {
             throw new ServerException("missing reason");
         res.denied(reason);
     }
-    
+
     private void handleReservationArrived(Message message) throws ServerException {
         long id = message.getLong("id");
         Reservation res = Reservation.get(id);
@@ -899,7 +904,7 @@ public final class Server {
             throw new ServerException("unknown reservation id %s", id);
         res.timeout();
     }
-            
+
     private void handleRelayChat(Message message) throws ServerException {
         String player = message.getString("player");
         if (player == null)
@@ -955,7 +960,7 @@ public final class Server {
                 throw new IllegalArgumentException("invalid port " + parts[1]);
             }
         }
-        
+
         if (address.equals("*")) {
             address = Global.plugin.getServer().getIp();
             if (parts.length == 1) port = Global.plugin.getServer().getPort();
@@ -975,17 +980,17 @@ public final class Server {
                 InetAddress a = Network.getInterfaceAddress(iface);
                 if (a == null)
                     throw new IllegalArgumentException("unable to get local interface address for interface " + address);
-                address = a.getHostAddress();    
+                address = a.getHostAddress();
             } catch (SocketException e) {
                 // assume address is a DNS name or IP address
             }
         }
         normalizedPrivateAddress = new InetSocketAddress(address, port);
     }
-    
+
     private void normalizePublicAddress(String addrStr) {
         StringBuilder sb = new StringBuilder();
-        
+
         String patternMaps[] = addrStr.split("\\s+");
         for (String patternMap : patternMaps) {
             String items[] = patternMap.split("/");
@@ -997,7 +1002,7 @@ public final class Server {
                         throw new IllegalArgumentException("invalid pattern: " + items[i]);
                     }
                 }
-            
+
             String[] parts = items[0].split(":");
             String address = parts[0];
             int port = Global.plugin.getServer().getPort();
@@ -1016,7 +1021,7 @@ public final class Server {
                     InetAddress a = Network.getInterfaceAddress(iface);
                     if (a == null)
                         throw new IllegalArgumentException("unable to get local interface address for interface " + address);
-                    address = a.getHostAddress();    
+                    address = a.getHostAddress();
                 } catch (SocketException e) {
                     // assume address is a DNS name or IP address
                 }
@@ -1028,18 +1033,18 @@ public final class Server {
                     sb.append("/").append(items[i]);
             sb.append(" ");
         }
-     
+
         normalizedPublicAddress = sb.toString().trim();
     }
-    
+
     // called on the receiving side to expand the address given by the sending side
     private void expandPublicAddress(String addrStr) {
         if (addrStr == null)
             throw new IllegalArgumentException("publicAddress is required");
-        
+
         remotePublicAddressMap = new HashMap<String,Set<Pattern>>();
         StringBuilder sb = new StringBuilder();
-        
+
         String patternMaps[] = addrStr.split("\\s+");
         for (String patternMap : patternMaps) {
             Set<Pattern> patterns = new HashSet<Pattern>();
@@ -1054,7 +1059,7 @@ public final class Server {
                         throw new IllegalArgumentException("invalid pattern: " + items[i]);
                     }
                 }
-            
+
             String[] parts = items[0].split(":");
             String address = parts[0];
             int port = DEFAULT_MC_PORT;
@@ -1069,7 +1074,7 @@ public final class Server {
             }
             if (address.equals("*"))
                 address = pluginAddress.split(":")[0];
-            
+
             remotePublicAddressMap.put(address + ":" + port, patterns);
             sb.append(address).append(":").append(port);
             if (items.length > 1)
@@ -1079,8 +1084,8 @@ public final class Server {
         }
         remotePublicAddress = sb.toString().trim();
     }
-    
-    
+
+
     @Override
     public String toString() {
         StringBuilder buf = new StringBuilder("Server[");

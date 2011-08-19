@@ -97,12 +97,12 @@ public final class Connection {
     public long getLastMessageSentTime() {
         return lastMessageSentTime;
     }
-    
+
     public long getLastMessageReceivedTime() {
         return lastMessageReceivedTime;
     }
-    
-    
+
+
     @Override
     public String toString() {
         return getName();
@@ -138,7 +138,7 @@ public final class Connection {
         Message message = new Message();
         message.put("protocolVersion", PROTOCOL_VERSION);
         message.put("pluginVersion", Global.pluginVersion);
-        
+
         try {
             MessageDigest dig = MessageDigest.getInstance("SHA1");
             Formatter f = new Formatter();
@@ -245,9 +245,12 @@ public final class Connection {
     }
 
     public void onClosed() {
-        if (server != null)
+        if (server != null) {
+    Utils.debug("state is %s", state);
+            if (state == State.HANDSHAKE)
+                Utils.warning("connection with %s was unexpectedly closed", getName());
             server.onDisconnected();
-        else
+        } else
             Utils.info("closed connection with %s", getName());
     }
 
@@ -312,6 +315,15 @@ public final class Connection {
     private void onMessage(Message message) {
         lastMessageReceivedTime = System.currentTimeMillis();
         if (state == State.HANDSHAKE) {
+            state = State.HANDSHAKING;
+
+            String error = message.getString("error");
+            if (error != null) {
+                Utils.warning("received handshake error with '%s': %s", getName(), error);
+                close();
+                return;
+            }
+
             // handle handshake message
             if (! message.containsKey("protocolVersion")) {
                 Utils.warning("expected protocolVersion on connection with '%s'", getName());
@@ -330,7 +342,7 @@ public final class Connection {
                 close();
                 return;
             }
-            
+
             if (incoming) {
                 // compare hashed keys with all the available servers to determine which server is connecting
                 String key = message.getString("key");
@@ -357,13 +369,13 @@ public final class Connection {
                                 server = serv;
                                 server.setConnection(this);
                                 state = State.ESTABLISHED;
-                                
+
                                 // send handshake
                                 message = new Message();
                                 message.put("protocolVersion", PROTOCOL_VERSION);
                                 message.put("pluginVersion", Global.pluginVersion);
                                 sendMessage(message, false);
-                                
+
                                 server.onConnected(version);
                                 return;
                             } else {
@@ -389,7 +401,7 @@ public final class Connection {
                 server.onConnected(version);
                 return;
             }
-            
+
         } else if (state == State.ESTABLISHED) {
             // sanity check
             if (server.getConnection() != this) {
@@ -415,6 +427,7 @@ public final class Connection {
     private enum State {
         NONE,
         HANDSHAKE,
+        HANDSHAKING,
         ESTABLISHED,
         CLOSED;
     }

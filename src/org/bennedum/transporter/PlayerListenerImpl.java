@@ -117,12 +117,16 @@ public final class PlayerListenerImpl extends PlayerListener {
 
     @Override
     public void onPlayerJoin(PlayerJoinEvent event) {
-        Reservation r = Reservation.get(event.getPlayer());
-        if (r == null) return;
+        Player player = event.getPlayer();
+        Reservation r = Reservation.get(player);
+        if (r == null) {
+            Reservation.addGateLock(player);
+            return;
+        }
         try {
             r.arrive();
         } catch (ReservationException e) {
-            Context ctx = new Context(event.getPlayer());
+            Context ctx = new Context(player);
             ctx.warnLog("there was a problem processing your arrival: ", e.getMessage());
         }
     }

@@ -178,36 +178,42 @@ public final class Reservation {
 
     // player stepping into gate
     public Reservation(Player player, LocalGate fromGate) throws ReservationException {
+        addGateLock(player);
         extractPlayer(player);
         extractFromGate(fromGate);
     }
 
     // vehicle moving into gate
     public Reservation(Vehicle vehicle, LocalGate fromGate) throws ReservationException {
+        addGateLock(vehicle);
         extractVehicle(vehicle);
         extractFromGate(fromGate);
     }
 
     // player direct to gate
     public Reservation(Player player, Gate toGate) throws ReservationException {
+        addGateLock(player);
         extractPlayer(player);
         extractToGate(toGate);
     }
 
     // player direct to location on this server
     public Reservation(Player player, Location location) throws ReservationException {
+        addGateLock(player);
         extractPlayer(player);
         toLocation = location;
     }
 
     // player direct to remote server, default world, spawn location
     public Reservation(Player player, Server server) throws ReservationException {
+        addGateLock(player);
         extractPlayer(player);
         toServer = server;
     }
 
     // player direct to remote server, specified world, spawn location
     public Reservation(Player player, Server server, String worldName) throws ReservationException {
+        addGateLock(player);
         extractPlayer(player);
         toServer = server;
         toWorldName = worldName;
@@ -215,6 +221,7 @@ public final class Reservation {
 
     // player direct to remote server, specified world, specified location
     public Reservation(Player player, Server server, String worldName, double x, double y, double z) throws ReservationException {
+        addGateLock(player);
         extractPlayer(player);
         toServer = server;
         toWorldName = worldName;
@@ -262,11 +269,12 @@ public final class Reservation {
 
         fromGateName = in.getString("fromGate");
         if (fromGateName != null) {
+            fromGateName = server.getName() + "." + fromGateName;
             fromGate = Gates.get(fromGateName);
             if (fromGate == null)
                 throw new ReservationException("unknown fromGate '%s'", fromGateName);
             if (fromGate.isSameServer())
-                throw new ReservationException("toGate '%s' is not a remote gate", fromGateName);
+                throw new ReservationException("fromGate '%s' is not a remote gate", fromGateName);
             try {
                 fromGateDirection = BlockFace.valueOf(in.getString("fromGateDirection"));
             } catch (IllegalArgumentException e) {
@@ -276,6 +284,7 @@ public final class Reservation {
 
         toGateName = in.getString("toGate");
         if (toGateName != null) {
+            toGateName = toGateName.substring(toGateName.indexOf(".") + 1);
             toGate = Gates.get(toGateName);
             if (toGate == null)
                 throw new ReservationException("unknown toGate '%s'", toGateName);
@@ -444,27 +453,33 @@ public final class Reservation {
     // called to handle departure on the sending side
     public void depart() throws ReservationException {
         put(this);
-        addGateLock(entity);
-        addGateLock(player);
+        try {
+            addGateLock(entity);
+            if (entity != player)
+                addGateLock(player);
 
-        checkLocalDepartureGate();
+            checkLocalDepartureGate();
 
-        if (toServer == null) {
-            // staying on this server
-            checkLocalArrivalGate();
-            arrive();
-            completeLocalDepartureGate();
+            if (toServer == null) {
+                // staying on this server
+                checkLocalArrivalGate();
+                arrive();
+                completeLocalDepartureGate();
 
-        } else {
-            // going to remote server
-            try {
-                Utils.debug("sending reservation for %s to %s...", getTraveler(), getDestination());
-                toServer.doSendReservation(this);
-            } catch (ServerException e) {
-                Utils.severe(e, "reservation send for %s to %s failed:", getTraveler(), getDestination());
-                remove(this);
-                throw new ReservationException("teleport %s to %s failed", getTraveler(), getDestination());
+            } else {
+                // going to remote server
+                try {
+                    Utils.debug("sending reservation for %s to %s...", getTraveler(), getDestination());
+                    toServer.doSendReservation(this);
+                } catch (ServerException e) {
+                    Utils.severe(e, "reservation send for %s to %s failed:", getTraveler(), getDestination());
+                    remove(this);
+                    throw new ReservationException("teleport %s to %s failed", getTraveler(), getDestination());
+                }
             }
+        } catch (ReservationException e) {
+            remove(this);
+            throw e;
         }
     }
 
@@ -543,7 +558,8 @@ public final class Reservation {
         prepareDestination();
         prepareTraveler();
         addGateLock(entity);
-        addGateLock(player);
+        if (entity != player)
+            addGateLock(player);
         if ((player != null) && (playerPin != null))
             setPin(player, playerPin);
         if (! entity.teleport(toLocation)) {
@@ -797,9 +813,9 @@ public final class Reservation {
         boolean armorFiltered = toGateLocal.filterInventory(armor);
         if (invFiltered || armorFiltered) {
             if (player == null)
-                Utils.debug("some inventory items where filtered by the remote gate");
+                Utils.debug("some inventory items where filtered by the arrival gate");
             else
-                (new Context(player)).send("some inventory items where filtered by the remote gate");
+                (new Context(player)).send("some inventory items where filtered by the arrival gate");
         }
     }
 
@@ -843,6 +859,7 @@ public final class Reservation {
             case RAILS:
                 break;
             default:
+                // should we try to zero just each ordinate and test again?
                 Utils.debug("zeroing velocity to avoid block");
                 toVelocity.zero();
                 break;
