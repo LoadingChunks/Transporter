@@ -25,14 +25,13 @@ import org.bennedum.transporter.command.DesignCommand;
 import org.bennedum.transporter.command.GateCommand;
 import org.bennedum.transporter.command.GoCommand;
 import org.bennedum.transporter.command.HelpCommand;
+import org.bennedum.transporter.command.NetworkCommand;
 import org.bennedum.transporter.command.PinCommand;
 import org.bennedum.transporter.command.ReloadCommand;
 import org.bennedum.transporter.command.SaveCommand;
 import org.bennedum.transporter.command.ServerCommand;
 import org.bennedum.transporter.command.WorldCommand;
-import org.bennedum.transporter.net.Network;
 import org.bukkit.entity.Player;
-import org.bukkit.util.config.Configuration;
 
 /**
  *
@@ -40,13 +39,17 @@ import org.bukkit.util.config.Configuration;
  */
 public final class Global {
 
+    public static final int DEFAULT_PLUGIN_PORT = 25555;
+    public static final int DEFAULT_MC_PORT = 25565;
+    
     public static Thread mainThread = null;
     public static boolean enabled = false;
     public static Transporter plugin = null;
     public static String pluginName;
     public static String pluginVersion;
-    public static Configuration config;
-    public static Network network = null;
+    // TODO: remove
+    //public static Configuration config;
+    //public static Network network = null;
 
     public static final List<CommandProcessor> commands = new ArrayList<CommandProcessor>();
 
@@ -62,6 +65,7 @@ public final class Global {
         commands.add(new DesignCommand());
         commands.add(new GateCommand());
         commands.add(new ServerCommand());
+        commands.add(new NetworkCommand());
         commands.add(new WorldCommand());
 
         commands.add(new DebugCommand());

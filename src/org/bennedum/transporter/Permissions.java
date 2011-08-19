@@ -54,7 +54,7 @@ public final class Permissions {
     private static PermissionManager permissionsExPlugin = null;
 
     public static boolean permissionsAvailable() {
-        if (! Global.config.getBoolean("usePermissions", false)) return false;
+        if (! Config.getBoolean("usePermissions", false)) return false;
         if (permissionsPlugin != null) return true;
         Plugin p = Global.plugin.getServer().getPluginManager().getPlugin("Permissions");
         if ((p == null) || (! p.isEnabled())) return false;

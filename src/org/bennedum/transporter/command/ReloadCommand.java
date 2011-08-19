@@ -17,13 +17,12 @@ package org.bennedum.transporter.command;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.bennedum.transporter.Config;
 import org.bennedum.transporter.Context;
 import org.bennedum.transporter.Designs;
 import org.bennedum.transporter.Gates;
 import org.bennedum.transporter.Permissions;
-import org.bennedum.transporter.Servers;
 import org.bennedum.transporter.TransporterException;
-import org.bennedum.transporter.Utils;
 import org.bukkit.command.Command;
 
 /**
@@ -71,13 +70,12 @@ public class ReloadCommand extends TrpCommandProcessor {
             }
         }
         for (String arg : what) {
-            if (arg.equals("config")) {
-                Utils.loadConfig(ctx);
-                Servers.loadAll(ctx);
-            } else if (arg.equals("designs"))
-                Designs.loadAll(ctx);
+            if (arg.equals("config"))
+                Config.load(ctx);
+            else if (arg.equals("designs"))
+                Designs.load(ctx);
             else if (arg.equals("gates"))
-                Gates.loadAll(ctx);
+                Gates.load(ctx);
         }
     }
 

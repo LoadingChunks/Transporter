@@ -58,7 +58,7 @@ public final class Gates {
     //private Set<String> teleportingPlayers = new HashSet<String>();
 
 
-    public static void loadAll(Context ctx) {
+    public static void load(Context ctx) {
         for (String name : new ArrayList<String>(gates.keySet()))
             if (gates.get(name).isSameServer())
                 gates.remove(name);
@@ -68,6 +68,8 @@ public final class Gates {
             loadGatesForWorld(ctx, world);
         }
 
+        // TODO: review and change in lieu of the new Worlds class and the global autoLoadWorlds setting
+        
         // check all loaded, local gate links for non-loaded worlds and load them and their gates
         for (;;) {
             List<String> newWorlds = new ArrayList<String>();
@@ -94,7 +96,7 @@ public final class Gates {
     }
 
     public static void loadGatesForWorld(Context ctx, World world) {
-        File worldFolder = Utils.worldPluginFolder(world);
+        File worldFolder = Worlds.worldPluginFolder(world);
         File gatesFolder = new File(worldFolder, "gates");
         if (! gatesFolder.exists()) return;
         for (File gateFile : Utils.listYAMLFiles(gatesFolder)) {
@@ -128,7 +130,7 @@ public final class Gates {
     }
 
     public static void exportJSON() {
-        String fileName = Global.config.getString("exportedGatesFile");
+        String fileName = Config.getString("exportedGatesFile");
         if (fileName == null) return;
         File file = new File(fileName);
         if (! file.isAbsolute())

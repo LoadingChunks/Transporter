@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import org.bennedum.transporter.Config;
 import org.bennedum.transporter.Context;
 import org.bennedum.transporter.Design;
 import org.bennedum.transporter.Designs;
@@ -85,7 +86,7 @@ public class DesignCommand extends TrpCommandProcessor {
             if (! ctx.isPlayer())
                 throw new CommandException("this command can only be used by a player");
             
-            if (! Global.config.getBoolean("allowBuild", true))
+            if (! Config.getAllowBuild())
                 throw new CommandException("building gates is not permitted");
 
             if (args.isEmpty())

@@ -17,12 +17,12 @@ package org.bennedum.transporter.command;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.bennedum.transporter.Config;
 import org.bennedum.transporter.Context;
 import org.bennedum.transporter.Gate;
 import org.bennedum.transporter.Design;
 import org.bennedum.transporter.Designs;
 import org.bennedum.transporter.Gates;
-import org.bennedum.transporter.Global;
 import org.bennedum.transporter.Permissions;
 import org.bennedum.transporter.TransporterException;
 import org.bennedum.transporter.Utils;
@@ -129,8 +129,8 @@ public class DebugCommand extends TrpCommandProcessor {
             throw new CommandException("dump what?");
         }
 
-        Global.config.setProperty("debug", Boolean.parseBoolean(subCmd));
-        ctx.send("debug set to %s", Global.config.getBoolean("debug", false));
+        Config.setDebug(Boolean.parseBoolean(subCmd));
+        ctx.send("debug set to %s", Config.getDebug());
     }
 
 }

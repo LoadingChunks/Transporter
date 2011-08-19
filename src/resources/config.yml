@@ -1,29 +1,32 @@
 
-listenAddress: 0.0.0.0:25555      # the address and port the plugin listens on
-serverKey: none                   # the key we present to other servers when trying to connect
-bannedAddresses:                  # list if regular expressions to match against addresses we won't accept connections from
-#  - ^10\..*
-#  - ^192\.168\..*
-reconnectInterval: 60000          # time, in millis, to wait between connection attempts
-reconnectSkew: 10000              # time, in millis, to randomly skew the reconnect interval
-arrivalWindow: 20000              # time, in millis, within which a teleporing player must arrive
+configVersion: 2
 
-allowBuild: true
-allowLinkLocal: true
-allowLinkWorld: true
-allowLinkServer: true
+global:
+  allowBuild: true
+  allowLinkLocal: true
+  allowLinkWorld: true
+  allowLinkServer: true
 
-useGatePermissions: false
-exportedGatesFile: dynmap/gates.json
-#exportedGatesFile: overviewer/gates.json
+  useGatePermissions: false
+  exportedGatesFile: dynmap/gates.json
+#  exportedGatesFile: overviewer/gates.json
 
-chatFormat: <%player%@%server%> %message%
+  chatFormat: <%player%@%server%> %message%
 
-sendPrivateAddress: true
-usePrivateAddress: true
+  usePermissions: false
+  useIConomy: false
+  useBOSEconomy: false
 
-usePermissions: false
-usePermissionsEx: false
-useIConomy: false
-useBOSEconomy: false
+
+network:
+  listenAddress: 0.0.0.0:25555      # the address and port the plugin listens on
+  key:                              # the key we present to other servers when trying to connect
+  bannedAddresses:                  # list if regular expressions to match against addresses we won't accept connections from
+#    - ^10\..*
+#    - ^192\.168\..*
+  reconnectInterval: 60000          # time, in millis, to wait between connection attempts
+  reconnectSkew: 10000              # time, in millis, to randomly skew the reconnect interval
+  arrivalWindow: 20000              # time, in millis, within which a teleporing player must arrive
+  sendPrivateAddress: true
+  usePrivateAddress: true
 

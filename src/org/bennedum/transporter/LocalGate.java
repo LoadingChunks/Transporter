@@ -1292,7 +1292,7 @@ public class LocalGate extends Gate {
     }
 
     private void generateFile() {
-        File worldFolder = Utils.worldPluginFolder(world);
+        File worldFolder = Worlds.worldPluginFolder(world);
         File gatesFolder = new File(worldFolder, "gates");
         file = new File(gatesFolder, "gate." + name.hashCode() + ".yml");
     }

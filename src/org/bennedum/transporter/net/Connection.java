@@ -46,7 +46,6 @@ public final class Connection {
     private static final byte ENCRYPTED_FLAG = 0x01;
     private static final int CIPHER_PAD_SIZE = 256;
 
-    private Network network;
     private SocketChannel channel;
     private String name = null;
     private Server server = null;
@@ -63,8 +62,7 @@ public final class Connection {
     private final Map<Integer,Result> requests = new HashMap<Integer,Result>();
 
     // For incoming connections
-    public Connection(Network network, SocketChannel channel) {
-        this.network = network;
+    public Connection(SocketChannel channel) {
         this.channel = channel;
         incoming = true;
     }
@@ -74,9 +72,9 @@ public final class Connection {
         this.server = server;
         this.connectAddress = address;
         try {
-            InetSocketAddress addr = Network.makeInetSocketAddress(address, Network.DEFAULT_PORT, false);
+            InetSocketAddress addr = Network.makeInetSocketAddress(address, "localhost", Global.DEFAULT_PLUGIN_PORT, false);
             name = addr.getAddress().getHostAddress() + ":" + addr.getPort();
-        } catch (NetworkException e) {}
+        } catch (Exception e) {}
     }
 
     public boolean isIncoming() {
@@ -118,8 +116,7 @@ public final class Connection {
         return connectAddress;
     }
 
-    public void onOpening(Network network, SocketChannel channel) {
-        this.network = network;
+    public void onOpening(SocketChannel channel) {
         this.channel = channel;
     }
 
@@ -142,7 +139,7 @@ public final class Connection {
         try {
             MessageDigest dig = MessageDigest.getInstance("SHA1");
             Formatter f = new Formatter();
-            byte[] out = dig.digest((network.getServerKey() + ":" + server.getKey()).getBytes("UTF-8"));
+            byte[] out = dig.digest((Network.getCachedKey() + ":" + server.getKey()).getBytes("UTF-8"));
             for (Byte b : out) f.format("%02x", b);
             message.put("key", f.toString());
             sendMessage(message, false);
@@ -194,7 +191,7 @@ public final class Connection {
                     byte[] messageData = Arrays.copyOfRange(readBuffer, 4, recLen + 4);
                     if ((flags & ENCRYPTED_FLAG) == ENCRYPTED_FLAG) {
                         Cipher cipher = new Cipher(CIPHER_PAD_SIZE);
-                        cipher.initDecrypt(Global.network.getServerKey().getBytes("UTF-8"));
+                        cipher.initDecrypt(Network.getCachedKey().getBytes("UTF-8"));
                         messageData = cipher.doFinal(messageData);
                     }
                     String encoded = new String(messageData, "UTF-8");
@@ -240,7 +237,6 @@ public final class Connection {
     }
 
     public void onKilled() {
-        network = null;
         channel = null;
     }
 
@@ -258,7 +254,7 @@ public final class Connection {
 
     // outbound connection
     public void open() {
-        Global.network.open(this);
+        Network.open(this);
     }
 
     public boolean isOpen() {
@@ -272,8 +268,7 @@ public final class Connection {
     public void close() {
         if (state == State.CLOSED) return;
         state = State.CLOSED;
-        if (network != null)
-            network.close(this);
+        Network.close(this);
     }
 
     public void sendMessage(Message message, boolean encrypt) {
@@ -296,8 +291,7 @@ public final class Connection {
             lastMessageSentTime = System.currentTimeMillis();
         } catch (UnsupportedEncodingException e) {
         }
-        if (network != null)
-            network.wantWrite(this);
+        Network.wantWrite(this);
     }
 
     public Result sendRequest(Message message, boolean encrypt) {
@@ -355,7 +349,7 @@ public final class Connection {
                     try {
                         MessageDigest dig = MessageDigest.getInstance("SHA1");
                         Formatter f = new Formatter();
-                        byte[] out = dig.digest((serv.getKey() + ":" + network.getServerKey()).getBytes("UTF-8"));
+                        byte[] out = dig.digest((serv.getKey() + ":" + Network.getCachedKey()).getBytes("UTF-8"));
                         for (Byte b : out) f.format("%02x", b);
                         if (f.toString().equals(key)) {
                             Utils.info("server key match detected for '%s' on connection with %s", serv.getName(), getName());

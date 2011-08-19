@@ -83,18 +83,10 @@ public class Transporter extends JavaPlugin {
         File dynmapFolder = new File(dataFolder, "dynmap");
         Utils.copyFilesFromJar("/resources/dynmap/manifest", dynmapFolder, true);
 
-        Utils.loadConfig(ctx);
-
-        // Clean out old config options
-
-        Global.config.removeProperty("craftProxy");
-
-        Global.network = new Network();
-        Global.network.start();
-
-        Designs.loadAll(ctx);
-        Gates.loadAll(ctx);
-        Servers.loadAll(ctx);
+        Config.load(ctx);
+        Designs.load(ctx);
+        Gates.load(ctx);
+        Network.start(ctx);
 
         PluginManager pm = getServer().getPluginManager();
 
@@ -120,8 +112,8 @@ public class Transporter extends JavaPlugin {
     public void onDisable() {
         Global.enabled = false;
         Context ctx = new Context();
-        Global.network.stop(ctx);
-        Utils.saveConfig(ctx);
+        Network.stop(ctx);
+        Config.save(ctx);
         Gates.saveAll(ctx);
         ctx.sendLog("disabled");
         Global.plugin = null;

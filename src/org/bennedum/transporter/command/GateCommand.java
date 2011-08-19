@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.regex.PatternSyntaxException;
+import org.bennedum.transporter.Config;
 import org.bennedum.transporter.Context;
 import org.bennedum.transporter.Economy;
 import org.bennedum.transporter.Gate;
@@ -216,11 +217,11 @@ public class GateCommand extends TrpCommandProcessor {
                 if (fromGate.isLinked() && (! fromGate.getMultiLink()))
                     throw new CommandException("gate '%s' cannot accept multiple links", fromGate.getName(ctx));
 
-                if (fromGate.isSameWorld(toGate) && (! Global.config.getBoolean("allowLinkLocal", true)))
+                if (fromGate.isSameWorld(toGate) && (! Config.getAllowLinkLocal()))
                     throw new CommandException("linking to on-world gates is not permitted");
-                else if (toGate.isSameServer() && (! Global.config.getBoolean("allowLinkWorld", true)))
+                else if (toGate.isSameServer() && (! Config.getAllowLinkWorld()))
                     throw new CommandException("linking to off-world gates is not permitted");
-                else if ((! toGate.isSameServer()) && (! Global.config.getBoolean("allowLinkServer", true)))
+                else if ((! toGate.isSameServer()) && (! Config.getAllowLinkServer()))
                     throw new CommandException("linking to remote server gates is not permitted");
 
                 if (fromGate.isSameWorld(toGate))

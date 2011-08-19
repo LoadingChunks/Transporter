@@ -37,7 +37,7 @@ public final class Economy {
     }
     
     public static boolean iconomyAvailable() {
-        if (! Global.config.getBoolean("useIConomy", false)) return false;
+        if (! Config.getBoolean("useIConomy", false)) return false;
         if (iconomyPlugin != null) return true;
         Plugin p = Global.plugin.getServer().getPluginManager().getPlugin("iConomy");
         if ((p == null) || (! p.getClass().getName().equals("com.iConomy.iConomy")) || (! p.isEnabled())) return false;
@@ -46,7 +46,7 @@ public final class Economy {
     }
 
     public static boolean boseconomyAvailable() {
-        if (! Global.config.getBoolean("useBOSEconomy", false)) return false;
+        if (! Config.getBoolean("useBOSEconomy", false)) return false;
         if (boseconomyPlugin != null) return true;
         Plugin p = Global.plugin.getServer().getPluginManager().getPlugin("BOSEconomy");
         if ((p == null) || (! p.isEnabled())) return false;

@@ -535,6 +535,8 @@ public final class Reservation {
                     }
                 }, Global.config.getInt("arrivalWindow", Global.config.getInt("arrivalWindow", DEFAULT_ARRIVAL_WINDOW)));
 
+                }, Config.getInt("arrivalWindow", DEFAULT_ARRIVAL_WINDOW));
+                
             }
 
         } catch (ReservationException e) {

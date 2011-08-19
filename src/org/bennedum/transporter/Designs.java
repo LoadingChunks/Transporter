@@ -30,7 +30,7 @@ public final class Designs {
 
     private static final Map<String,Design> designs = new HashMap<String,Design>();
 
-    public static void loadAll(Context ctx) {
+    public static void load(Context ctx) {
         designs.clear();
         File designsFolder = new File(Global.plugin.getDataFolder(), "designs");
         for (File designFile : Utils.listYAMLFiles(designsFolder)) {

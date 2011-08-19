@@ -19,10 +19,10 @@ package org.bennedum.transporter;
  *
  * @author frdfsnlght <frdfsnlght@gmail.com>
  */
-public final class InventoryException extends TransporterException {
-
-    public InventoryException(String msg, Object ... args) {
+public class WorldException extends TransporterException {
+    
+    public WorldException(String msg, Object ... args) {
         super(String.format(msg, args));
     }
-
+    
 }

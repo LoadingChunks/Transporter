@@ -16,9 +16,6 @@
 package org.bennedum.transporter.net;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -42,8 +39,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import org.bennedum.transporter.Config;
 import org.bennedum.transporter.Context;
 import org.bennedum.transporter.Global;
+import org.bennedum.transporter.Options;
+import org.bennedum.transporter.OptionsException;
+import org.bennedum.transporter.OptionsListener;
+import org.bennedum.transporter.PermissionsException;
 import org.bennedum.transporter.Server;
 import org.bennedum.transporter.Servers;
 import org.bennedum.transporter.Utils;
@@ -52,47 +54,98 @@ import org.bennedum.transporter.Utils;
  *
  * @author frdfsnlght <frdfsnlght@gmail.com>
  */
-public final class Network extends Thread {
+public final class Network {
 
-    private static final int READ_BUFFER_SIZE = 4096;
-    private static final int SELECT_INTERVAL = 30000;
-
-    public static final int DEFAULT_PORT = 25555;
-
-    public static final List<String> OPTIONS = new ArrayList<String>();
+    private static final Set<String> OPTIONS = new HashSet<String>();
+    private static final Set<String> RESTART_OPTIONS = new HashSet<String>();
+    private static final Options options;
 
     static {
-        OPTIONS.add("listenAddress");
-        OPTIONS.add("serverKey");
+        OPTIONS.add("readBufferSize");
+        OPTIONS.add("selectInterval");
+        OPTIONS.add("usePrivateAddress");
+        OPTIONS.add("sendPrivateAddress");
         OPTIONS.add("clusterName");
+        OPTIONS.add("reconnectInterval");
+        OPTIONS.add("reconnectSkew");
+        OPTIONS.add("listenAddress");
+        OPTIONS.add("key");
+        RESTART_OPTIONS.add("readBufferSize");
+        RESTART_OPTIONS.add("selectInterval");
+        RESTART_OPTIONS.add("clusterName");
+        RESTART_OPTIONS.add("listenAddress");
+        RESTART_OPTIONS.add("key");
+        options = new Options(Network.class, OPTIONS, "trp.network", new OptionsListener() {
+            @Override
+            public void onOptionSet(Context ctx, String name, String value) {
+                ctx.send("network option '%s' set to '%s'", name, value);
+                if (RESTART_OPTIONS.contains(name)) {
+                    Config.save(ctx);
+                    restart(ctx);
+                }
+            }
+        });
     }
 
-    public static InetSocketAddress makeInetSocketAddress(String addrStr, int defPort, boolean allowWildcard) throws NetworkException {
-        String[] parts = addrStr.split(":");
-        InetAddress address = null;
-        int port = defPort;
-        if (parts[0].equals("0.0.0.0") || parts[0].equals("*")) {
-            if (! allowWildcard)
-                throw new NetworkException("wildcard address not allowed");
-        } else {
-            try {
-                address = InetAddress.getByName(parts[0]);
-            } catch (UnknownHostException uhe) {
-                throw new NetworkException("unknown host address");
+    
+    public static InetSocketAddress makeInetSocketAddress(String addrStr, String defAddr, int defPort, boolean allowWildcard) throws IllegalArgumentException {
+        String addrPart = defAddr;
+        String portPart = defPort + "";
+        if (addrStr != null) {
+            String[] parts = addrStr.split(":");
+            if (parts[0].matches("^\\d+$")) {
+                addrPart = defAddr;
+                portPart = parts[0];
+            } else {
+                addrPart = (parts[0].length() > 0) ? parts[0] : defAddr;
+                if (addrPart.equals("*")) addrPart = allowWildcard ? "0.0.0.0" : defAddr;
+                portPart = (parts.length > 1) ? parts[1] : (defPort + "");
             }
         }
-        if (parts.length > 1)
+        
+        if (addrPart == null)
+            throw new IllegalArgumentException("missing address");
+        if (portPart == null)
+            throw new IllegalArgumentException("missing port");
+
+        InetAddress address = null;
+        if (addrPart.equals("0.0.0.0")) {
+            if (! allowWildcard)
+                throw new IllegalArgumentException("wildcard address not allowed");
+        } else {
+            
+            // try to find a matching interface name
             try {
-                port = Integer.parseInt(parts[1]);
-            } catch (NumberFormatException nfe) {
-                throw new NetworkException("invalid port '%s'", parts[1]);
+                for (Enumeration<NetworkInterface> e = NetworkInterface.getNetworkInterfaces(); e.hasMoreElements(); ) {
+                    NetworkInterface iface = e.nextElement();
+                    if (iface.getName().equals(addrPart)) {
+                        address = getInterfaceAddress(iface);
+                        if (address != null) break;
+                    }
+                }
+            } catch (SocketException e) {
+                throw new IllegalArgumentException("unable to get local interfaces");
             }
+            // try to find matching hostname
+            try {
+                address = InetAddress.getByName(addrPart);
+            } catch (UnknownHostException uhe) {
+                throw new IllegalArgumentException("unknown host address '" + addrPart + "'");
+            }
+        }
+        
+        int port;
+        try {
+            port = Integer.parseInt(portPart);
+        } catch (NumberFormatException nfe) {
+            throw new IllegalArgumentException("invalid port '" + portPart + "'");
+        }
         if ((port < 1) || (port > 65535))
-            throw new NetworkException("invalid port '%d'", port);
+            throw new IllegalArgumentException("invalid port '" + port + "'");
         return new InetSocketAddress(address, port);
     }
 
-    public static InetAddress getInterfaceAddress() throws NetworkException {
+    public static InetAddress getInterfaceAddress() {
         try {
             for (Enumeration<NetworkInterface> e = NetworkInterface.getNetworkInterfaces(); e.hasMoreElements(); ) {
                 NetworkInterface iface = e.nextElement();
@@ -104,7 +157,7 @@ public final class Network extends Thread {
             }
             return null;
         } catch (SocketException e) {
-            throw new NetworkException("unable to get local interfaces");
+            return null;
         }
     }
 
@@ -117,182 +170,202 @@ public final class Network extends Thread {
         return null;
     }
 
-    private State state = State.STOPPED;
-    private String listenAddress;
-    private InetSocketAddress listenInetSocketAddress;
-    private String serverKey;
-    private String clusterName;
-
-    private final Set<Pattern> banned = new HashSet<Pattern>();
-
-    private Selector selector = null;
-    private final Map<SocketChannel,Connection> channels = new HashMap<SocketChannel,Connection>();
-    private final Set<Connection> opening = new HashSet<Connection>();
-    private final Set<Connection> closing = new HashSet<Connection>();
-
-
-    public Network() {
-        try {
-            setListenAddress(Global.config.getString("listenAddress"));
-        } catch (IllegalArgumentException e) {
-            Utils.warning(e.getMessage());
-        }
-        try {
-            setServerKey(Global.config.getString("serverKey"));
-        } catch (IllegalArgumentException e) {
-            Utils.warning(e.getMessage());
-        }
-        setClusterName(Global.config.getString("clusterName"));
-    }
+    private static Thread networkThread;
+    private static State state = State.STOPPED;
+    private static InetSocketAddress listenAddress = null;
+    private static String key;
+    private static int selectInterval;
+    private static int readBufferSize;
+    private static Selector selector = null;
+    private static final Set<Pattern> banned = new HashSet<Pattern>();
+    private static final Map<SocketChannel,Connection> channels = new HashMap<SocketChannel,Connection>();
+    private static final Set<Connection> opening = new HashSet<Connection>();
+    private static final Set<Connection> closing = new HashSet<Connection>();
 
     // called from main thread
-    public void start(Context ctx) {
-        if ((listenAddress == null) || (serverKey == null))
-            Utils.warning("network manager cannot be started");
-        else {
-            List<String> addresses = Global.config.getStringList("bannedAddresses", null);
-            if (addresses != null)
-                for (String addressPattern : addresses) {
-                    try {
-                        Pattern pattern = Pattern.compile(addressPattern);
-                        banned.add(pattern);
-                    } catch (PatternSyntaxException pse) {
-                        Utils.warning("ignored invalid bannedAddress pattern '%s': %s", addressPattern, pse.getMessage());
-                    }
-                }
-
-            ctx.send("starting network manager");
-            start();
-        }
-    }
-
-    /* Begin options */
-
-    public String getListenAddress() {
-        return listenAddress;
-    }
-
-    public void setListenAddress(String address) {
-        if (address == null)
-            throw new IllegalArgumentException("listenAddress is required");
+    public static void start(Context ctx) {
         try {
-            listenInetSocketAddress = makeInetSocketAddress(address, DEFAULT_PORT, true);
-        } catch (NetworkException e) {
-            throw new IllegalArgumentException("listenAddress: " + e.getMessage());
+            if (listenAddress == null)
+                throw new NetworkException("listenAddress is not set");
+            if (getCachedKey() == null)
+                throw new NetworkException("serverKey is not set");
+        } catch (Exception e) {
+            ctx.warn("network manager cannot be started: %s", e.getMessage());
         }
-        listenAddress = address;
-        Global.config.setProperty("listenAddress", listenAddress);
+        
+        networkThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                Network.run();
+            }
+        });
+        ctx.send("starting network manager...");
+        networkThread.start();
     }
 
-    public InetSocketAddress getListenInetSocketAddress() {
-        return listenInetSocketAddress;
+    public static void restart(Context ctx) {
+        stop(ctx);
+        start(ctx);
     }
-
-    public String getServerKey() {
-        return serverKey;
-    }
-
-    public void setServerKey(String key) {
-        if ((key == null) || key.equals("none"))
-            throw new IllegalArgumentException("serverKey is required");
-        serverKey = key;
-        Global.config.setProperty("serverKey", serverKey);
-    }
-
-    public String getClusterName() {
-        return clusterName;
-    }
-
-    public void setClusterName(String name) {
-        clusterName = name;
-        Global.config.setProperty("clusterName", clusterName);
-    }
-
-    public String resolveOption(String option) throws NetworkException {
-        for (String opt : OPTIONS) {
-            if (opt.toLowerCase().startsWith(option.toLowerCase()))
-                return opt;
-        }
-        throw new NetworkException("unknown option");
-    }
-
-    public void setOption(String option, String value) throws NetworkException {
-        if (! OPTIONS.contains(option))
-            throw new NetworkException("unknown option");
-        String methodName = "set" +
-                option.substring(0, 1).toUpperCase() +
-                option.substring(1);
-        try {
-            Field f = getClass().getDeclaredField(option);
-            Class c = f.getType();
-            Method m = getClass().getMethod(methodName, c);
-            if (c == Boolean.TYPE)
-                m.invoke(this, Boolean.parseBoolean(value));
-            else if (c == Integer.TYPE)
-                m.invoke(this, Integer.parseInt(value));
-            else if (c == Float.TYPE)
-                m.invoke(this, Float.parseFloat(value));
-            else if (c == Double.TYPE)
-                m.invoke(this, Double.parseDouble(value));
-            else if (c == String.class)
-                m.invoke(this, value);
-            else
-                throw new NetworkException("unsupported option type");
-
-        } catch (InvocationTargetException ite) {
-            throw (NetworkException)ite.getCause();
-        } catch (NoSuchMethodException nsme) {
-            throw new NetworkException("invalid method");
-        } catch (IllegalArgumentException iae) {
-            throw new NetworkException("invalid value");
-        } catch (NoSuchFieldException nsfe) {
-            throw new NetworkException("unknown option");
-        } catch (IllegalAccessException iae) {
-            throw new NetworkException("unable to set the option");
-        }
-    }
-
-    public String getOption(String option) throws NetworkException {
-        if (! OPTIONS.contains(option))
-            throw new NetworkException("unknown option");
-        String methodName = "get" +
-                option.substring(0, 1).toUpperCase() +
-                option.substring(1);
-        try {
-            Method m = getClass().getMethod(methodName);
-            Object value = m.invoke(this);
-            if (value == null) return "(null)";
-            return value.toString();
-        } catch (InvocationTargetException ite) {
-            throw (NetworkException)ite.getCause();
-        } catch (NoSuchMethodException nsme) {
-            throw new NetworkException("invalid method");
-        } catch (IllegalAccessException iae) {
-            throw new NetworkException("unable to read the option");
-        }
-    }
-
-    /* End options */
-
+    
     // called from main thread
-    public void stop(Context ctx) {
-        if ((! isAlive()) || (state != State.RUNNING)) return;
+    public static void stop(Context ctx) {
+        if ((networkThread == null) ||
+            (! networkThread.isAlive()) ||
+            (state != State.RUNNING)) return;
         ctx.send("stopping network manager...");
         state = State.STOP;
         selector.wakeup();
-        while (isAlive()) {
+        while (networkThread.isAlive()) {
             try {
-                this.join();
+                networkThread.join();
             } catch (InterruptedException ie) {}
         }
+        networkThread = null;
+    }
+    
+    public static void onConfigLoad(Context ctx) {
+        boolean restart = state == State.RUNNING;
+        if (restart) Network.stop(ctx);
+        try {
+            listenAddress = makeInetSocketAddress(getListenAddress(), "0.0.0.0", Global.DEFAULT_PLUGIN_PORT, true);
+        } catch (IllegalArgumentException e) {
+            ctx.warn("listenAddress: %s", e.getMessage());
+        }
+        key = getKey();
+        selectInterval = getSelectInterval();
+        readBufferSize = getReadBufferSize();
+        
+        banned.clear();
+        List<String> addresses = Config.getStringList("network.bannedAddresses");
+        if (addresses != null)
+            for (String addressPattern : addresses) {
+                try {
+                    Pattern pattern = Pattern.compile(addressPattern);
+                    banned.add(pattern);
+                } catch (PatternSyntaxException pse) {
+                    ctx.warn("ignored invalid bannedAddress pattern '%s': %s", addressPattern, pse.getMessage());
+                }
+            }
+        if (restart) Network.start(ctx);
+    }
+    
+    public static void onConfigSave(Context ctx) {
+        synchronized (banned) {
+            List<String> bannedAddresses = new ArrayList<String>(banned.size());
+            for (Pattern p : banned)
+                bannedAddresses.add(p.pattern());
+            Config.setProperty("network.bannedAddresses", bannedAddresses);
+        }
+    }
+    
+    /* Begin options */
+
+    public static int getReadBufferSize() {
+        return Config.getInt("network.readBufferSize", 4096);
+    }
+    
+    public static void setReadBufferSize(int i) {
+        if (i < 1024)
+            throw new IllegalArgumentException("readBufferSize must be at least 1024");
+        Config.setProperty("network.readBufferSize", i);
     }
 
-    public boolean isStopped() {
+    public static int getSelectInterval() {
+        return Config.getInt("network.selectInterval", 30000);
+    }
+
+    public static void setSelectInterval(int i) {
+        if (i < 1000)
+            throw new IllegalArgumentException("selectInterval must be at least 1000");
+        Config.setProperty("network.selectInterval", i);
+    }
+
+    public static boolean getUsePrivateAddress() {
+        return Config.getBoolean("network.usePrivateAddress", true);
+    }
+
+    public static void setUsePrivateAddress(boolean b) {
+        Config.setProperty("network.usePrivateAddress", b);
+    }
+
+    public static boolean getSendPrivateAddress() {
+        return Config.getBoolean("network.sendPrivateAddress", true);
+    }
+    
+    public static void setSendPrivateAddress(boolean b) {
+        Config.setProperty("network.sendPrivateAddress", b);
+    }
+    
+    public static String getClusterName() {
+        return Config.getString("network.clusterName", null);
+    }
+    
+    public static void setClusterName(String s) {
+        Config.setProperty("network.clusterName", s);
+    }
+    
+    public static int getReconnectInterval() {
+        return Config.getInt("network.reconnectInterval", 60000);
+    }
+    
+    public static void setReconnectInterval(int i) {
+        if (i < 10000)
+            throw new IllegalArgumentException("reconnectInterval must be at least 10000");
+        Config.setProperty("network.reconnectInterval", i);
+    }
+    
+    public static int getReconnectSkew() {
+        return Config.getInt("network.reconnectSkew", 10000);
+    }
+    
+    public static void setReconnectSkew(int i) {
+        if (i < 0)
+            throw new IllegalArgumentException("reconnectSkew must be greater than 0");
+        Config.setProperty("network.reconnectSkew", i);
+    }
+    
+    public static String getListenAddress() {
+        return Config.getString("network.listenAddress", null);
+    }
+    
+    public static void setListenAddress(String s) {
+        Network.makeInetSocketAddress(s, "0.0.0.0", Global.DEFAULT_PLUGIN_PORT, true);
+        Config.setProperty("network.listenAddress", s);
+    }
+    
+    public static String getKey() {
+        return Config.getString("network.key", null);
+    }
+    
+    public static void setKey(String s) {
+        Config.setProperty("network.key", s);
+    }
+
+    public static void getOptions(Context ctx, String name) throws OptionsException, PermissionsException {
+        options.getOptions(ctx, name);
+    }
+
+    public static String getOption(Context ctx, String name) throws OptionsException, PermissionsException {
+        return options.getOption(ctx, name);
+    }
+
+    public static void setOption(Context ctx, String name, String value) throws OptionsException, PermissionsException {
+        options.setOption(ctx, name, value);
+    }
+    
+    /* End options */
+
+    public static String getCachedKey() {
+        return key;
+    }
+    
+    public static boolean isStopped() {
         return (state == State.STOP) || (state == State.STOPPING) || (state == State.STOPPED);
     }
 
     // called from main thread
-    public boolean addBan(String addrStr) throws NetworkException {
+    public static boolean addBannedAddress(String addrStr) throws NetworkException {
         Pattern pattern;
         try {
             pattern = Pattern.compile(addrStr);
@@ -302,20 +375,18 @@ public final class Network extends Thread {
         synchronized (banned) {
             if (banned.contains(pattern)) return false;
             banned.remove(pattern);
-            saveBannedAddresses();
             return true;
         }
     }
 
     // called from main thread
-    public boolean removeBan(String addrStr) {
+    public static boolean removeBannedAddress(String addrStr) {
         synchronized (banned) {
             Iterator<Pattern> i = banned.iterator();
             while (i.hasNext()) {
                 Pattern p = i.next();
                 if (p.pattern().equals(addrStr)) {
                     i.remove();
-                    saveBannedAddresses();
                     return true;
                 }
             }
@@ -324,22 +395,13 @@ public final class Network extends Thread {
     }
 
     // called from main thread
-    public void removeAllBans() {
+    public static void removeAllBannedAddresses() {
         synchronized (banned) {
             banned.clear();
-            saveBannedAddresses();
         }
     }
 
-    // called from synchronized block
-    private void saveBannedAddresses() {
-        List<String> bannedAddresses = new ArrayList<String>(banned.size());
-        for (Pattern p : banned)
-            bannedAddresses.add(p.pattern());
-        Global.config.setProperty("bannedAddresses", bannedAddresses);
-    }
-
-    public List<String> getBanned() {
+    public static List<String> getBannedAddresses() {
         List<String> l = new ArrayList<String>();
         synchronized (banned) {
             for (Pattern pattern : banned) {
@@ -349,30 +411,9 @@ public final class Network extends Thread {
         return l;
     }
 
-    // called from selection thread
-    private void kill(Connection conn) {
-        Utils.debug("kill %s", conn);
-        SocketChannel channel = conn.getChannel();
-        if (channel != null) {
-            SelectionKey key = channel.keyFor(selector);
-            if (key != null)
-                key.cancel();
-            try {
-                channel.close();
-            } catch (IOException e) {}
-            channels.remove(channel);
-        }
-        synchronized (closing) {
-            closing.remove(conn);
-        }
-        synchronized (opening) {
-            opening.remove(conn);
-        }
-        conn.onKilled();
-    }
-
-    @Override
-    public void run() {
+    /* Networking gunk */
+    
+    private static void run() {
 
         ServerSocketChannel serverChannel = null;
 
@@ -383,10 +424,10 @@ public final class Network extends Thread {
             serverChannel.configureBlocking(false);
 
             // bind to address and port
-            serverChannel.socket().bind(listenInetSocketAddress);
+            serverChannel.socket().bind(listenAddress);
             serverChannel.register(selector, SelectionKey.OP_ACCEPT);
 
-            Utils.info("network manager listening on %s:%d", listenInetSocketAddress.getAddress().getHostAddress(), listenInetSocketAddress.getPort());
+            Utils.info("network manager listening on %s:%d", listenAddress.getAddress().getHostAddress(), listenAddress.getPort());
             state = State.RUNNING;
 
             // processing
@@ -425,12 +466,12 @@ public final class Network extends Thread {
                                 SocketChannel channel = SocketChannel.open();
                                 channel.configureBlocking(false);
                                 try {
-                                    InetSocketAddress address = makeInetSocketAddress(conn.getConnectAddress(), DEFAULT_PORT, false);
+                                    InetSocketAddress address = makeInetSocketAddress(conn.getConnectAddress(), "localhost", Global.DEFAULT_PLUGIN_PORT, false);
                                     channel.connect(address);
-                                } catch (NetworkException e) {}
+                                } catch (Exception e) {}
                                 channel.register(selector, SelectionKey.OP_CONNECT);
                                 channels.put(channel, conn);
-                                conn.onOpening(this, channel);
+                                conn.onOpening(channel);
                             } catch (IOException e) {
                                 conn.onException(e);
                             }
@@ -445,16 +486,16 @@ public final class Network extends Thread {
                     server.checkKeepAlive();
                 }
 
-                if (selector.select(SELECT_INTERVAL) > 0) {
+                if (selector.select(selectInterval) > 0) {
                     Iterator keys = selector.selectedKeys().iterator();
                     while (keys.hasNext()) {
-                        SelectionKey key = (SelectionKey)keys.next();
+                        SelectionKey selKey = (SelectionKey)keys.next();
                         keys.remove();
-                        if (! key.isValid()) continue;
-                        if (key.isAcceptable()) onAccept(key);
-                        else if (key.isConnectable()) onConnect(key);
-                        else if (key.isReadable()) onRead(key);
-                        else if (key.isWritable()) onWrite(key);
+                        if (! selKey.isValid()) continue;
+                        if (selKey.isAcceptable()) onAccept(selKey);
+                        else if (selKey.isConnectable()) onConnect(selKey);
+                        else if (selKey.isReadable()) onRead(selKey);
+                        else if (selKey.isWritable()) onWrite(selKey);
                     }
                 }
 
@@ -478,7 +519,29 @@ public final class Network extends Thread {
 
     }
 
-    private void onAccept(SelectionKey key) throws IOException {
+    // called from selection thread
+    private static void kill(Connection conn) {
+        Utils.debug("kill %s", conn);
+        SocketChannel channel = conn.getChannel();
+        if (channel != null) {
+            SelectionKey selKey = channel.keyFor(selector);
+            if (selKey != null)
+                selKey.cancel();
+            try {
+                channel.close();
+            } catch (IOException e) {}
+            channels.remove(channel);
+        }
+        synchronized (closing) {
+            closing.remove(conn);
+        }
+        synchronized (opening) {
+            opening.remove(conn);
+        }
+        conn.onKilled();
+    }
+
+    private static void onAccept(SelectionKey key) throws IOException {
         ServerSocketChannel serverChannel = (ServerSocketChannel)key.channel();
         SocketChannel channel = serverChannel.accept();
         channel.configureBlocking(false);
@@ -500,13 +563,13 @@ public final class Network extends Thread {
             }
         }
 
-        Connection conn = new Connection(this, channel);
+        Connection conn = new Connection(channel);
         channels.put(channel, conn);
         channel.register(selector, SelectionKey.OP_READ);
         conn.onAccepted();
     }
 
-    private void onConnect(SelectionKey key) {
+    private static void onConnect(SelectionKey key) {
         SocketChannel channel = (SocketChannel)key.channel();
         Connection conn = channels.get(channel);
         if (conn == null) {
@@ -528,7 +591,7 @@ public final class Network extends Thread {
         conn.onOpened();
     }
 
-    private void onRead(SelectionKey key) {
+    private static void onRead(SelectionKey key) {
         SocketChannel channel = (SocketChannel)key.channel();
         Connection conn = channels.get(channel);
         if (conn == null) {
@@ -539,7 +602,7 @@ public final class Network extends Thread {
             return;
         }
 
-        ByteBuffer buffer = ByteBuffer.allocate(READ_BUFFER_SIZE);
+        ByteBuffer buffer = ByteBuffer.allocate(readBufferSize);
         int numRead = 0;
         while (true) {
             try {
@@ -551,7 +614,7 @@ public final class Network extends Thread {
             Utils.debug("read %d from %s", numRead, conn);
             if (numRead <= 0) break;
             conn.onReadData(Arrays.copyOfRange(buffer.array(), 0, numRead));
-            if (numRead < READ_BUFFER_SIZE) break;
+            if (numRead < readBufferSize) break;
             buffer.clear();
         }
         if (numRead == -1) {
@@ -560,7 +623,7 @@ public final class Network extends Thread {
         }
     }
 
-    private void onWrite(SelectionKey key) {
+    private static void onWrite(SelectionKey key) {
         SocketChannel channel = (SocketChannel)key.channel();
         Connection conn = channels.get(channel);
         if (conn == null) {
@@ -603,10 +666,27 @@ public final class Network extends Thread {
     }
 
     // can be called from any thread
-    public void wantWrite(Connection conn) {
-        SelectionKey key = conn.getChannel().keyFor(selector);
-        if ((key == null) || (! key.isValid())) return;
-        key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
+    public static void open(Connection conn) {
+        synchronized (opening) {
+            opening.add(conn);
+        }
+        if (selector != null)
+            selector.wakeup();
+    }
+
+    // can be called from any thread
+    public static void close(Connection conn) {
+        synchronized (closing) {
+            closing.add(conn);
+        }
+        wantWrite(conn);
+    }
+
+    // can be called from any thread
+    public static void wantWrite(Connection conn) {
+        SelectionKey selKey = conn.getChannel().keyFor(selector);
+        if ((selKey == null) || (! selKey.isValid())) return;
+        selKey.interestOps(selKey.interestOps() | SelectionKey.OP_WRITE);
 
         try {
             Utils.debug("wantWrite to %s: %s %s %s %s", conn,
@@ -619,21 +699,6 @@ public final class Network extends Thread {
         }
 
         selector.wakeup();
-    }
-
-    public void open(Connection conn) {
-        synchronized (opening) {
-            opening.add(conn);
-        }
-        if (selector != null)
-            selector.wakeup();
-    }
-
-    public void close(Connection conn) {
-        synchronized (closing) {
-            closing.add(conn);
-        }
-        wantWrite(conn);
     }
 
     private enum State {

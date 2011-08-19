@@ -17,12 +17,11 @@ package org.bennedum.transporter.command;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.bennedum.transporter.Config;
 import org.bennedum.transporter.Context;
 import org.bennedum.transporter.Gates;
 import org.bennedum.transporter.Permissions;
-import org.bennedum.transporter.Servers;
 import org.bennedum.transporter.TransporterException;
-import org.bennedum.transporter.Utils;
 import org.bukkit.command.Command;
 
 /**
@@ -68,7 +67,7 @@ public class SaveCommand extends TrpCommandProcessor {
         }
         for (String arg : what) {
             if (arg.equals("config"))
-                Utils.saveConfig(ctx);
+                Config.save(ctx);
             else if (arg.equals("gates"))
                 Gates.saveAll(ctx);
         }

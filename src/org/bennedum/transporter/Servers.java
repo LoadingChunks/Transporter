@@ -15,12 +15,10 @@
  */
 package org.bennedum.transporter;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.bukkit.util.config.Configuration;
 import org.bukkit.util.config.ConfigurationNode;
 
 /**
@@ -33,42 +31,10 @@ public final class Servers {
 
     private static final Map<String,Server> servers = new HashMap<String,Server>();
 
-    public static void loadAll(Context ctx) {
+    public static void onConfigLoad(Context ctx) {
         removeAll();
         servers.clear();
-
-        // check for pre v6.10 file and convert to main config
-        /*
-        File file = new File(Global.plugin.getDataFolder(), "servers.yml");
-        if (file.exists()) {
-            ctx.sendLog("converting servers.yml to global configuration...");
-            try {
-                if (! file.isFile())
-                    throw new ServerException("not a file");
-                if (! file.canRead())
-                    throw new ServerException("unable to read file");
-                Configuration conf = new Configuration(file);
-                conf.load();
-                List<ConfigurationNode> serverNodes = conf.getNodeList("servers", null);
-                List<Map<String,Object>> newServerNodes = new ArrayList<Map<String,Object>>();
-                if (serverNodes != null) {
-                    for (ConfigurationNode node : serverNodes) {
-                        Map<String,Object> data = node.getAll();
-                        data.put("pluginAddress", data.remove("address"));
-                        newServerNodes.add(data);
-                    }
-                }
-                Global.config.setProperty("servers", newServerNodes);
-                Utils.saveConfig(ctx);
-                file.delete();
-                ctx.sendLog("conversion complete");
-            } catch (ServerException se) {
-                ctx.warnLog("unable to load servers: %s", se.getMessage());
-            }
-        }
-         */
-
-        List<ConfigurationNode> serverNodes = Global.config.getNodeList("servers", null);
+        List<ConfigurationNode> serverNodes = Config.getNodeList("servers");
         if (serverNodes != null) {
             for (ConfigurationNode node : serverNodes) {
                 try {
@@ -80,15 +46,13 @@ public final class Servers {
                 }
             }
         }
-        if (isEmpty())
-            ctx.sendLog("no servers loaded");
     }
 
-    public static void saveAll() {
+    public static void onConfigSave() {
         List<Map<String,Object>> serverNodes = new ArrayList<Map<String,Object>>();
         for (Server server : servers.values())
             serverNodes.add(server.encode());
-        Global.config.setProperty("servers", serverNodes);
+        Config.setProperty("servers", serverNodes);
     }
 
     public static void add(final Server server) throws ServerException {

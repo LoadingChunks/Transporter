@@ -57,7 +57,6 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitWorker;
 import org.bukkit.util.Vector;
-import org.bukkit.util.config.Configuration;
 
 /**
  *
@@ -65,9 +64,9 @@ import org.bukkit.util.config.Configuration;
  */
 public class Utils {
 
+    public static final File BukkitBaseFolder = new File(".");
+    
     private static final Logger logger = Logger.getLogger("Minecraft");
-    private static final File bukkitBaseFolder = new File(".");
-    private static final File worldBaseFolder = bukkitBaseFolder;
 
     private static final String DEBUG_URL = "http://www.bennedum.org/transporter-debug.php";
     private static final String DEBUG_BOUNDARY = "*****";
@@ -89,7 +88,7 @@ public class Utils {
     }
 
     public static void debug(String msg, Object ... args) {
-        if (! Global.config.getBoolean("debug", false)) return;
+        if (! Config.getBoolean("debug", false)) return;
         msg = ChatColor.stripColor(String.format(msg, args));
         logger.log(Level.INFO, String.format("[DEBUG] %s", msg));
     }
@@ -168,30 +167,6 @@ public class Utils {
         });
     }
 
-    public static World getWorld(String name) {
-        World world = null;
-        for (World w : Global.plugin.getServer().getWorlds()) {
-            if (w.getName().equals(name)) return w;
-            if (w.getName().toLowerCase().startsWith(name.toLowerCase())) {
-                if (world != null) return null;
-                world = w;
-            }
-        }
-        return world;
-    }
-
-    public static File worldFolder(String name) {
-        return new File(worldBaseFolder, name);
-    }
-
-    public static File worldFolder(World world) {
-        return new File(worldBaseFolder, world.getName());
-    }
-
-    public static File worldPluginFolder(World world) {
-        return new File(worldFolder(world), Global.pluginName);
-    }
-
     public static int directionToYaw(BlockFace direction) {
         switch (direction) {
             case NORTH: return 90;
@@ -237,28 +212,6 @@ public class Utils {
         velocity.setX((cos * x) + (sin * z));
         velocity.setZ((-sin * x) + (cos * z));
         return velocity;
-    }
-
-    public static File getConfigFile() {
-        File dataFolder = Global.plugin.getDataFolder();
-        return new File(dataFolder, "config.yml");
-    }
-
-    public static void loadConfig(Context ctx) {
-        Configuration config = new Configuration(getConfigFile());
-        config.load();
-        Global.config = config;
-        ctx.sendLog("loaded configuration");
-    }
-
-    public static void saveConfig(Context ctx) {
-        File configDir = Global.plugin.getDataFolder();
-        if (! configDir.exists()) configDir.mkdirs();
-        // save everything that goes in the main config
-        Servers.saveAll();
-        // TODO: Worlds.saveAll();
-        Global.config.save();
-        ctx.sendLog("saved configuration");
     }
 
     public static boolean isMainThread() {
@@ -317,20 +270,20 @@ public class Utils {
 
     public static HttpURLConnection openURL(URL url) throws IOException {
         Proxy proxy = Proxy.NO_PROXY;
-        String proxyHost = Global.config.getString("httpProxy.host");
+        String proxyHost = Config.getString("httpProxy.host");
         if (proxyHost != null) {
             Proxy.Type proxyType = null;
             try {
-                proxyType = Proxy.Type.valueOf(Global.config.getString("httpProxy.type", "HTTP"));
+                proxyType = Proxy.Type.valueOf(Config.getString("httpProxy.type", "HTTP"));
             } catch (IllegalArgumentException iae) {}
-            int proxyPort = Global.config.getInt("httpProxy.port", 80);
+            int proxyPort = Config.getInt("httpProxy.port", 80);
             proxy = new Proxy(proxyType, new InetSocketAddress(proxyHost, proxyPort));
             debug("using proxy %s", proxy);
         }
         HttpURLConnection conn = (HttpURLConnection)url.openConnection(proxy);
         if (proxy != Proxy.NO_PROXY) {
-            String proxyUser = Global.config.getString("httpProxy.user");
-            String proxyPassword = Global.config.getString("httpProxy.password");
+            String proxyUser = Config.getString("httpProxy.user");
+            String proxyPassword = Config.getString("httpProxy.password");
             if ((proxyUser != null) && (proxyPassword != null)) {
                 String enc = Base64.encode(proxyUser + ":" + proxyPassword, "UTF-8");
                 conn.setRequestProperty("Proxy-Authorization", enc);
@@ -371,7 +324,7 @@ public class Utils {
             ZipOutputStream zipOut = new ZipOutputStream(new FileOutputStream(zipFile));
 
             // add the config file
-            file = getConfigFile();
+            file = Config.getConfigFile();
             in = new FileInputStream(file);
             zipOut.putNextEntry(new ZipEntry(file.getName()));
             while ((length = in.read(buffer)) > 0)
@@ -380,7 +333,7 @@ public class Utils {
             zipOut.closeEntry();
 
             // add the last DEBUG_LOG_BYTES bytes of the server log
-            file = new File(bukkitBaseFolder, "server.log");
+            file = new File(BukkitBaseFolder, "server.log");
             in = new FileInputStream(file);
             zipOut.putNextEntry(new ZipEntry(file.getName()));
             if (file.length() > DEBUG_LOG_BYTES) {
@@ -540,7 +493,7 @@ public class Utils {
         debug("debug data file '%s' created successfully", zipFile.getAbsolutePath());
 
         try {
-            URL url = new URL(Global.config.getString("debugURL", DEBUG_URL));
+            URL url = new URL(Config.getString("debugURL", DEBUG_URL));
             debug("submitting to %s", url);
             HttpURLConnection conn = openURL(url);
             conn.setDoInput(true);
@@ -590,7 +543,7 @@ public class Utils {
         } catch (IOException e) {
             severe(e, "unable to submit debug data:");
         } finally {
-            if (Global.config.getBoolean("deleteDebugFile", true))
+            if (Config.getBoolean("deleteDebugFile", true))
                 zipFile.delete();
         }
 

@@ -15,9 +15,6 @@
  */
 package org.bennedum.transporter;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
@@ -34,7 +31,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import org.bennedum.transporter.net.Connection;
-import org.bennedum.transporter.net.NetworkException;
 import org.bennedum.transporter.net.Network;
 import org.bennedum.transporter.net.Message;
 import org.bennedum.transporter.net.Result;
@@ -45,17 +41,15 @@ import org.bukkit.util.config.ConfigurationNode;
  *
  * @author frdfsnlght <frdfsnlght@gmail.com>
  */
-public final class Server {
+public final class Server implements OptionsListener {
 
     public static final int DEFAULT_MC_PORT = 25565;
-    private static final int RECONNECT_INTERVAL = 60000;
-    private static final int RECONNECT_SKEW = 10000;
 
     private static final int SEND_KEEPALIVE_INTERVAL = 60000;
     private static final int RECV_KEEPALIVE_INTERVAL = 90000;
 
-    public static final List<String> OPTIONS = new ArrayList<String>();
-
+    private static final Set<String> OPTIONS = new HashSet<String>();
+    
     static {
         OPTIONS.add("pluginAddress");
         OPTIONS.add("key");
@@ -70,7 +64,8 @@ public final class Server {
         return ! (name.contains(".") || name.contains("*"));
     }
 
-
+    private Options options = new Options(this, OPTIONS, "trp.server", this);
+    
     private String name;
     private String pluginAddress;   // can be IP/DNS name, with opt port
     private String key;
@@ -127,10 +122,6 @@ public final class Server {
     }
 
     public Server(ConfigurationNode node) throws ServerException {
-        // v6.10 to v6.11
-        if (node.getString("minecraftAddress") != null)
-            node.removeProperty("minecraftAddress");
-
         try {
             setName(node.getString("name"));
             setPluginAddress(node.getString("pluginAddress"));
@@ -165,8 +156,8 @@ public final class Server {
         if (addr == null)
             throw new IllegalArgumentException("pluginAddress is required");
         try {
-            Network.makeInetSocketAddress(addr, Network.DEFAULT_PORT, true);
-        } catch (NetworkException e) {
+            Network.makeInetSocketAddress(addr, "localhost", Global.DEFAULT_PLUGIN_PORT, false);
+        } catch (Exception e) {
             throw new IllegalArgumentException("pluginAddress: " + e.getMessage());
         }
         pluginAddress = addr;
@@ -258,68 +249,21 @@ public final class Server {
         return remotePrivateAddress;
     }
 
-    public String resolveOption(String option) throws ServerException {
-        for (String opt : OPTIONS) {
-            if (opt.toLowerCase().startsWith(option.toLowerCase()))
-                return opt;
-        }
-        throw new ServerException("unknown option");
+    public void getOptions(Context ctx, String name) throws OptionsException, PermissionsException {
+        options.getOptions(ctx, name);
+    }
+    
+    public String getOption(Context ctx, String name) throws OptionsException, PermissionsException {
+        return options.getOption(ctx, name);
+    }
+    
+    public void setOption(Context ctx, String name, String value) throws OptionsException, PermissionsException {
+        options.setOption(ctx, name, value);
     }
 
-    public void setOption(String option, String value) throws ServerException {
-        if (! OPTIONS.contains(option))
-            throw new ServerException("unknown option");
-        String methodName = "set" +
-                option.substring(0, 1).toUpperCase() +
-                option.substring(1);
-        try {
-            Field f = getClass().getDeclaredField(option);
-            Class c = f.getType();
-            Method m = getClass().getMethod(methodName, c);
-            if (c == Boolean.TYPE)
-                m.invoke(this, Boolean.parseBoolean(value));
-            else if (c == Integer.TYPE)
-                m.invoke(this, Integer.parseInt(value));
-            else if (c == Float.TYPE)
-                m.invoke(this, Float.parseFloat(value));
-            else if (c == Double.TYPE)
-                m.invoke(this, Double.parseDouble(value));
-            else if (c == String.class)
-                m.invoke(this, value);
-            else
-                throw new ServerException("unsupported option type");
-
-        } catch (InvocationTargetException ite) {
-            throw (ServerException)ite.getCause();
-        } catch (NoSuchMethodException nsme) {
-            throw new ServerException("invalid method");
-        } catch (IllegalArgumentException iae) {
-            throw new ServerException("invalid value");
-        } catch (NoSuchFieldException nsfe) {
-            throw new ServerException("unknown option");
-        } catch (IllegalAccessException iae) {
-            throw new ServerException("unable to set the option");
-        }
-    }
-
-    public String getOption(String option) throws ServerException {
-        if (! OPTIONS.contains(option))
-            throw new ServerException("unknown option");
-        String methodName = "get" +
-                option.substring(0, 1).toUpperCase() +
-                option.substring(1);
-        try {
-            Method m = getClass().getMethod(methodName);
-            Object value = m.invoke(this);
-            if (value == null) return "(null)";
-            return value.toString();
-        } catch (InvocationTargetException ite) {
-            throw (ServerException)ite.getCause();
-        } catch (NoSuchMethodException nsme) {
-            throw new ServerException("invalid method");
-        } catch (IllegalAccessException iae) {
-            throw new ServerException("unable to read the option");
-        }
+    @Override
+    public void onOptionSet(Context ctx, String name, String value) {
+        ctx.sendLog("option '%s' set to '%s' for server '%s'", name, value, getName());
     }
 
     /* End options */
@@ -327,7 +271,7 @@ public final class Server {
     public String getReconnectAddressForClient(InetSocketAddress clientAddress) {
         String clientAddrStr = clientAddress.getAddress().getHostAddress();
 
-        if (Global.config.getBoolean("usePrivateAddress", true) && (remotePrivateAddress != null)) {
+        if (Network.getUsePrivateAddress() && (remotePrivateAddress != null)) {
             InetSocketAddress remoteAddr = (InetSocketAddress)connection.getChannel().socket().getRemoteSocketAddress();
             if (remoteAddr != null) {
                 if (remoteAddr.getAddress().getHostAddress().equals(clientAddrStr)) {
@@ -390,7 +334,7 @@ public final class Server {
     }
 
     public void connect() {
-        if (isConnected() || Global.network.isStopped() || isIncoming()) return;
+        if (isConnected() || Network.isStopped() || isIncoming()) return;
         allowReconnect = true;
         cancelOutbound();
         if (connection != null)
@@ -423,10 +367,9 @@ public final class Server {
     private void reconnect() {
         cancelOutbound();
         if (! allowReconnect) return;
-        if (isConnected() || Global.network.isStopped() || isIncoming()) return;
-        int time = Global.config.getInt("reconnectInterval", RECONNECT_INTERVAL);
-        int skew = Global.config.getInt("reconnectSkew", RECONNECT_SKEW);
-        if (skew < 0) skew = RECONNECT_SKEW;
+        if (isConnected() || Network.isStopped() || isIncoming()) return;
+        int time = Network.getReconnectInterval();
+        int skew = Network.getReconnectSkew();
         if (time < skew) time = skew;
         time += (Math.random() * (double)(skew * 2)) - skew;
         Utils.info("will attempt to reconnect to '%s' in about %d seconds", getName(), (time / 1000));
@@ -714,10 +657,10 @@ public final class Server {
         Message out = createMessage("refreshData");
 
         out.put("publicAddress", normalizedPublicAddress);
-        out.put("cluster", Global.network.getClusterName());
+        out.put("cluster", Network.getClusterName());
 
         // NAT stuff
-        if (Global.config.getBoolean("sendPrivateAddress", true) &&
+        if (Network.getSendPrivateAddress() &&
             (! privateAddress.equals("-")))
             out.put("privateAddress",
                     normalizedPrivateAddress.getAddress().getHostAddress() + ":" +
@@ -948,6 +891,12 @@ public final class Server {
             normalizedPrivateAddress = null;
             return;
         }
+        String defAddr = "localhost";
+        InetAddress a = Network.getInterfaceAddress();
+        if (a != null) defAddr = a.getHostAddress();
+        normalizedPrivateAddress = Network.makeInetSocketAddress(addrStr, defAddr, Global.plugin.getServer().getPort(), false);
+
+        /*
         String[] parts = addrStr.split(":");
         String address = parts[0];
         int port = Global.plugin.getServer().getPort();
@@ -986,6 +935,7 @@ public final class Server {
             }
         }
         normalizedPrivateAddress = new InetSocketAddress(address, port);
+         */
     }
 
     private void normalizePublicAddress(String addrStr) {
@@ -1004,30 +954,38 @@ public final class Server {
                 }
 
             String[] parts = items[0].split(":");
-            String address = parts[0];
-            int port = Global.plugin.getServer().getPort();
-            if (parts.length > 1) {
-                try {
-                    port = Integer.parseInt(parts[1]);
-                    if ((port < 1) || (port > 65535))
-                        throw new IllegalArgumentException("invalid port " + parts[1]);
-                } catch (NumberFormatException nfe) {
-                    throw new IllegalArgumentException("invalid port " + parts[1]);
-                }
+            String addrPart;
+            String portPart;
+            if (parts[0].matches("^\\d+$")) {
+                addrPart = "*";
+                portPart = parts[0];
+            } else {
+                addrPart = parts[0];
+                portPart = (parts.length > 1) ? parts[1] : Global.plugin.getServer().getPort() + "";
             }
-            if (! address.equals("*")) {
+
+            if (! addrPart.equals("*")) {
                 try {
-                    NetworkInterface iface = NetworkInterface.getByName(address);
+                    NetworkInterface iface = NetworkInterface.getByName(addrPart);
                     InetAddress a = Network.getInterfaceAddress(iface);
                     if (a == null)
-                        throw new IllegalArgumentException("unable to get local interface address for interface " + address);
-                    address = a.getHostAddress();
+                        throw new IllegalArgumentException("unable to get local interface address for interface " + addrPart);
+                    addrPart = a.getHostAddress();
                 } catch (SocketException e) {
                     // assume address is a DNS name or IP address
                 }
             }
+            
+            try {
+                int port = Integer.parseInt(portPart);
+                if ((port < 1) || (port > 65535))
+                    throw new IllegalArgumentException("invalid port " + portPart);
+                portPart = port + "";
+            } catch (NumberFormatException nfe) {
+                throw new IllegalArgumentException("invalid port " + portPart);
+            }
 
-            sb.append(address).append(":").append(port);
+            sb.append(addrPart).append(":").append(portPart);
             if (items.length > 1)
                 for (int i = 1; i < items.length; i++)
                     sb.append("/").append(items[i]);

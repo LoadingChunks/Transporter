@@ -98,7 +98,7 @@ public final class Chat {
 
         if (playersToReceive.isEmpty()) return;
 
-        String format = Global.config.getString("chatFormat", "<%player%@%server%> %message%");
+        String format = Config.getString("chatFormat", "<%player%@%server%> %message%");
         format.replace("%player%", displayName);
         format.replace("%server%", fromServer.getName());
         format.replace("%world%", fromWorldName);

@@ -27,11 +27,15 @@ public class WorldListenerImpl extends WorldListener {
 
     @Override
     public void onWorldLoad(WorldLoadEvent event) {
+        // TODO: remove this?
+        Utils.debug("Yeeehaaa! we got an onWorldLoad event!");
         Gates.loadGatesForWorld(new Context(), event.getWorld());
     }
 
     @Override
     public void onWorldUnload(WorldUnloadEvent event) {
+        // TODO: remove this?
+        Utils.debug("Yeeehaaa! we got an onWorldUnload event!");
         Gates.remove(event.getWorld());
     }
 

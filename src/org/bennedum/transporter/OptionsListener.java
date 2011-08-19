@@ -19,10 +19,8 @@ package org.bennedum.transporter;
  *
  * @author frdfsnlght <frdfsnlght@gmail.com>
  */
-public final class InventoryException extends TransporterException {
+public interface OptionsListener {
 
-    public InventoryException(String msg, Object ... args) {
-        super(String.format(msg, args));
-    }
-
+    public void onOptionSet(Context ctx, String name, String value);
+    
 }
