@@ -121,9 +121,10 @@ public final class Connection {
     }
 
     public void onException(Exception e) {
-        if (e instanceof ConnectException)
-            Utils.warning("connection exception with %s: %s", getName(), e.getMessage());
-        else
+        if (e instanceof ConnectException) {
+            if ((server != null) && (! server.connectionMessagesSuppressed()))
+                Utils.warning("connection exception with %s: %s", getName(), e.getMessage());
+        } else
             Utils.severe(e, "connection exception with %s: %s", getName(), e.getMessage());
         close();
     }

@@ -23,7 +23,7 @@ import org.bennedum.transporter.command.CommandProcessor;
 import org.bennedum.transporter.command.DebugCommand;
 import org.bennedum.transporter.command.DesignCommand;
 import org.bennedum.transporter.command.GateCommand;
-import org.bennedum.transporter.command.GoCommand;
+import org.bennedum.transporter.command.GlobalCommands;
 import org.bennedum.transporter.command.HelpCommand;
 import org.bennedum.transporter.command.NetworkCommand;
 import org.bennedum.transporter.command.PinCommand;
@@ -58,10 +58,10 @@ public final class Global {
 
     static {
         commands.add(new HelpCommand());
+        commands.add(new GlobalCommands());
         commands.add(new ReloadCommand());
         commands.add(new SaveCommand());
         commands.add(new PinCommand());
-        commands.add(new GoCommand());
         commands.add(new DesignCommand());
         commands.add(new GateCommand());
         commands.add(new ServerCommand());

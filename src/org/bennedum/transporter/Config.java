@@ -51,6 +51,9 @@ public final class Config {
         OPTIONS.add("arrivalWindow");
         OPTIONS.add("useGatePermissions");
         OPTIONS.add("serverChatFormat");
+        OPTIONS.add("teleportInventory");
+        OPTIONS.add("deleteInventory");
+        OPTIONS.add("suppressConnectionAttempts");
         OPTIONS.add("useIConomy");
         OPTIONS.add("useBOSEconomy");
         OPTIONS.add("exportedGatesFile");
@@ -81,10 +84,24 @@ public final class Config {
         config = c;
 
         int version = config.getInt("configVersion", 0);
-        if (version < CONFIG_VERSION)
+        if (version < CONFIG_VERSION) {
+//            ctx.warn("==================================================================");
+            ctx.warn("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+            ctx.warn("");
             ctx.warn("configuration file version is out of date, please convert manually");
-        if (version > CONFIG_VERSION)
+            ctx.warn("");
+            ctx.warn("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+//            ctx.warn("==================================================================");
+        }
+        if (version > CONFIG_VERSION) {
+            ctx.warn("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+//            ctx.warn("==================================================================");
+            ctx.warn("");
             ctx.warn("configuration file version is too new!?!");
+            ctx.warn("");
+            ctx.warn("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+//            ctx.warn("==================================================================");
+        }
 
         ctx.sendLog("loaded configuration");
         Worlds.onConfigLoad(ctx);
@@ -239,6 +256,30 @@ public final class Config {
         config.setProperty("global.serverChatFormat", s);
     }
 
+    public static boolean getTeleportInventory() {
+        return config.getBoolean("global.teleportInventory", true);
+    }
+
+    public static void setTeleportInventory(boolean b) {
+        config.setProperty("global.teleportInventory", b);
+    }
+            
+    public static boolean getDeleteInventory() {
+        return config.getBoolean("global.deleteInventory", false);
+    }
+
+    public static void setDeleteInventory(boolean b) {
+        config.setProperty("global.deleteInventory", b);
+    }
+            
+    public static int getSuppressConnectionAttempts() {
+        return config.getInt("global.suppressConnectionAttempts", -1);
+    }
+
+    public static void setSuppressConnectionAttempts(int i) {
+        config.setProperty("global.suppressConnectionAttempts", i);
+    }
+            
     public static boolean getUseIConomy() {
         return config.getBoolean("global.useIConomy", false);
     }

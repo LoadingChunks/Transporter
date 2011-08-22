@@ -17,13 +17,8 @@ package org.bennedum.transporter.command;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.bennedum.transporter.Config;
 import org.bennedum.transporter.Context;
-import org.bennedum.transporter.Gate;
-import org.bennedum.transporter.Gates;
-import org.bennedum.transporter.Global;
-import org.bennedum.transporter.Permissions;
-import org.bennedum.transporter.Reservation;
-import org.bennedum.transporter.ReservationException;
 import org.bennedum.transporter.TransporterException;
 import org.bukkit.command.Command;
 
@@ -31,48 +26,48 @@ import org.bukkit.command.Command;
  *
  * @author frdfsnlght <frdfsnlght@gmail.com>
  */
-public class GoCommand extends TrpCommandProcessor {
-    
-    // TODO: move this command into "gate"
-    
-    private static final String GROUP = "go ";
+public final class GlobalCommands extends TrpCommandProcessor {
     
     @Override
     public boolean matches(Context ctx, Command cmd, List<String> args) {
         return super.matches(ctx, cmd, args) &&
-               GROUP.startsWith(args.get(0).toLowerCase()) &&
-               ctx.isPlayer();
+               ("get".startsWith(args.get(0).toLowerCase())) ||
+               ("set".startsWith(args.get(0).toLowerCase()));
     }
     
     @Override
     public List<String> getUsage(Context ctx) {
-        if (! ctx.isPlayer()) return null;
         List<String> cmds = new ArrayList<String>();
-        cmds.add(getPrefix(ctx) + GROUP + "[<gate>]");
+        cmds.add(getPrefix(ctx) + "get <option>|*");
+        cmds.add(getPrefix(ctx) + "set <option> <value>");
         return cmds;
     }
-
+    
     @Override
     public void process(Context ctx, Command cmd, List<String> args) throws TransporterException {
-        args.remove(0);
-        Gate gate = null;
-        if (! args.isEmpty()) {
-            gate = Gates.get(ctx, args.get(0));
-            if (gate == null)
-                throw new CommandException("unknown gate '%s'", args.get(0));
-            args.remove(0);
-        } else if (ctx.isPlayer())
-            gate = Global.getSelectedGate(ctx.getPlayer());
-        if (gate == null)
-            throw new CommandException("gate name required");
+        if (args.isEmpty())
+            throw new CommandException("do what?");
+        String subCmd = args.remove(0).toLowerCase();
 
-        Permissions.require(ctx.getPlayer(), "trp.go." + gate.getName());
-        try {
-            Reservation r = new Reservation(ctx.getPlayer(), gate);
-            r.depart();
-        } catch (ReservationException e) {
-            ctx.warnLog(e.getMessage());
+        if ("set".startsWith(subCmd)) {
+            if (args.isEmpty())
+                throw new CommandException("option name required");
+            String option = args.remove(0);
+            if (args.isEmpty())
+                throw new CommandException("option value required");
+            String value = args.remove(0);
+            Config.setOption(ctx, option, value);
+            return;
         }
+
+        if ("get".startsWith(subCmd)) {
+            if (args.isEmpty())
+                throw new CommandException("option name required");
+            String option = args.remove(0);
+            Config.getOptions(ctx, option);
+            return;
+        }
+        
     }
     
 }

@@ -66,6 +66,8 @@ public final class Options {
     private String resolveOption(String option) throws OptionsException {
         String matched = null;
         for (String opt : names) {
+            if (opt.toLowerCase().equals(option.toLowerCase()))
+                return opt;
             if (opt.toLowerCase().startsWith(option.toLowerCase())) {
                 if (matched != null)
                     throw new OptionsException("option is ambiguous");

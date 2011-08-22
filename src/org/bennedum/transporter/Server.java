@@ -70,7 +70,9 @@ public final class Server implements OptionsListener {
     private String pluginAddress;   // can be IP/DNS name, with opt port
     private String key;
     private boolean enabled;
-
+    private int connectionAttempts = 0;
+    private long lastConnectionAttempt = 0;
+    
     // The address we tell players so they can connect to our MC server.
     // This address is given to the plugin on the other end of the connection.
     // The string is a space separated list of values.
@@ -295,8 +297,10 @@ public final class Server implements OptionsListener {
         return null;
     }
 
+    // incoming connection
     public void setConnection(Connection conn) {
         connection = conn;
+        connectionAttempts = 0;
     }
 
     public Connection getConnection() {
@@ -341,6 +345,8 @@ public final class Server implements OptionsListener {
             connection.close();
         connected = false;
         connection = new Connection(this, pluginAddress);
+        connectionAttempts++;
+        lastConnectionAttempt = System.currentTimeMillis();
         connection.open();
     }
 
@@ -372,7 +378,10 @@ public final class Server implements OptionsListener {
         int skew = Network.getReconnectSkew();
         if (time < skew) time = skew;
         time += (Math.random() * (double)(skew * 2)) - skew;
-        Utils.info("will attempt to reconnect to '%s' in about %d seconds", getName(), (time / 1000));
+    
+        if (! connectionMessagesSuppressed())
+            Utils.info("will attempt to reconnect to '%s' in about %d seconds", getName(), (time / 1000));
+        
         reconnectTask = Utils.fireDelayed(new Runnable() {
             @Override
             public void run() {
@@ -382,6 +391,11 @@ public final class Server implements OptionsListener {
         }, time);
     }
 
+    public boolean connectionMessagesSuppressed() {
+        int limit = Config.getSuppressConnectionAttempts();
+        return (limit >= 0) && (connectionAttempts > limit);
+    }
+    
     public void refresh() {
         if (! isConnected())
             connect();
@@ -557,6 +571,7 @@ public final class Server implements OptionsListener {
     public void onConnected(String version) {
         allowReconnect = true;
         connected = true;
+        connectionAttempts = 0;
         remoteVersion = version;
         cancelOutbound();
         Utils.info("connected to '%s' (%s), running v%s", getName(), connection.getName(), remoteVersion);

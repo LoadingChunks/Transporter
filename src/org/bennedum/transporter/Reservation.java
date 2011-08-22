@@ -178,6 +178,10 @@ public final class Reservation {
         addGateLock(player);
         extractPlayer(player);
         extractFromGate(fromGate);
+        if (! fromGate.getTeleportInventory()) {
+            inventory = null;
+            armor = null;
+        }
     }
 
     // vehicle moving into gate
@@ -185,6 +189,10 @@ public final class Reservation {
         addGateLock(vehicle);
         extractVehicle(vehicle);
         extractFromGate(fromGate);
+        if (! fromGate.getTeleportInventory()) {
+            inventory = null;
+            armor = null;
+        }
     }
 
     // player direct to gate
@@ -192,6 +200,10 @@ public final class Reservation {
         addGateLock(player);
         extractPlayer(player);
         extractToGate(toGate);
+        if (! Config.getTeleportInventory()) {
+            inventory = null;
+            armor = null;
+        }
     }
 
     // player direct to location on this server
@@ -199,6 +211,10 @@ public final class Reservation {
         addGateLock(player);
         extractPlayer(player);
         toLocation = location;
+        if (! Config.getTeleportInventory()) {
+            inventory = null;
+            armor = null;
+        }
     }
 
     // player direct to remote server, default world, spawn location
@@ -206,6 +222,10 @@ public final class Reservation {
         addGateLock(player);
         extractPlayer(player);
         toServer = server;
+        if (! Config.getTeleportInventory()) {
+            inventory = null;
+            armor = null;
+        }
     }
 
     // player direct to remote server, specified world, spawn location
@@ -214,6 +234,10 @@ public final class Reservation {
         extractPlayer(player);
         toServer = server;
         toWorldName = worldName;
+        if (! Config.getTeleportInventory()) {
+            inventory = null;
+            armor = null;
+        }
     }
 
     // player direct to remote server, specified world, specified location
@@ -223,6 +247,10 @@ public final class Reservation {
         toServer = server;
         toWorldName = worldName;
         toLocation = new Location(null, x, y, z);
+        if (! Config.getTeleportInventory()) {
+            inventory = null;
+            armor = null;
+        }
     }
 
     // reception of reservation from sending server
@@ -627,6 +655,15 @@ public final class Reservation {
     public void arrived() {
         remove(this);
         Utils.debug("reservation to send %s to %s was completed", getTraveler(), getDestination());
+        
+        if ((toServer != null) && (player != null)) {
+            if (((fromGateLocal != null) && fromGateLocal.getDeleteInventory()) ||
+                ((fromGateLocal == null) && Config.getDeleteInventory())) {
+                PlayerInventory inv = player.getInventory();
+                inv.clear();
+                player.saveData();
+            }
+        }
     }
 
     // called on the sending side to indicate an expected arrival never happened on the receiving side

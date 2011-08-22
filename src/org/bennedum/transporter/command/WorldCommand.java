@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import org.bennedum.transporter.BukkitWorld;
+import org.bennedum.transporter.WorldProxy;
 import org.bennedum.transporter.Context;
 import org.bennedum.transporter.Global;
 import org.bennedum.transporter.Permissions;
@@ -54,6 +54,8 @@ public class WorldCommand extends TrpCommandProcessor {
         if (ctx.isPlayer())
             cmds.add(getPrefix(ctx) + GROUP + "go [<coords>] [<world>]");
         cmds.add(getPrefix(ctx) + GROUP + "spawn [<coords>] [<world>]");
+        cmds.add(getPrefix(ctx) + GROUP + "get <world> <option>|*");
+        cmds.add(getPrefix(ctx) + GROUP + "set <world> <option> <value>");
         return cmds;
     }
     
@@ -66,15 +68,15 @@ public class WorldCommand extends TrpCommandProcessor {
 
         if ("list".startsWith(subCmd)) {
             Permissions.require(ctx.getPlayer(), "trp.world.list");
-            List<BukkitWorld> worlds = Worlds.getAll();
-            Collections.sort(worlds, new Comparator<BukkitWorld>() {
+            List<WorldProxy> worlds = Worlds.getAll();
+            Collections.sort(worlds, new Comparator<WorldProxy>() {
                 @Override
-                public int compare(BukkitWorld a, BukkitWorld b) {
+                public int compare(WorldProxy a, WorldProxy b) {
                     return a.getName().compareToIgnoreCase(b.getName());
                 }
             });
             ctx.send("%d worlds:", worlds.size());
-            for (BukkitWorld world : worlds)
+            for (WorldProxy world : worlds)
                 ctx.send("  %s (%s) autoLoad: %s, loaded: %s",
                         world.getName(), world.getEnvironment(),
                         world.getAutoLoad(), world.isLoaded());
@@ -110,7 +112,7 @@ public class WorldCommand extends TrpCommandProcessor {
             else
                 Global.plugin.getServer().createWorld(newName, env, seed);
             ctx.sendLog("created world '%s'", newName);
-            Worlds.add(new BukkitWorld(newName, env));
+            Worlds.add(new WorldProxy(newName, env));
             return;
         }
 
@@ -121,7 +123,7 @@ public class WorldCommand extends TrpCommandProcessor {
 
             Permissions.require(ctx.getPlayer(), "trp.world.load");
 
-            BukkitWorld world = Worlds.get(name);
+            WorldProxy world = Worlds.get(name);
             if (world == null)
                 throw new CommandException("unknown world '%s'", name);
             if (world.isLoaded())
@@ -139,7 +141,7 @@ public class WorldCommand extends TrpCommandProcessor {
 
             Permissions.require(ctx.getPlayer(), "trp.world.unload");
 
-            BukkitWorld world = Worlds.get(name);
+            WorldProxy world = Worlds.get(name);
             if (world == null)
                 throw new CommandException("unknown world '%s'", name);
             if (! world.isLoaded())
@@ -162,7 +164,7 @@ public class WorldCommand extends TrpCommandProcessor {
                 locationString = args.remove(0);
             if (! args.isEmpty()) {
                 String name = args.remove(0);
-                BukkitWorld bworld = Worlds.get(name);
+                WorldProxy bworld = Worlds.get(name);
                 if (bworld == null)
                     throw new CommandException("unknown world '%s'", name);
                 if (! bworld.isLoaded())
@@ -215,7 +217,7 @@ public class WorldCommand extends TrpCommandProcessor {
                 locationString = args.remove(0);
             if (! args.isEmpty()) {
                 String name = args.remove(0);
-                BukkitWorld bworld = Worlds.get(name);
+                WorldProxy bworld = Worlds.get(name);
                 if (bworld == null)
                     throw new CommandException("unknown world '%s'", name);
                 if (! bworld.isLoaded())
@@ -261,6 +263,37 @@ public class WorldCommand extends TrpCommandProcessor {
             return;
         }
 
+        if ("set".startsWith(subCmd)) {
+            if (args.isEmpty())
+                throw new CommandException("world name required");
+            String name = args.remove(0);
+            WorldProxy world = Worlds.get(name);
+            if (world == null)
+                throw new CommandException("unknown world '%s'", name);
+            if (args.isEmpty())
+                throw new CommandException("option name required");
+            String option = args.remove(0);
+            if (args.isEmpty())
+                throw new CommandException("option value required");
+            String value = args.remove(0);
+            world.setOption(ctx, option, value);
+            return;
+        }
+
+        if ("get".startsWith(subCmd)) {
+            if (args.isEmpty())
+                throw new CommandException("world name required");
+            String name = args.remove(0);
+            WorldProxy world = Worlds.get(name);
+            if (world == null)
+                throw new CommandException("unknown world '%s'", name);
+            if (args.isEmpty())
+                throw new CommandException("option name required");
+            String option = args.remove(0);
+            world.getOptions(ctx, option);
+            return;
+        }
+        
         throw new CommandException("do what with a world?");
     }
 

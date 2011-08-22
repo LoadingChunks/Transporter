@@ -9,9 +9,16 @@ Testing:
     * behavior of connection state when, e.g., a player is banned on destination server
     * server-server chat format
     * server-server send/receiveAllChat options
+    * delete inventory setting
+    * teleport inventory setting
+    * world commands
+    * gate go command
 
 Wiki Updates:
-    * update GateDesign with lightning
+    * update GateDesign:
+        * ligthning
+        * teleportInventory (default true)
+        * deleteInventory (default false)
     * update server add commands with renamed args
     * remove server change command
     * update ServerToServer:
@@ -27,6 +34,10 @@ Wiki Updates:
         * usePermissionsEx (default false)
         * gateLockExpiration (default 2000ms)
         * arrivalWindow (default 20000ms)
+        * teleportInventory (default true)
+        * deleteInventory (default false)
+        * suppressConnectionAttempts (default -1)
     * home page
         * BOSEconomy support
+        * PerimissionsEx support
     * gate design: iConomy -> Economy

@@ -30,7 +30,7 @@ import org.bukkit.util.config.ConfigurationNode;
 public final class Worlds {
 
     public static final File WorldBaseFolder = Utils.BukkitBaseFolder;
-    private static final Map<String,BukkitWorld> worlds = new HashMap<String,BukkitWorld>();
+    private static final Map<String,WorldProxy> worlds = new HashMap<String,WorldProxy>();
 
     public static void onConfigLoad(Context ctx) {
         worlds.clear();
@@ -38,7 +38,7 @@ public final class Worlds {
         if (worldNodes != null) {
             for (ConfigurationNode node : worldNodes) {
                 try {
-                    BukkitWorld world = new BukkitWorld(node);
+                    WorldProxy world = new WorldProxy(node);
                     add(world);
                     if (Config.getAutoLoadWorlds() && world.getAutoLoad())
                         world.load(ctx);
@@ -47,22 +47,31 @@ public final class Worlds {
                 }
             }
         }
+        
+        // add default world if it doesn't exist
+        World world = Global.plugin.getServer().getWorlds().get(0);
+        if (! worlds.containsKey(world.getName())) {
+            try {
+                WorldProxy newWorld = new WorldProxy(world.getName(), world.getEnvironment());
+                add(newWorld);
+            } catch (WorldException e) {}
+        }
     }
 
     public static void onConfigSave(Context ctx) {
         List<Map<String,Object>> worldNodes = new ArrayList<Map<String,Object>>();
-        for (BukkitWorld world : worlds.values())
+        for (WorldProxy world : worlds.values())
             worldNodes.add(world.encode());
         Config.setPropertyDirect("worlds", worldNodes);
     }
 
-    public static void add(BukkitWorld world) {
+    public static void add(WorldProxy world) {
         worlds.put(world.getName(), world);
     }
 
-    public static BukkitWorld get(String name) {
+    public static WorldProxy get(String name) {
         if (worlds.containsKey(name)) return worlds.get(name);
-        BukkitWorld world = null;
+        WorldProxy world = null;
         name = name.toLowerCase();
         for (String key : worlds.keySet()) {
             if (key.toLowerCase().startsWith(name)) {
@@ -73,8 +82,8 @@ public final class Worlds {
         return world;
     }
 
-    public static List<BukkitWorld> getAll() {
-        return new ArrayList<BukkitWorld>(worlds.values());
+    public static List<WorldProxy> getAll() {
+        return new ArrayList<WorldProxy>(worlds.values());
     }
 
     public static boolean isEmpty() {

@@ -17,7 +17,6 @@ package org.bennedum.transporter.command;
 
 import java.util.List;
 import org.bennedum.transporter.Context;
-import org.bennedum.transporter.TransporterException;
 import org.bukkit.command.Command;
 
 /**

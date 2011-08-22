@@ -16,9 +16,6 @@
 package org.bennedum.transporter;
 
 import java.io.File;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -42,9 +39,9 @@ import org.bukkit.util.config.ConfigurationNode;
  *
  * @author frdfsnlght <frdfsnlght@gmail.com>
  */
-public class LocalGate extends Gate {
+public class LocalGate extends Gate implements OptionsListener {
 
-    public static final List<String> OPTIONS = new ArrayList<String>();
+    public static final Set<String> OPTIONS = new HashSet<String>();
 
     static {
         OPTIONS.add("duration");
@@ -60,6 +57,8 @@ public class LocalGate extends Gate {
         OPTIONS.add("relayChat");
         OPTIONS.add("relayChatDistance");
         OPTIONS.add("requireAllowedItems");
+        OPTIONS.add("teleportInventory");
+        OPTIONS.add("deleteInventory");
         OPTIONS.add("linkLocalCost");
         OPTIONS.add("linkWorldCost");
         OPTIONS.add("linkServerCost");
@@ -101,6 +100,8 @@ public class LocalGate extends Gate {
     private boolean relayChat;
     private int relayChatDistance;
     private boolean requireAllowedItems;
+    private boolean teleportInventory;
+    private boolean deleteInventory;
 
     private double linkLocalCost;
     private double linkWorldCost;
@@ -127,6 +128,7 @@ public class LocalGate extends Gate {
     private boolean portalOpen = false;
     private long portalOpenTime = 0;
     private boolean dirty = false;
+    private Options options = new Options(this, OPTIONS, "trp.gate", this);
 
     public LocalGate(World world, String gateName, String playerName, Design design, List<GateBlock> blocks, BlockFace direction) throws GateException {
         this.world = world;
@@ -148,6 +150,8 @@ public class LocalGate extends Gate {
         relayChat = design.getRelayChat();
         relayChatDistance = design.getRelayChatDistance();
         requireAllowedItems = design.getRequireAllowedItems();
+        teleportInventory = design.getTeleportInventory();
+        deleteInventory = design.getDeleteInventory();
 
         linkLocalCost = design.getLinkLocalCost();
         linkWorldCost = design.getLinkWorldCost();
@@ -238,6 +242,8 @@ public class LocalGate extends Gate {
         relayChat = conf.getBoolean("relayChat", false);
         relayChatDistance = conf.getInt("relayChatDistance", 1000);
         requireAllowedItems = conf.getBoolean("requireAllowedItems", true);
+        teleportInventory = conf.getBoolean("teleportInventory", true);
+        deleteInventory = conf.getBoolean("deleteInventory", false);
 
         incoming.addAll(conf.getStringList("incoming", new ArrayList<String>()));
         outgoing = conf.getString("outgoing");
@@ -315,6 +321,8 @@ public class LocalGate extends Gate {
         conf.setProperty("relayChat", relayChat);
         conf.setProperty("relayChatDistance", relayChatDistance);
         conf.setProperty("requireAllowedItems", requireAllowedItems);
+        conf.setProperty("teleportInventory", teleportInventory);
+        conf.setProperty("deleteInventory", deleteInventory);
 
         if (! incoming.isEmpty()) conf.setProperty("incoming", new ArrayList<String>(incoming));
         if (outgoing != null) conf.setProperty("outgoing", outgoing);
@@ -532,6 +540,24 @@ public class LocalGate extends Gate {
         requireAllowedItems = b;
         forceSave();
     }
+
+    public boolean getTeleportInventory() {
+        return teleportInventory;
+    }
+
+    public void setTeleportInventory(boolean b) {
+        teleportInventory = b;
+        forceSave();
+    }
+    
+    public boolean getDeleteInventory() {
+        return deleteInventory;
+    }
+
+    public void setDeleteInventory(boolean b) {
+        deleteInventory = b;
+        forceSave();
+    }
     
     public double getLinkLocalCost() {
         return linkLocalCost;
@@ -614,67 +640,22 @@ public class LocalGate extends Gate {
         forceSave();
     }
     
-    public String resolveOption(String option) throws GateException {
-        for (String opt : OPTIONS) {
-            if (opt.toLowerCase().startsWith(option.toLowerCase()))
-                return opt;
-        }
-        throw new GateException("unknown option");
+    
+    public void getOptions(Context ctx, String name) throws OptionsException, PermissionsException {
+        options.getOptions(ctx, name);
+    }
+    
+    public String getOption(Context ctx, String name) throws OptionsException, PermissionsException {
+        return options.getOption(ctx, name);
+    }
+    
+    public void setOption(Context ctx, String name, String value) throws OptionsException, PermissionsException {
+        options.setOption(ctx, name, value);
     }
 
-    public void setOption(String option, String value) throws GateException {
-        if (! OPTIONS.contains(option))
-            throw new GateException("unknown option");
-        String methodName = "set" +
-                option.substring(0, 1).toUpperCase() +
-                option.substring(1);
-        try {
-            Field f = getClass().getDeclaredField(option);
-            Class c = f.getType();
-            Method m = getClass().getMethod(methodName, c);
-            if (c == Boolean.TYPE)
-                m.invoke(this, Boolean.parseBoolean(value));
-            else if (c == Integer.TYPE)
-                m.invoke(this, Integer.parseInt(value));
-            else if (c == Float.TYPE)
-                m.invoke(this, Float.parseFloat(value));
-            else if (c == Double.TYPE)
-                m.invoke(this, Double.parseDouble(value));
-            else if (c == String.class)
-                m.invoke(this, value);
-            else
-                throw new GateException("unsupported option type");
-        } catch (InvocationTargetException ite) {
-            throw (GateException)ite.getCause();
-        } catch (NoSuchMethodException nsme) {
-            throw new GateException("invalid method");
-        } catch (IllegalArgumentException iae) {
-            throw new GateException("invalid value");
-        } catch (NoSuchFieldException nsfe) {
-            throw new GateException("unknown option");
-        } catch (IllegalAccessException iae) {
-            throw new GateException("unable to set the option");
-        }
-    }
-
-    public String getOption(String option) throws GateException {
-        if (! OPTIONS.contains(option))
-            throw new GateException("unknown option");
-        String methodName = "get" +
-                option.substring(0, 1).toUpperCase() +
-                option.substring(1);
-        try {
-            Method m = getClass().getMethod(methodName);
-            Object value = m.invoke(this);
-            if (value == null) return "(null)";
-            return value.toString();
-        } catch (InvocationTargetException ite) {
-            throw (GateException)ite.getCause();
-        } catch (NoSuchMethodException nsme) {
-            throw new GateException("invalid method");
-        } catch (IllegalAccessException iae) {
-            throw new GateException("unable to read the option");
-        }
+    @Override
+    public void onOptionSet(Context ctx, String name, String value) {
+        ctx.sendLog("option '%s' set to '%s' for world '%s'", name, value, getName());
     }
 
     /* End options */

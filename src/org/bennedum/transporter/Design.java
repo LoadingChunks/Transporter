@@ -60,7 +60,9 @@ public class Design {
     private boolean relayChat;
     private int relayChatDistance;
     private boolean requireAllowedItems;
-
+    private boolean teleportInventory;
+    private boolean deleteInventory;
+    
     // Economy
     private double buildCost;
     private double createCost;
@@ -109,6 +111,8 @@ public class Design {
         relayChat = conf.getBoolean("relayChat", false);
         relayChatDistance = conf.getInt("relayChatDistance", 1000);
         requireAllowedItems = conf.getBoolean("requireAllowedItems", true);
+        teleportInventory = conf.getBoolean("teleportInventory", true);
+        deleteInventory = conf.getBoolean("deleteInventory", false);
 
         List<String> items = conf.getStringList("bannedItems", new ArrayList<String>());
         for (String item : items) {
@@ -302,6 +306,8 @@ public class Design {
         Utils.debug("  invalidPinDamage = " + invalidPinDamage);
         Utils.debug("  relayChat = " + relayChat);
         Utils.debug("  relayChatDistance = " + relayChatDistance);
+        Utils.debug("  teleportInventory = " + teleportInventory);
+        Utils.debug("  deleteInventory = " + deleteInventory);
 
         Utils.debug("  buildCost = " + buildCost);
         Utils.debug("  createCost = " + createCost);
@@ -397,6 +403,14 @@ public class Design {
         return replaceItems;
     }
 
+    public boolean getTeleportInventory() {
+        return teleportInventory;
+    }
+    
+    public boolean getDeleteInventory() {
+        return deleteInventory;
+    }
+    
     public double getBuildCost() {
         return buildCost;
     }

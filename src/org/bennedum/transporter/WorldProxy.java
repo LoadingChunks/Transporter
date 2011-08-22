@@ -27,7 +27,7 @@ import org.bukkit.util.config.ConfigurationNode;
  *
  * @author frdfsnlght <frdfsnlght@gmail.com>
  */
-public final class BukkitWorld implements OptionsListener {
+public final class WorldProxy implements OptionsListener {
     
     private static final Set<String> OPTIONS = new HashSet<String>();
     
@@ -45,7 +45,7 @@ public final class BukkitWorld implements OptionsListener {
     private Environment environment;
     private boolean autoLoad;
     
-    public BukkitWorld(String name, Environment env) throws WorldException {
+    public WorldProxy(String name, Environment env) throws WorldException {
         try {
             setName(name);
             environment = env;
@@ -55,7 +55,7 @@ public final class BukkitWorld implements OptionsListener {
         }
     }
 
-    public BukkitWorld(ConfigurationNode node) throws WorldException {
+    public WorldProxy(ConfigurationNode node) throws WorldException {
         try {
             setName(node.getString("name"));
             setEnvironment(node.getString("environment", "NORMAL"));
@@ -123,7 +123,7 @@ public final class BukkitWorld implements OptionsListener {
     public Map<String,Object> encode() {
         Map<String,Object> node = new HashMap<String,Object>();
         node.put("name", name);
-        node.put("environment", environment);
+        node.put("environment", environment.toString());
         node.put("autoLoad", autoLoad);
         return node;
     }

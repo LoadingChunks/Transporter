@@ -19,16 +19,16 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.regex.PatternSyntaxException;
 import org.bennedum.transporter.Config;
 import org.bennedum.transporter.Context;
 import org.bennedum.transporter.Economy;
 import org.bennedum.transporter.Gate;
-import org.bennedum.transporter.GateException;
 import org.bennedum.transporter.Gates;
 import org.bennedum.transporter.Global;
 import org.bennedum.transporter.LocalGate;
 import org.bennedum.transporter.Permissions;
+import org.bennedum.transporter.Reservation;
+import org.bennedum.transporter.ReservationException;
 import org.bennedum.transporter.TransporterException;
 import org.bukkit.command.Command;
 
@@ -67,6 +67,8 @@ public class GateCommand extends TrpCommandProcessor {
         cmds.add(getPrefix(ctx) + GROUP + "allow remove <item>|* [<gate>]");
         cmds.add(getPrefix(ctx) + GROUP + "replace add <old> <new> [<gate>]");
         cmds.add(getPrefix(ctx) + GROUP + "replace remove <olditem>|* [<gate>]");
+        if (ctx.isPlayer())
+            cmds.add(getPrefix(ctx) + GROUP + "[<gate>]");
         cmds.add(getPrefix(ctx) + GROUP + "get <option>|* [<gate>]");
         cmds.add(getPrefix(ctx) + GROUP + "set <option> <value> [<gate>]");
         return cmds;
@@ -394,52 +396,49 @@ public class GateCommand extends TrpCommandProcessor {
             throw new CommandException("do what with a replace?");
         }
 
-        if (("get".startsWith(subCmd)) ||
-            ("set".startsWith(subCmd))) {
-
+        if ("set".startsWith(subCmd)) {
+            if (args.isEmpty())
+                throw new CommandException("option name required");
             String option = args.remove(0);
-            String value = null;
-
-            if ("set".startsWith(subCmd)) {
-                if (args.isEmpty())
-                    throw new CommandException("missing option value");
-                value = args.remove(0);
-            }
+            if (args.isEmpty())
+                throw new CommandException("option value required");
+            String value = args.remove(0);
             LocalGate gate = getGate(ctx, args);
-
-            if ("set".startsWith(subCmd)) {
-                option = gate.resolveOption(option);
-                Permissions.require(ctx.getPlayer(), "trp.gate.option.set." + gate.getName() + "." + option);
-                gate.setOption(option, value);
-                ctx.sendLog("option '%s' set to '%s' for gate '%s'", option, value, gate.getName(ctx));
-            } else if ("get".startsWith(subCmd)) {
-                List<String> options = new ArrayList<String>();
-                
-                try {
-                    String opt = gate.resolveOption(option);
-                    Permissions.require(ctx.getPlayer(), "trp.gate.option.get." + opt);
-                    options.add(opt);
-                } catch (GateException e) {}
-                if (options.isEmpty()) {
-                    if (option.equals("*")) option = ".*";
-                    for (String opt : LocalGate.OPTIONS)
-                        try {
-                            if ((opt.matches(option)) &&
-                                Permissions.has(ctx.getPlayer(), "trp.gate.option.get." + opt))
-                            options.add(opt);
-                        } catch (PatternSyntaxException e) {}
-                }
-                if (options.isEmpty())
-                    throw new CommandException("no options match");
-                Collections.sort(options);
-                for (String name : options) {
-                    if (! Permissions.has(ctx.getPlayer(), "trp.gate.option.get." + gate.getName() + "." + name)) continue;
-                    ctx.send("%s=%s", name, gate.getOption(name));
-                }
-            }
+            gate.setOption(ctx, option, value);
             return;
         }
 
+        if ("get".startsWith(subCmd)) {
+            if (args.isEmpty())
+                throw new CommandException("option name required");
+            String option = args.remove(0);
+            LocalGate gate = getGate(ctx, args);
+            gate.getOptions(ctx, option);
+            return;
+        }
+
+        if ("go".startsWith(subCmd)) {
+            Gate gate = null;
+            if (! args.isEmpty()) {
+                String name = args.remove(0);
+                gate = Gates.get(ctx, name);
+                if (gate == null)
+                    throw new CommandException("unknown gate '%s'", name);
+            } else if (ctx.isPlayer())
+                gate = Global.getSelectedGate(ctx.getPlayer());
+            if (gate == null)
+                throw new CommandException("gate name required");
+
+            Permissions.require(ctx.getPlayer(), "trp.gate.go." + gate.getName());
+            try {
+                Reservation r = new Reservation(ctx.getPlayer(), gate);
+                r.depart();
+            } catch (ReservationException e) {
+                ctx.warnLog(e.getMessage());
+            }
+            return;
+        }
+        
         throw new CommandException("do what with a gate?");
     }
 
@@ -458,31 +457,5 @@ public class GateCommand extends TrpCommandProcessor {
             throw new CommandException("this command cannot be used on a remote gate");
         return (LocalGate)gate;
     }
-
-    /*
-    private LocalGate getExplicitGate(Context ctx, List<String> args) throws CommandException {
-        Gate gate = null;
-        if (! args.isEmpty()) {
-            gate = Global.gates.get(ctx, args.get(0));
-            if (gate == null)
-                throw new CommandException("unknown gate '%s'", args.get(0));
-            args.remove(0);
-        }
-        if (gate == null)
-            throw new CommandException("gate name required");
-        if (! gate.isSameServer())
-            throw new CommandException("this command cannot be used on a remote gate");
-        return (LocalGate)gate;
-    }
-
-    private LocalGate getSelectedGate(Context ctx) throws CommandException {
-        Gate gate = null;
-        if (ctx.isPlayer())
-            gate = Global.getSelectedGate(ctx.getPlayer());
-        if (gate == null)
-            throw new CommandException("gate name required");
-        return (LocalGate)gate;
-    }
-*/
 
 }
