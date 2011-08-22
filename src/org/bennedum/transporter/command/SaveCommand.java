@@ -69,7 +69,7 @@ public class SaveCommand extends TrpCommandProcessor {
             if (arg.equals("config"))
                 Config.save(ctx);
             else if (arg.equals("gates"))
-                Gates.saveAll(ctx);
+                Gates.save(ctx);
         }
     }
 

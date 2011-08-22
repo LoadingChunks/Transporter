@@ -69,7 +69,7 @@ public final class Gates {
         }
 
         // TODO: review and change in lieu of the new Worlds class and the global autoLoadWorlds setting
-        
+
         // check all loaded, local gate links for non-loaded worlds and load them and their gates
         for (;;) {
             List<String> newWorlds = new ArrayList<String>();
@@ -115,12 +115,9 @@ public final class Gates {
         }
     }
 
-    public static void saveAll(Context ctx) {
+    public static void save(Context ctx) {
         exportJSON();
-        if (size() == 0) {
-            ctx.send("no gates to save");
-            return;
-        }
+        if (size() == 0) return;
         for (String name : gates.keySet()) {
             Gate gate = gates.get(name);
             if (! gate.isSameServer()) continue;
@@ -130,7 +127,7 @@ public final class Gates {
     }
 
     public static void exportJSON() {
-        String fileName = Config.getString("exportedGatesFile");
+        String fileName = Config.getExportedGatesFile();
         if (fileName == null) return;
         File file = new File(fileName);
         if (! file.isAbsolute())

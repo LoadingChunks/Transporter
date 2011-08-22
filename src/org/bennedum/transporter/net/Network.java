@@ -87,7 +87,7 @@ public final class Network {
         });
     }
 
-    
+
     public static InetSocketAddress makeInetSocketAddress(String addrStr, String defAddr, int defPort, boolean allowWildcard) throws IllegalArgumentException {
         String addrPart = defAddr;
         String portPart = defPort + "";
@@ -102,7 +102,7 @@ public final class Network {
                 portPart = (parts.length > 1) ? parts[1] : (defPort + "");
             }
         }
-        
+
         if (addrPart == null)
             throw new IllegalArgumentException("missing address");
         if (portPart == null)
@@ -113,7 +113,7 @@ public final class Network {
             if (! allowWildcard)
                 throw new IllegalArgumentException("wildcard address not allowed");
         } else {
-            
+
             // try to find a matching interface name
             try {
                 for (Enumeration<NetworkInterface> e = NetworkInterface.getNetworkInterfaces(); e.hasMoreElements(); ) {
@@ -133,7 +133,7 @@ public final class Network {
                 throw new IllegalArgumentException("unknown host address '" + addrPart + "'");
             }
         }
-        
+
         int port;
         try {
             port = Integer.parseInt(portPart);
@@ -192,7 +192,7 @@ public final class Network {
         } catch (Exception e) {
             ctx.warn("network manager cannot be started: %s", e.getMessage());
         }
-        
+
         networkThread = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -207,7 +207,7 @@ public final class Network {
         stop(ctx);
         start(ctx);
     }
-    
+
     // called from main thread
     public static void stop(Context ctx) {
         if ((networkThread == null) ||
@@ -223,7 +223,7 @@ public final class Network {
         }
         networkThread = null;
     }
-    
+
     public static void onConfigLoad(Context ctx) {
         boolean restart = state == State.RUNNING;
         if (restart) Network.stop(ctx);
@@ -235,7 +235,7 @@ public final class Network {
         key = getKey();
         selectInterval = getSelectInterval();
         readBufferSize = getReadBufferSize();
-        
+
         banned.clear();
         List<String> addresses = Config.getStringList("network.bannedAddresses");
         if (addresses != null)
@@ -249,97 +249,97 @@ public final class Network {
             }
         if (restart) Network.start(ctx);
     }
-    
+
     public static void onConfigSave(Context ctx) {
         synchronized (banned) {
             List<String> bannedAddresses = new ArrayList<String>(banned.size());
             for (Pattern p : banned)
                 bannedAddresses.add(p.pattern());
-            Config.setProperty("network.bannedAddresses", bannedAddresses);
+            Config.setPropertyDirect("network.bannedAddresses", bannedAddresses);
         }
     }
-    
+
     /* Begin options */
 
     public static int getReadBufferSize() {
-        return Config.getInt("network.readBufferSize", 4096);
+        return Config.getIntDirect("network.readBufferSize", 4096);
     }
-    
+
     public static void setReadBufferSize(int i) {
         if (i < 1024)
             throw new IllegalArgumentException("readBufferSize must be at least 1024");
-        Config.setProperty("network.readBufferSize", i);
+        Config.setPropertyDirect("network.readBufferSize", i);
     }
 
     public static int getSelectInterval() {
-        return Config.getInt("network.selectInterval", 30000);
+        return Config.getIntDirect("network.selectInterval", 30000);
     }
 
     public static void setSelectInterval(int i) {
         if (i < 1000)
             throw new IllegalArgumentException("selectInterval must be at least 1000");
-        Config.setProperty("network.selectInterval", i);
+        Config.setPropertyDirect("network.selectInterval", i);
     }
 
     public static boolean getUsePrivateAddress() {
-        return Config.getBoolean("network.usePrivateAddress", true);
+        return Config.getBooleanDirect("network.usePrivateAddress", true);
     }
 
     public static void setUsePrivateAddress(boolean b) {
-        Config.setProperty("network.usePrivateAddress", b);
+        Config.setPropertyDirect("network.usePrivateAddress", b);
     }
 
     public static boolean getSendPrivateAddress() {
-        return Config.getBoolean("network.sendPrivateAddress", true);
+        return Config.getBooleanDirect("network.sendPrivateAddress", true);
     }
-    
+
     public static void setSendPrivateAddress(boolean b) {
-        Config.setProperty("network.sendPrivateAddress", b);
+        Config.setPropertyDirect("network.sendPrivateAddress", b);
     }
-    
+
     public static String getClusterName() {
-        return Config.getString("network.clusterName", null);
+        return Config.getStringDirect("network.clusterName", null);
     }
-    
+
     public static void setClusterName(String s) {
-        Config.setProperty("network.clusterName", s);
+        Config.setPropertyDirect("network.clusterName", s);
     }
-    
+
     public static int getReconnectInterval() {
-        return Config.getInt("network.reconnectInterval", 60000);
+        return Config.getIntDirect("network.reconnectInterval", 60000);
     }
-    
+
     public static void setReconnectInterval(int i) {
         if (i < 10000)
             throw new IllegalArgumentException("reconnectInterval must be at least 10000");
-        Config.setProperty("network.reconnectInterval", i);
+        Config.setPropertyDirect("network.reconnectInterval", i);
     }
-    
+
     public static int getReconnectSkew() {
-        return Config.getInt("network.reconnectSkew", 10000);
+        return Config.getIntDirect("network.reconnectSkew", 10000);
     }
-    
+
     public static void setReconnectSkew(int i) {
         if (i < 0)
             throw new IllegalArgumentException("reconnectSkew must be greater than 0");
-        Config.setProperty("network.reconnectSkew", i);
+        Config.setPropertyDirect("network.reconnectSkew", i);
     }
-    
+
     public static String getListenAddress() {
-        return Config.getString("network.listenAddress", null);
+        return Config.getStringDirect("network.listenAddress", null);
     }
-    
+
     public static void setListenAddress(String s) {
         Network.makeInetSocketAddress(s, "0.0.0.0", Global.DEFAULT_PLUGIN_PORT, true);
-        Config.setProperty("network.listenAddress", s);
+        Config.setPropertyDirect("network.listenAddress", s);
     }
-    
+
     public static String getKey() {
-        return Config.getString("network.key", null);
+        return Config.getStringDirect("network.key", null);
     }
-    
+
     public static void setKey(String s) {
-        Config.setProperty("network.key", s);
+        Config.setPropertyDirect("network.key", s);
     }
 
     public static void getOptions(Context ctx, String name) throws OptionsException, PermissionsException {
@@ -353,13 +353,13 @@ public final class Network {
     public static void setOption(Context ctx, String name, String value) throws OptionsException, PermissionsException {
         options.setOption(ctx, name, value);
     }
-    
+
     /* End options */
 
     public static String getCachedKey() {
         return key;
     }
-    
+
     public static boolean isStopped() {
         return (state == State.STOP) || (state == State.STOPPING) || (state == State.STOPPED);
     }
@@ -412,7 +412,7 @@ public final class Network {
     }
 
     /* Networking gunk */
-    
+
     private static void run() {
 
         ServerSocketChannel serverChannel = null;

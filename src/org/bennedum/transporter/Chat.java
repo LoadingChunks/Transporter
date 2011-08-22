@@ -31,15 +31,15 @@ import org.bukkit.entity.Player;
  * @author frdfsnlght <frdfsnlght@gmail.com>
  */
 public final class Chat {
-    
+
     public static void send(Player player, String message) {
         Map<Server,Set<RemoteGate>> servers = new HashMap<Server,Set<RemoteGate>>();
-        
+
         // add all servers that relay all chat
         for (Server server : Servers.getAll())
             if (server.getSendAllChat())
                 servers.put(server, null);
-        
+
         // find all remote gates within range
         Location loc = player.getLocation();
         Gate destGate;
@@ -82,7 +82,7 @@ public final class Chat {
         if (players == null) return;
 
         final Set<String> playersToReceive = new HashSet<String>();
-        
+
         if (fromServer.getReceiveAllChat())
             playersToReceive.addAll(players.keySet());
         else {
@@ -98,7 +98,7 @@ public final class Chat {
 
         if (playersToReceive.isEmpty()) return;
 
-        String format = Config.getString("chatFormat", "<%player%@%server%> %message%");
+        String format = Config.getServerChatFormat();
         format.replace("%player%", displayName);
         format.replace("%server%", fromServer.getName());
         format.replace("%world%", fromWorldName);
@@ -115,5 +115,5 @@ public final class Chat {
             }
         });
     }
-    
+
 }

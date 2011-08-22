@@ -28,10 +28,10 @@ import org.bukkit.util.config.ConfigurationNode;
  * @author frdfsnlght <frdfsnlght@gmail.com>
  */
 public final class Worlds {
-    
+
     public static final File WorldBaseFolder = Utils.BukkitBaseFolder;
     private static final Map<String,BukkitWorld> worlds = new HashMap<String,BukkitWorld>();
-    
+
     public static void onConfigLoad(Context ctx) {
         worlds.clear();
         List<ConfigurationNode> worldNodes = Config.getNodeList("worlds");
@@ -48,18 +48,18 @@ public final class Worlds {
             }
         }
     }
-    
+
     public static void onConfigSave(Context ctx) {
         List<Map<String,Object>> worldNodes = new ArrayList<Map<String,Object>>();
         for (BukkitWorld world : worlds.values())
             worldNodes.add(world.encode());
-        Config.setProperty("worlds", worldNodes);
+        Config.setPropertyDirect("worlds", worldNodes);
     }
-    
+
     public static void add(BukkitWorld world) {
         worlds.put(world.getName(), world);
     }
-    
+
     public static BukkitWorld get(String name) {
         if (worlds.containsKey(name)) return worlds.get(name);
         BukkitWorld world = null;
@@ -84,7 +84,7 @@ public final class Worlds {
     public static int size() {
         return worlds.size();
     }
-    
+
     public static File worldFolder(String name) {
         return new File(WorldBaseFolder, name);
     }

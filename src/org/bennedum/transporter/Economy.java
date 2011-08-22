@@ -30,14 +30,14 @@ public final class Economy {
 
     private static iConomy iconomyPlugin = null;
     private static BOSEconomy boseconomyPlugin = null;
-    
+
     public static boolean isAvailable() {
         return iconomyAvailable() ||
                boseconomyAvailable();
     }
-    
+
     public static boolean iconomyAvailable() {
-        if (! Config.getBoolean("useIConomy", false)) return false;
+        if (! Config.getUseIConomy()) return false;
         if (iconomyPlugin != null) return true;
         Plugin p = Global.plugin.getServer().getPluginManager().getPlugin("iConomy");
         if ((p == null) || (! p.getClass().getName().equals("com.iConomy.iConomy")) || (! p.isEnabled())) return false;
@@ -46,28 +46,28 @@ public final class Economy {
     }
 
     public static boolean boseconomyAvailable() {
-        if (! Config.getBoolean("useBOSEconomy", false)) return false;
+        if (! Config.getUseBOSEconomy()) return false;
         if (boseconomyPlugin != null) return true;
         Plugin p = Global.plugin.getServer().getPluginManager().getPlugin("BOSEconomy");
         if ((p == null) || (! p.isEnabled())) return false;
         boseconomyPlugin = (BOSEconomy)p;
         return true;
     }
-    
+
     public static String format(double funds) {
         if (iconomyAvailable())
             return iConomy.format(funds);
         if (boseconomyAvailable())
             return boseconomyPlugin.getMoneyFormatted(funds);
-        
+
         // default
         return String.format("$%1.2f", funds);
     }
-    
+
     public static boolean requireFunds(Player player, double amount) throws EconomyException {
         return requireFunds(player.getName(), amount);
     }
-    
+
     public static boolean requireFunds(String accountName, double amount) throws EconomyException {
         if (amount <= 0) return false;
         if (iconomyAvailable()) {
@@ -86,15 +86,15 @@ public final class Economy {
                 throw new EconomyException("insufficient funds");
             return true;
         }
-        
+
         // default
         return false;
     }
-    
+
     public static boolean deductFunds(Player player, double amount) throws EconomyException {
         return deductFunds(player.getName(), amount);
     }
-    
+
     public static boolean deductFunds(String accountName, double amount) throws EconomyException {
         if (amount <= 0) return false;
         if (iconomyAvailable()) {
@@ -114,9 +114,9 @@ public final class Economy {
                 throw new EconomyException("insufficient funds");
             return boseconomyPlugin.addPlayerMoney(accountName, -amount, false);
         }
-        
+
         // default
         return false;
     }
-    
+
 }

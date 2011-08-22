@@ -29,8 +29,8 @@ public class ServerListenerImpl extends ServerListener {
         Context ctx = new Context(event.getSender());
         String cmd = event.getCommand();
         if (cmd.equalsIgnoreCase("save-all")) {
-            Utils.saveConfig(ctx);
-            Gates.saveAll(ctx);
+            Config.save(ctx);
+            Gates.save(ctx);
         }
     }
 

@@ -44,9 +44,6 @@ import org.bukkit.util.Vector;
  */
 public final class Reservation {
 
-    private static final int DEFAULT_ARRIVAL_WINDOW = 20000;
-    private static final int DEFAULT_LOCK_EXPIRATION = 2000;
-
     private static final Map<String,String> pins = new HashMap<String,String>();
     private static final Map<Integer,Long> gateLocks = new HashMap<Integer,Long>();
 
@@ -113,7 +110,7 @@ public final class Reservation {
     public static void addGateLock(Entity entity) {
         if (entity == null) return;
         synchronized (gateLocks) {
-            gateLocks.put(entity.getEntityId(), System.currentTimeMillis() + Global.config.getInt("gateLockExpiration", DEFAULT_LOCK_EXPIRATION));
+            gateLocks.put(entity.getEntityId(), System.currentTimeMillis() + Config.getGateLockExpiration());
             Utils.debug("added gate lock for entity %d", entity.getEntityId());
         }
     }
@@ -516,7 +513,6 @@ public final class Reservation {
                         } catch (ReservationException e) {
                             Utils.warning("reservation arrival for %s to %s to %s failed:", getTraveler(), getDestination(), fromServer.getName(), e.getMessage());
                         }
-
                     }
                 });
             } else {
@@ -533,10 +529,7 @@ public final class Reservation {
                             Utils.severe(e, "send reservation timeout for %s to %s to %s failed:", getTraveler(), getDestination(), fromServer.getName());
                         }
                     }
-                }, Global.config.getInt("arrivalWindow", Global.config.getInt("arrivalWindow", DEFAULT_ARRIVAL_WINDOW)));
-
-                }, Config.getInt("arrivalWindow", DEFAULT_ARRIVAL_WINDOW));
-                
+                }, Config.getArrivalWindow());
             }
 
         } catch (ReservationException e) {
@@ -692,7 +685,7 @@ public final class Reservation {
         }
 
         // check gate permission
-        if ((toGate != null) && Global.config.getBoolean("useGatePermissions", false)) {
+        if ((toGate != null) && Config.getUseGatePermissions()) {
             try {
                 Permissions.require(fromGateLocal.getWorldName(), fromGateLocal.getName(), "trp.send." + toGate.getGlobalName());
             } catch (PermissionsException e) {
@@ -738,7 +731,7 @@ public final class Reservation {
             throw new ReservationException("remote gate won't allow some inventory items");
 
         // check gate permission
-        if ((fromGate != null) && Global.config.getBoolean("useGatePermissions", false)) {
+        if ((fromGate != null) && Config.getUseGatePermissions()) {
             try {
                 Permissions.require(toGateLocal.getWorldName(), toGateLocal.getName(), "trp.receive." + fromGateLocal.getGlobalName());
             } catch (PermissionsException e) {

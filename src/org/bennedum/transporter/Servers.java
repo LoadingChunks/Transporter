@@ -52,7 +52,7 @@ public final class Servers {
         List<Map<String,Object>> serverNodes = new ArrayList<Map<String,Object>>();
         for (Server server : servers.values())
             serverNodes.add(server.encode());
-        Config.setProperty("servers", serverNodes);
+        Config.setPropertyDirect("servers", serverNodes);
     }
 
     public static void add(final Server server) throws ServerException {

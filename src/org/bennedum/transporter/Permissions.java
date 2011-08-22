@@ -54,7 +54,7 @@ public final class Permissions {
     private static PermissionManager permissionsExPlugin = null;
 
     public static boolean permissionsAvailable() {
-        if (! Config.getBoolean("usePermissions", false)) return false;
+        if (! Config.getUsePermissions()) return false;
         if (permissionsPlugin != null) return true;
         Plugin p = Global.plugin.getServer().getPluginManager().getPlugin("Permissions");
         if ((p == null) || (! p.isEnabled())) return false;
@@ -63,7 +63,7 @@ public final class Permissions {
     }
 
     public static boolean permissionsExAvailable() {
-        if (! Global.config.getBoolean("usePermissionsEx", false)) return false;
+        if (! Config.getUsePermissionsEx()) return false;
         if (permissionsExPlugin != null) return true;
         Plugin p = Global.plugin.getServer().getPluginManager().getPlugin("PermissionsEx");
         if ((p == null) || (! p.isEnabled())) return false;

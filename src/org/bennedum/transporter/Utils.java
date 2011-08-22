@@ -65,10 +65,9 @@ import org.bukkit.util.Vector;
 public class Utils {
 
     public static final File BukkitBaseFolder = new File(".");
-    
+
     private static final Logger logger = Logger.getLogger("Minecraft");
 
-    private static final String DEBUG_URL = "http://www.bennedum.org/transporter-debug.php";
     private static final String DEBUG_BOUNDARY = "*****";
     private static final int DEBUG_LOG_BYTES = 20 * 1024;
 
@@ -88,7 +87,7 @@ public class Utils {
     }
 
     public static void debug(String msg, Object ... args) {
-        if (! Config.getBoolean("debug", false)) return;
+        if (! Config.getDebug()) return;
         msg = ChatColor.stripColor(String.format(msg, args));
         logger.log(Level.INFO, String.format("[DEBUG] %s", msg));
     }
@@ -96,7 +95,7 @@ public class Utils {
     public static String block(Block b) {
         return String.format("Block[%s,%d]", b.getType(), b.getData());
     }
-    
+
     public static String blockCoords(Location loc) {
         return String.format("%s@%d,%d,%d", loc.getWorld().getName(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
     }
@@ -270,20 +269,20 @@ public class Utils {
 
     public static HttpURLConnection openURL(URL url) throws IOException {
         Proxy proxy = Proxy.NO_PROXY;
-        String proxyHost = Config.getString("httpProxy.host");
+        String proxyHost = Config.getHttpProxyHost();
         if (proxyHost != null) {
             Proxy.Type proxyType = null;
             try {
-                proxyType = Proxy.Type.valueOf(Config.getString("httpProxy.type", "HTTP"));
+                proxyType = Proxy.Type.valueOf(Config.getHttpProxyType());
             } catch (IllegalArgumentException iae) {}
-            int proxyPort = Config.getInt("httpProxy.port", 80);
+            int proxyPort = Config.getHttpProxyPort();
             proxy = new Proxy(proxyType, new InetSocketAddress(proxyHost, proxyPort));
             debug("using proxy %s", proxy);
         }
         HttpURLConnection conn = (HttpURLConnection)url.openConnection(proxy);
         if (proxy != Proxy.NO_PROXY) {
-            String proxyUser = Config.getString("httpProxy.user");
-            String proxyPassword = Config.getString("httpProxy.password");
+            String proxyUser = Config.getHttpProxyUser();
+            String proxyPassword = Config.getHttpProxyPassword();
             if ((proxyUser != null) && (proxyPassword != null)) {
                 String enc = Base64.encode(proxyUser + ":" + proxyPassword, "UTF-8");
                 conn.setRequestProperty("Proxy-Authorization", enc);
@@ -493,7 +492,7 @@ public class Utils {
         debug("debug data file '%s' created successfully", zipFile.getAbsolutePath());
 
         try {
-            URL url = new URL(Config.getString("debugURL", DEBUG_URL));
+            URL url = new URL(Config.getDebugURL());
             debug("submitting to %s", url);
             HttpURLConnection conn = openURL(url);
             conn.setDoInput(true);
@@ -543,7 +542,7 @@ public class Utils {
         } catch (IOException e) {
             severe(e, "unable to submit debug data:");
         } finally {
-            if (Config.getBoolean("deleteDebugFile", true))
+            if (Config.getDeleteDebugFile())
                 zipFile.delete();
         }
 
