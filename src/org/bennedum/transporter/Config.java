@@ -32,7 +32,7 @@ import org.bukkit.util.config.ConfigurationNode;
  */
 public final class Config {
 
-    private static final int CONFIG_VERSION = 1;
+    private static final int CONFIG_VERSION = 2;
 
     private static final Set<String> OPTIONS = new HashSet<String>();
     private static final Options options;
@@ -51,6 +51,9 @@ public final class Config {
         OPTIONS.add("arrivalWindow");
         OPTIONS.add("useGatePermissions");
         OPTIONS.add("serverChatFormat");
+        OPTIONS.add("serverJoinFormat");
+        OPTIONS.add("serverQuitFormat");
+        OPTIONS.add("serverKickFormat");
         OPTIONS.add("teleportInventory");
         OPTIONS.add("deleteInventory");
         OPTIONS.add("suppressConnectionAttempts");
@@ -79,40 +82,57 @@ public final class Config {
     }
 
     public static void load(Context ctx) {
-        Configuration c = new Configuration(getConfigFile());
-        c.load();
-        config = c;
-
-        int version = config.getInt("configVersion", 0);
-        if (version < CONFIG_VERSION) {
-//            ctx.warn("==================================================================");
+        File confFile = getConfigFile();
+        config = new Configuration(confFile);
+        config.load();
+        
+        int version = config.getInt("configVersion", -9999);
+        if (version == -9999) {
+            // this is an old version of the config
             ctx.warn("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
             ctx.warn("");
-            ctx.warn("configuration file version is out of date, please convert manually");
+            ctx.warn("The configuration file is not compatible with this version of the");
+            ctx.warn("plugin.");
+            File backupFile = new File(confFile.getParent(), "config-backup.yml");
+            if (! confFile.renameTo(backupFile)) {
+                ctx.warn("I'm unable to rename it and install the default");
+                ctx.warn("configuration, so things may not work as expected.");
+            } else {
+                Utils.copyFileFromJar("/resources/config.yml", Global.plugin.getDataFolder(), true);
+                config = new Configuration(confFile);
+                config.load();
+                ctx.warn("I've renamed it to %s and installed the", backupFile.getName());
+                ctx.warn("default configuration file. You'll have to manually convert");
+                ctx.warn("your settings.");
+            }
             ctx.warn("");
             ctx.warn("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-//            ctx.warn("==================================================================");
         }
-        if (version > CONFIG_VERSION) {
+        
+        else if (version < CONFIG_VERSION) {
+            // do conversion here
+            
+        } else if (version > CONFIG_VERSION) {
             ctx.warn("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-//            ctx.warn("==================================================================");
             ctx.warn("");
-            ctx.warn("configuration file version is too new!?!");
+            ctx.warn("The configuration file version is for a newer version of the");
+            ctx.warn("plugin. Good luck with that.");
             ctx.warn("");
             ctx.warn("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-//            ctx.warn("==================================================================");
         }
 
         ctx.sendLog("loaded configuration");
         Worlds.onConfigLoad(ctx);
         Servers.onConfigLoad(ctx);
         Network.onConfigLoad(ctx);
+        Pins.onConfigLoad(ctx);
     }
 
     public static void save(Context ctx) {
-        Network.onConfigSave(ctx);
-        Worlds.onConfigSave(ctx);
+        Network.onConfigSave();
+        Worlds.onConfigSave();
         Servers.onConfigSave();
+        Pins.onConfigSave();
         File configDir = Global.plugin.getDataFolder();
         if (! configDir.exists()) configDir.mkdirs();
         config.save();
@@ -143,6 +163,10 @@ public final class Config {
         return config.getNodeList(path, null);
     }
 
+    public static ConfigurationNode getNode(String path) {
+        return config.getNode(path);
+    }
+    
     public static void setPropertyDirect(String path, Object v) {
         config.setProperty(path, v);
     }
@@ -254,6 +278,30 @@ public final class Config {
 
     public static void setServerChatFormat(String s) {
         config.setProperty("global.serverChatFormat", s);
+    }
+
+    public static String getServerJoinFormat() {
+        return config.getString("global.serverJoinFormat", "%player%@%server% joined the game.");
+    }
+
+    public static void setServerJoinFormat(String s) {
+        config.setProperty("global.serverJoinFormat", s);
+    }
+
+    public static String getServerQuitFormat() {
+        return config.getString("global.serverQuitFormat", "%player%@%server% left the game.");
+    }
+
+    public static void setServerQuitFormat(String s) {
+        config.setProperty("global.serverQuitFormat", s);
+    }
+
+    public static String getServerKickFormat() {
+        return config.getString("global.serverKickFormat", "%player%@%server% was kicked.");
+    }
+
+    public static void setServerKickFormat(String s) {
+        config.setProperty("global.serverKickFormat", s);
     }
 
     public static boolean getTeleportInventory() {

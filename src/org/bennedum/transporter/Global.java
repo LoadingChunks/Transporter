@@ -47,9 +47,6 @@ public final class Global {
     public static Transporter plugin = null;
     public static String pluginName;
     public static String pluginVersion;
-    // TODO: remove
-    //public static Configuration config;
-    //public static Network network = null;
 
     public static final List<CommandProcessor> commands = new ArrayList<CommandProcessor>();
 

@@ -27,8 +27,11 @@ import org.bennedum.transporter.Gates;
 import org.bennedum.transporter.Global;
 import org.bennedum.transporter.LocalGate;
 import org.bennedum.transporter.Permissions;
+import org.bennedum.transporter.RemoteGate;
 import org.bennedum.transporter.Reservation;
 import org.bennedum.transporter.ReservationException;
+import org.bennedum.transporter.Server;
+import org.bennedum.transporter.Servers;
 import org.bennedum.transporter.TransporterException;
 import org.bukkit.command.Command;
 
@@ -239,14 +242,23 @@ public class GateCommand extends TrpCommandProcessor {
                 ctx.sendLog("added link from '%s' to '%s'", fromGate.getName(ctx), toGate.getName(ctx));
 
                 if (fromGate.isSameWorld(toGate) && Economy.deductFunds(ctx.getPlayer(), fromGate.getLinkLocalCost()))
-                    ctx.sendLog("debited %s for on-world linking", fromGate.getLinkLocalCost());
+                    ctx.sendLog("debited %s for on-world linking", Economy.format(fromGate.getLinkLocalCost()));
                 else if (toGate.isSameServer() && Economy.deductFunds(ctx.getPlayer(), fromGate.getLinkWorldCost()))
-                    ctx.sendLog("debited %s for off-world linking", fromGate.getLinkWorldCost());
+                    ctx.sendLog("debited %s for off-world linking", Economy.format(fromGate.getLinkWorldCost()));
                 else if (Economy.deductFunds(ctx.getPlayer(), fromGate.getLinkServerCost()))
-                    ctx.sendLog("debited %s for off-server linking", fromGate.getLinkServerCost());
+                    ctx.sendLog("debited %s for off-server linking", Economy.format(fromGate.getLinkServerCost()));
 
-                if (reverse && (ctx.getSender() != null))
-                    Global.plugin.getServer().dispatchCommand(ctx.getSender(), "trp gate link add \"" + toGate.getFullName() + "\" \"" + fromGate.getFullName() + "\"");
+                if (reverse && (ctx.getSender() != null)) {
+                    if (toGate.isSameServer())
+                        Global.plugin.getServer().dispatchCommand(ctx.getSender(), "trp gate link add \"" + toGate.getFullName() + "\" \"" + fromGate.getFullName() + "\"");
+                    else {
+                        Server server = Servers.get(toGate.getServerName());
+                        if (server == null)
+                            ctx.send("unable to create reverse link from unknown or offline server");
+                        else
+                            server.doRemoteLink(ctx.getPlayer(), (LocalGate)fromGate, (RemoteGate)toGate);
+                    }
+                }
                 return;
             }
 

@@ -34,6 +34,7 @@ import org.bennedum.transporter.net.Connection;
 import org.bennedum.transporter.net.Network;
 import org.bennedum.transporter.net.Message;
 import org.bennedum.transporter.net.Result;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.util.config.ConfigurationNode;
 
@@ -561,9 +562,58 @@ public final class Server implements OptionsListener {
         sendMessage(message);
     }
 
+    public void doRemoteLink(Player player, LocalGate fromGate, RemoteGate toGate) {
+        if (! isConnected()) return;
+        Message message = createMessage("remoteLink");
+        message.put("from", fromGate.getFullName());
+        message.put("to", toGate.getFullName());
+        message.put("player", (player == null) ? null : player.getName());
+        sendMessage(message);
+    }
 
+    public void doRemoteLinkComplete(String playerName, LocalGate fromGate, RemoteGate toGate) {
+        if (! isConnected()) return;
+        Message message = createMessage("remoteLinkComplete");
+        message.put("from", fromGate.getFullName());
+        message.put("to", toGate.getFullName());
+        message.put("player", playerName);
+        sendMessage(message);
+    }
 
-
+    public void doPlayerChangedWorld(Player player, World world) {
+        if (! isConnected()) return;
+        Message message = createMessage("playerChangedWorld");
+        message.put("player", player.getName());
+        message.put("world", world.getName());
+        sendMessage(message);
+    }
+    
+    public void doPlayerJoined(Player player, boolean announce) {
+        if (! isConnected()) return;
+        Message message = createMessage("playerJoined");
+        message.put("name", player.getName());
+        message.put("displayName", player.getDisplayName());
+        message.put("world", player.getWorld().getName());
+        message.put("announce", announce);
+        sendMessage(message);
+    }
+    
+    public void doPlayerQuit(Player player, boolean announce) {
+        if (! isConnected()) return;
+        Message message = createMessage("playerQuit");
+        message.put("name", player.getName());
+        message.put("announce", announce);
+        sendMessage(message);
+    }
+    
+    public void doPlayerKicked(Player player, boolean announce) {
+        if (! isConnected()) return;
+        Message message = createMessage("playerKicked");
+        message.put("name", player.getName());
+        message.put("announce", announce);
+        sendMessage(message);
+    }
+    
     // Connection callbacks, called from main network thread.
     // If the task is going to take a while, use a worker thread.
 
@@ -585,6 +635,7 @@ public final class Server implements OptionsListener {
         }
         connection = null;
         Gates.remove(this);
+        Players.remove(this);
         reconnect();
     }
 
@@ -633,9 +684,20 @@ public final class Server implements OptionsListener {
                 handleReservationArrived(message);
             else if (command.equals("reservationTimeout"))
                 handleReservationTimeout(message);
-
             else if (command.equals("relayChat"))
                 handleRelayChat(message);
+            else if (command.equals("remoteLink"))
+                handleRemoteLink(message);
+            else if (command.equals("remoteLinkComplete"))
+                handleRemoteLinkComplete(message);
+            else if (command.equals("playerChangedWorld"))
+                handlePlayerChangedWorld(message);
+            else if (command.equals("playerJoined"))
+                handlePlayerJoined(message);
+            else if (command.equals("playerQuit"))
+                handlePlayerQuit(message);
+            else if (command.equals("playerKicked"))
+                handlePlayerKicked(message);
 
             else
                 throw new ServerException("unknown command");
@@ -692,7 +754,12 @@ public final class Server implements OptionsListener {
         }
         out.put("gates", gates);
 
-
+        // player list
+        List<Message> players = new ArrayList<Message>();
+        for (PlayerProxy player : Players.getLocalPlayers())
+            players.add(player.encode());
+        out.put("players", players);
+        
         return out;
     }
 
@@ -704,11 +771,11 @@ public final class Server implements OptionsListener {
         } catch (IllegalArgumentException e) {
             throw new ServerException(e.getMessage());
         }
-        Utils.debug("received publicAddress '%s' from '%s'", remotePublicAddress, name);
+        Utils.debug("received publicAddress '%s' from '%s'", remotePublicAddress, getName());
 
         // NAT stuff
         remotePrivateAddress = message.getString("privateAddress");
-        Utils.debug("received privateAddress '%s' from '%s'", remotePrivateAddress, name);
+        Utils.debug("received privateAddress '%s' from '%s'", remotePrivateAddress, getName());
 
         // gate list
         Collection<Message> gates = message.getMessageList("gates");
@@ -721,7 +788,21 @@ public final class Server implements OptionsListener {
                     Utils.warning("received bad gate from '%s'", getName());
                 }
             }
-            Utils.debug("received %d gates from '%s'", gates.size(), name);
+            Utils.debug("received %d gates from '%s'", gates.size(), getName());
+        }
+        
+        // player list
+        Collection<Message> players = message.getMessageList("players");
+        if (players != null) {
+            Players.remove(this);
+            for (Message m : players) {
+                try {
+                    Players.add(new PlayerProxy(this, m));
+                } catch (TransporterException e) {
+                    Utils.warning("received bad player from '%s'", getName());
+                }
+            }
+            Utils.debug("received %d players from '%s'", players.size(), getName());
         }
     }
 
@@ -770,19 +851,19 @@ public final class Server implements OptionsListener {
     private void handleAttachGate(Message message) throws ServerException {
         String toName = message.getString("to");
         if (toName == null)
-            throw new ServerException("missing toName");
+            throw new ServerException("missing to");
         toName = Gate.makeLocalName(toName);
 
         String fromName = message.getString("from");
         if (fromName == null)
-            throw new ServerException("missing fromName");
+            throw new ServerException("missing from");
         fromName = Gate.makeFullName(this, fromName);
 
         Gate toGate = Gates.get(toName);
         if (toGate == null)
             throw new ServerException("unknown to gate '%s'", toName);
         if (! toGate.isSameServer())
-            throw new ServerException("to gate '%s' is local", toName);
+            throw new ServerException("to gate '%s' is not local", toName);
         Gate fromGate = Gates.get(fromName);
         if (fromGate == null)
             throw new ServerException("unknown from gate '%s'", fromName);
@@ -794,19 +875,19 @@ public final class Server implements OptionsListener {
     private void handleDetachGate(Message message) throws ServerException {
         String toName = message.getString("to");
         if (toName == null)
-            throw new ServerException("missing toName");
+            throw new ServerException("missing to");
         toName = Gate.makeLocalName(toName);
 
         String fromName = message.getString("from");
         if (fromName == null)
-            throw new ServerException("missing fromName");
+            throw new ServerException("missing from");
         fromName = Gate.makeFullName(this, fromName);
 
         Gate toGate = Gates.get(toName);
         if (toGate == null)
             throw new ServerException("unknown to gate '%s'", toName);
         if (! toGate.isSameServer())
-            throw new ServerException("to gate '%s' is local", toName);
+            throw new ServerException("to gate '%s' is not local", toName);
         Gate fromGate = Gates.get(fromName);
         if (fromGate == null)
             throw new ServerException("unknown from gate '%s'", fromName);
@@ -888,6 +969,138 @@ public final class Server implements OptionsListener {
         Chat.receive(player, displayName, world, this, msg, toGates);
     }
 
+    private void handleRemoteLink(Message message) throws ServerException, PermissionsException, EconomyException {
+        String playerName = message.getString("player");
+        
+        // "to" and "from" are from perspective of message sender!!!
+        
+        String toName = message.getString("to");
+        if (toName == null)
+            throw new ServerException("missing to");
+        toName = Gate.makeFullName(this, toName);
+
+        String fromName = message.getString("from");
+        if (fromName == null)
+            throw new ServerException("missing from");
+        fromName = Gate.makeLocalName(fromName);
+
+        Gate toGate = Gates.get(toName);
+        if (toGate == null)
+            throw new ServerException("unknown to gate '%s'", toName);
+        if (! toGate.isSameServer())
+            throw new ServerException("to gate '%s' is not local", toName);
+        Gate fromGate = Gates.get(fromName);
+        if (fromGate == null)
+            throw new ServerException("unknown from gate '%s'", fromName);
+        if (fromGate.isSameServer())
+            throw new ServerException("from gate '%s' is not remote", fromName);
+
+        // now we flip the sense!!!
+        
+        LocalGate fromGateLocal = (LocalGate)toGate;
+        RemoteGate toGateRemote = (RemoteGate)fromGate;
+        
+        Permissions.require(fromGateLocal.getWorldName(), playerName, "trp.gate.link.add." + fromGateLocal.getName());
+        
+        if (fromGateLocal.isLinked() && (! fromGateLocal.getMultiLink()))
+            throw new ServerException("gate '%s' cannot accept multiple links", fromGate.getFullName());
+
+        if (! Config.getAllowLinkServer())
+            throw new ServerException("linking to remote server gates is not permitted");
+
+        Economy.requireFunds(playerName, fromGateLocal.getLinkServerCost());
+
+        if (! fromGateLocal.addLink(toGate.getFullName()))
+            throw new ServerException("gate '%s' already links to '%s'", fromGateLocal.getFullName(), toGateRemote.getFullName());
+
+        Utils.info("added link from '%s' to '%s'", fromGateLocal.getFullName(), toGateRemote.getFullName());
+
+        if (Economy.deductFunds(playerName, fromGateLocal.getLinkServerCost()))
+            Utils.info("debited %s for off-server linking", Economy.format(fromGateLocal.getLinkServerCost()));
+
+        doRemoteLinkComplete(playerName, fromGateLocal, toGateRemote);
+    }
+    
+    private void handleRemoteLinkComplete(Message message) throws ServerException {
+        String playerName = message.getString("player");
+        
+        // "to" and "from" are from perspective of message sender!!!
+        
+        String toName = message.getString("to");
+        if (toName == null)
+            throw new ServerException("missing to");
+        toName = Gate.makeLocalName(toName);
+
+        String fromName = message.getString("from");
+        if (fromName == null)
+            throw new ServerException("missing from");
+        fromName = Gate.makeFullName(this, fromName);
+
+        Gate toGate = Gates.get(toName);
+        if (toGate == null)
+            throw new ServerException("unknown to gate '%s'", toName);
+        if (toGate.isSameServer())
+            throw new ServerException("to gate '%s' is not remote", toName);
+        Gate fromGate = Gates.get(fromName);
+        if (fromGate == null)
+            throw new ServerException("unknown from gate '%s'", fromName);
+        if (! fromGate.isSameServer())
+            throw new ServerException("from gate '%s' is not local", fromName);
+        
+        // now we flip the sense!!!
+        
+        final LocalGate fromGateLocal = (LocalGate)toGate;
+        final RemoteGate toGateRemote = (RemoteGate)fromGate;
+        
+        final Context ctx = new Context(playerName);
+        Utils.fire(new Runnable() {
+            @Override
+            public void run() {
+                ctx.sendLog("added link from '%s' to '%s'", fromGateLocal.getName(ctx), toGateRemote.getName(ctx));
+            }
+        });
+    }
+
+    private void handlePlayerChangedWorld(Message message) throws ServerException {
+        String playerName = message.getString("player");
+        if (playerName == null)
+            throw new ServerException("missing player");
+        String worldName = message.getString("world");
+        if (worldName == null)
+            throw new ServerException("missing world");
+        Players.remoteChangeWorld(this, playerName, worldName);
+    }
+    
+    private void handlePlayerJoined(Message message) throws ServerException {
+        String playerName = message.getString("name");
+        if (playerName == null)
+            throw new ServerException("missing name");
+        String displayName = message.getString("displayName");
+        if (displayName == null)
+            throw new ServerException("missing displayName");
+        String worldName = message.getString("world");
+        if (worldName == null)
+            throw new ServerException("missing world");
+        boolean announce = message.getBoolean("announce");
+        Players.remoteJoin(this, playerName, displayName, worldName, announce);
+    }
+    
+    private void handlePlayerQuit(Message message) throws ServerException {
+        String playerName = message.getString("name");
+        if (playerName == null)
+            throw new ServerException("missing name");
+        boolean announce = message.getBoolean("announce");
+        Players.remoteQuit(this, playerName, announce);
+    }
+    
+    private void handlePlayerKicked(Message message) throws ServerException {
+        String playerName = message.getString("name");
+        if (playerName == null)
+            throw new ServerException("missing name");
+        boolean announce = message.getBoolean("announce");
+        Players.remoteKick(this, playerName, announce);
+    }
+    
     // Utility methods
 
     private Message createMessage(String command) {

@@ -250,7 +250,7 @@ public final class Network {
         if (restart) Network.start(ctx);
     }
 
-    public static void onConfigSave(Context ctx) {
+    public static void onConfigSave() {
         synchronized (banned) {
             List<String> bannedAddresses = new ArrayList<String>(banned.size());
             for (Pattern p : banned)

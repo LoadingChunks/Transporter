@@ -85,7 +85,8 @@ public class Transporter extends JavaPlugin {
 
         Config.load(ctx);
         Designs.load(ctx);
-        Gates.load(ctx);
+        Worlds.load(ctx);
+        //Gates.load(ctx);  // Worlds handle loading gates
         Network.start(ctx);
 
         PluginManager pm = getServer().getPluginManager();
@@ -98,6 +99,8 @@ public class Transporter extends JavaPlugin {
         pm.registerEvent(Type.PLAYER_INTERACT, playerListener, Priority.Normal, this); // open gate/change link
         pm.registerEvent(Type.PLAYER_MOVE, playerListener, Priority.Normal, this); // outgoing player teleport
         pm.registerEvent(Type.PLAYER_JOIN, playerListener, Priority.Normal, this); // incoming player teleport
+        pm.registerEvent(Type.PLAYER_QUIT, playerListener, Priority.Normal, this);
+        pm.registerEvent(Type.PLAYER_KICK, playerListener, Priority.Normal, this);
         pm.registerEvent(Type.PLAYER_CHAT, playerListener, Priority.Monitor, this); // server-server chat
         pm.registerEvent(Type.VEHICLE_MOVE, vehicleListener, Priority.Monitor, this); // outgoing vehicle teleport
         pm.registerEvent(Type.WORLD_LOAD, worldListener, Priority.Normal, this); // add gates on a world

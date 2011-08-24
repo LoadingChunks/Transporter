@@ -21,8 +21,11 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerChatEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerKickEvent;
 import org.bukkit.event.player.PlayerListener;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
 
 /**
  *
@@ -116,21 +119,48 @@ public final class PlayerListenerImpl extends PlayerListener {
     }
 
     @Override
+    public void onPlayerTeleport(PlayerTeleportEvent event) {
+        Player player = event.getPlayer();
+        Location location = event.getTo();
+        Players.onTeleport(player, location);
+    }
+    
+    @Override
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         Reservation r = Reservation.get(player);
+        Players.onJoin(player, r);
         if (r == null) {
             Reservation.addGateLock(player);
             return;
         }
         try {
             r.arrive();
+            event.setJoinMessage(null);
         } catch (ReservationException e) {
             Context ctx = new Context(player);
             ctx.warnLog("there was a problem processing your arrival: ", e.getMessage());
         }
     }
 
+    @Override
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        Player player = event.getPlayer();
+        Reservation r = Reservation.get(player);
+        Players.onQuit(player, r);
+        if (r != null)
+            event.setQuitMessage(null);
+    }
+
+    @Override
+    public void onPlayerKick(PlayerKickEvent event) {
+        Player player = event.getPlayer();
+        Reservation r = Reservation.get(player);
+        Players.onKick(player, r);
+        if (r != null)
+            event.setLeaveMessage(null);
+    }
+    
     @Override
     public void onPlayerChat(PlayerChatEvent event) {
         Chat.send(event.getPlayer(), event.getMessage());

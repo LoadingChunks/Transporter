@@ -65,10 +65,12 @@ public final class Economy {
     }
 
     public static boolean requireFunds(Player player, double amount) throws EconomyException {
+        if (player == null) return false;
         return requireFunds(player.getName(), amount);
     }
 
     public static boolean requireFunds(String accountName, double amount) throws EconomyException {
+        if (accountName == null) return false;
         if (amount <= 0) return false;
         if (iconomyAvailable()) {
             Account account = iConomy.getAccount(accountName);
@@ -92,10 +94,12 @@ public final class Economy {
     }
 
     public static boolean deductFunds(Player player, double amount) throws EconomyException {
+        if (player == null) return false;
         return deductFunds(player.getName(), amount);
     }
 
     public static boolean deductFunds(String accountName, double amount) throws EconomyException {
+        if (accountName == null) return false;
         if (amount <= 0) return false;
         if (iconomyAvailable()) {
             Account account = iConomy.getAccount(accountName);

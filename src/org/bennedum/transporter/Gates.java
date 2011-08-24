@@ -55,46 +55,14 @@ public final class Gates {
     private static final GateMap portalBlocks = new GateMap();
 
 
-    //private Set<String> teleportingPlayers = new HashSet<String>();
-
-
     public static void load(Context ctx) {
         for (String name : new ArrayList<String>(gates.keySet()))
             if (gates.get(name).isSameServer())
                 gates.remove(name);
-        List<String> loadedWorlds = new ArrayList<String>();
-        for (World world : Global.plugin.getServer().getWorlds()) {
-            loadedWorlds.add(world.getName());
+        for (World world : Global.plugin.getServer().getWorlds())
             loadGatesForWorld(ctx, world);
-        }
-
-        // TODO: review and change in lieu of the new Worlds class and the global autoLoadWorlds setting
-
-        // check all loaded, local gate links for non-loaded worlds and load them and their gates
-        for (;;) {
-            List<String> newWorlds = new ArrayList<String>();
-            for (LocalGate gate : getLocalGates()) {
-                for (String link : gate.getLinks()) {
-                    String world = LocalGate.getLocalLinkWorldName(link);
-                    if (world == null) continue;
-                    if ((! newWorlds.contains(world)) && (! loadedWorlds.contains(world)))
-                        newWorlds.add(world);
-                }
-            }
-            if (newWorlds.isEmpty()) break;
-            for (String worldName : newWorlds) {
-                ctx.sendLog("loading world '%s'...", worldName);
-                // This is a hack since there's no "loadWorld" method
-                World world = Global.plugin.getServer().createWorld(worldName, World.Environment.NORMAL);
-                loadedWorlds.add(worldName);
-                loadGatesForWorld(ctx, world);
-            }
-        }
-
-        if (isEmpty())
-            ctx.send("no gates loaded");
     }
-
+    
     public static void loadGatesForWorld(Context ctx, World world) {
         File worldFolder = Worlds.worldPluginFolder(world);
         File gatesFolder = new File(worldFolder, "gates");

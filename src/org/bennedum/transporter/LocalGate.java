@@ -59,6 +59,7 @@ public class LocalGate extends Gate implements OptionsListener {
         OPTIONS.add("requireAllowedItems");
         OPTIONS.add("teleportInventory");
         OPTIONS.add("deleteInventory");
+        OPTIONS.add("sendMessage");
         OPTIONS.add("linkLocalCost");
         OPTIONS.add("linkWorldCost");
         OPTIONS.add("linkServerCost");
@@ -102,6 +103,7 @@ public class LocalGate extends Gate implements OptionsListener {
     private boolean requireAllowedItems;
     private boolean teleportInventory;
     private boolean deleteInventory;
+    private boolean sendMessage;
 
     private double linkLocalCost;
     private double linkWorldCost;
@@ -152,6 +154,7 @@ public class LocalGate extends Gate implements OptionsListener {
         requireAllowedItems = design.getRequireAllowedItems();
         teleportInventory = design.getTeleportInventory();
         deleteInventory = design.getDeleteInventory();
+        sendMessage = design.getSendMessage();
 
         linkLocalCost = design.getLinkLocalCost();
         linkWorldCost = design.getLinkWorldCost();
@@ -244,6 +247,7 @@ public class LocalGate extends Gate implements OptionsListener {
         requireAllowedItems = conf.getBoolean("requireAllowedItems", true);
         teleportInventory = conf.getBoolean("teleportInventory", true);
         deleteInventory = conf.getBoolean("deleteInventory", false);
+        sendMessage = conf.getBoolean("sendMessage", true);
 
         incoming.addAll(conf.getStringList("incoming", new ArrayList<String>()));
         outgoing = conf.getString("outgoing");
@@ -323,6 +327,7 @@ public class LocalGate extends Gate implements OptionsListener {
         conf.setProperty("requireAllowedItems", requireAllowedItems);
         conf.setProperty("teleportInventory", teleportInventory);
         conf.setProperty("deleteInventory", deleteInventory);
+        conf.setProperty("sendMessage", sendMessage);
 
         if (! incoming.isEmpty()) conf.setProperty("incoming", new ArrayList<String>(incoming));
         if (outgoing != null) conf.setProperty("outgoing", outgoing);
@@ -556,6 +561,15 @@ public class LocalGate extends Gate implements OptionsListener {
 
     public void setDeleteInventory(boolean b) {
         deleteInventory = b;
+        forceSave();
+    }
+    
+    public boolean getSendMessage() {
+        return sendMessage;
+    }
+
+    public void setSendMessage(boolean b) {
+        sendMessage = b;
         forceSave();
     }
     

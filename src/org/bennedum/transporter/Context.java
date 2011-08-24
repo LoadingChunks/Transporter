@@ -36,6 +36,11 @@ public class Context {
         this.sender = sender;
     }
 
+    public Context(String playerName) {
+        if (playerName != null)
+            this.sender = Global.plugin.getServer().getPlayer(playerName);
+    }
+    
     public CommandSender getSender() {
         return sender;
     }

@@ -44,7 +44,6 @@ import org.bukkit.util.Vector;
  */
 public final class Reservation {
 
-    private static final Map<String,String> pins = new HashMap<String,String>();
     private static final Map<Integer,Long> gateLocks = new HashMap<Integer,Long>();
 
     private static long nextId = 1;
@@ -112,23 +111,6 @@ public final class Reservation {
         synchronized (gateLocks) {
             gateLocks.put(entity.getEntityId(), System.currentTimeMillis() + Config.getGateLockExpiration());
             Utils.debug("added gate lock for entity %d", entity.getEntityId());
-        }
-    }
-
-    public static void setPin(Player player, String pin) {
-        synchronized (pins) {
-            pins.put(player.getName(), pin);
-        }
-    }
-
-    public static String getPin(Player player) {
-        if (player == null) return null;
-        return getPin(player.getName());
-    }
-
-    public static String getPin(String playerName) {
-        synchronized (pins) {
-            return pins.get(playerName);
         }
     }
 
@@ -330,7 +312,7 @@ public final class Reservation {
         localEntityId = player.getEntityId();
         this.player = player;
         playerName = player.getName();
-        playerPin = getPin(player);
+        playerPin = Pins.get(player);
         clientAddress = player.getAddress().getAddress().getHostAddress();
         health = player.getHealth();
         remainingAir = player.getRemainingAir();
@@ -584,7 +566,7 @@ public final class Reservation {
         if (entity != player)
             addGateLock(player);
         if ((player != null) && (playerPin != null))
-            setPin(player, playerPin);
+            Pins.add(player, playerPin);
         if (! entity.teleport(toLocation)) {
             rollbackTraveler();
             throw new ReservationException("teleport %s to %s failed", getTraveler(), getDestination());
@@ -611,7 +593,9 @@ public final class Reservation {
 
         if (player != null) {
             Context ctx = new Context(player);
-            ctx.send(ChatColor.GOLD + "teleporting to '%s'...", toGateName);
+            if (((fromGateLocal != null) && fromGateLocal.getSendMessage()) ||
+                (fromGateLocal == null))
+                ctx.send(ChatColor.GOLD + "teleporting to '%s'...", toGateName);
 
             completeLocalDepartureGate();
 
@@ -812,7 +796,9 @@ public final class Reservation {
 
             Context ctx = new Context(player);
 
-            ctx.send(ChatColor.GOLD + "teleported to '%s'", toGateLocal.getName(ctx));
+            if (((fromGateLocal != null) && fromGateLocal.getSendMessage()) ||
+                (fromGateLocal == null))
+                ctx.send(ChatColor.GOLD + "teleported to '%s'", toGateLocal.getName(ctx));
 
             // player PIN
             if (toGateLocal.getRequirePin() &&

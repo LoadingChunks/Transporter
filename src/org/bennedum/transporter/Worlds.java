@@ -58,13 +58,20 @@ public final class Worlds {
         }
     }
 
-    public static void onConfigSave(Context ctx) {
+    public static void onConfigSave() {
         List<Map<String,Object>> worldNodes = new ArrayList<Map<String,Object>>();
         for (WorldProxy world : worlds.values())
             worldNodes.add(world.encode());
         Config.setPropertyDirect("worlds", worldNodes);
     }
 
+    public static void load(Context ctx) {
+        for (WorldProxy proxy : worlds.values()) {
+            if (! proxy.getAutoLoad()) continue;
+            proxy.load(ctx);
+        }
+    }
+    
     public static void add(WorldProxy world) {
         worlds.put(world.getName(), world);
     }

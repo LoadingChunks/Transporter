@@ -93,7 +93,7 @@ public final class Options {
                 cls = target.getClass();
             Method m = cls.getMethod(methodName);
             Object value = m.invoke(target);
-            if (value == null) return "(null)";
+            if (value == null) return "";
             return value.toString();
         } catch (InvocationTargetException ite) {
             throw new OptionsException(ite.getCause().getMessage());

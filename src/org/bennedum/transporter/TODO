@@ -13,6 +13,10 @@ Testing:
     * teleport inventory setting
     * world commands
     * gate go command
+    * pins saving/loading
+    * sendMessage gate setting
+    * test reverse linking between servers
+    * test trp list, player joining, quitting, etc.
 
 Wiki Updates:
     * update GateDesign:
@@ -40,4 +44,8 @@ Wiki Updates:
     * home page
         * BOSEconomy support
         * PerimissionsEx support
+    * permissions page
+        * add trp.get.../trp.set...
+        * add trp.list
+        * remove trp.go, add trp.gate.go
     * gate design: iConomy -> Economy
