@@ -59,19 +59,22 @@ public final class Players {
     public static void onJoin(Player player, Reservation res) {
         add(new PlayerProxy(player.getName(), player.getDisplayName(), null, player.getWorld().getName()));
         for (Server server : Servers.getAll())
-            server.doPlayerJoined(player, res == null);
+            if (server.getSendJoin())
+                server.doPlayerJoined(player, res == null);
     }
     
     public static void onQuit(Player player, Reservation res) {
         remove(player.getName());
         for (Server server : Servers.getAll())
-            server.doPlayerQuit(player, res == null);
+            if (server.getSendJoin())
+                server.doPlayerQuit(player, res == null);
     }
     
     public static void onKick(Player player, Reservation res) {
         remove(player.getName());
         for (Server server : Servers.getAll())
-            server.doPlayerKicked(player, res == null);
+            if (server.getSendJoin())
+                server.doPlayerKicked(player, res == null);
     }
     
     public static void remoteChangeWorld(Server server, String playerName, String worldName) {
@@ -86,7 +89,7 @@ public final class Players {
     public static void remoteJoin(Server server, String name, String displayName, String worldName, boolean announce) {
         PlayerProxy player = new PlayerProxy(name, displayName, server.getName(), worldName);
         add(player);
-        if (announce) {
+        if (announce && server.getReceiveJoin()) {
             String message = formatMessage(Config.getServerJoinFormat(), player);
             Global.plugin.getServer().broadcastMessage(message);
         }
@@ -94,7 +97,7 @@ public final class Players {
     
     public static void remoteQuit(Server server, String name, boolean announce) {
         PlayerProxy player = remove(name);
-        if (announce && (player != null)) {
+        if (announce && (player != null) && server.getReceiveJoin()) {
             String message = formatMessage(Config.getServerQuitFormat(), player);
             Global.plugin.getServer().broadcastMessage(message);
         }
@@ -102,7 +105,7 @@ public final class Players {
     
     public static void remoteKick(Server server, String name, boolean announce) {
         PlayerProxy player = remove(name);
-        if (announce && (player != null)) {
+        if (announce && (player != null) && server.getReceiveJoin()) {
             String message = formatMessage(Config.getServerKickFormat(), player);
             Global.plugin.getServer().broadcastMessage(message);
         }

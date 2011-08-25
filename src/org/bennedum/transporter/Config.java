@@ -54,9 +54,6 @@ public final class Config {
         OPTIONS.add("serverJoinFormat");
         OPTIONS.add("serverQuitFormat");
         OPTIONS.add("serverKickFormat");
-        OPTIONS.add("teleportInventory");
-        OPTIONS.add("deleteInventory");
-        OPTIONS.add("suppressConnectionAttempts");
         OPTIONS.add("useIConomy");
         OPTIONS.add("useBOSEconomy");
         OPTIONS.add("exportedGatesFile");
@@ -304,30 +301,6 @@ public final class Config {
         config.setProperty("global.serverKickFormat", s);
     }
 
-    public static boolean getTeleportInventory() {
-        return config.getBoolean("global.teleportInventory", true);
-    }
-
-    public static void setTeleportInventory(boolean b) {
-        config.setProperty("global.teleportInventory", b);
-    }
-            
-    public static boolean getDeleteInventory() {
-        return config.getBoolean("global.deleteInventory", false);
-    }
-
-    public static void setDeleteInventory(boolean b) {
-        config.setProperty("global.deleteInventory", b);
-    }
-            
-    public static int getSuppressConnectionAttempts() {
-        return config.getInt("global.suppressConnectionAttempts", -1);
-    }
-
-    public static void setSuppressConnectionAttempts(int i) {
-        config.setProperty("global.suppressConnectionAttempts", i);
-    }
-            
     public static boolean getUseIConomy() {
         return config.getBoolean("global.useIConomy", false);
     }

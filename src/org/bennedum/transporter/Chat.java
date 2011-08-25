@@ -37,29 +37,29 @@ public final class Chat {
 
         // add all servers that relay all chat
         for (Server server : Servers.getAll())
-            if (server.getSendAllChat())
+            if (server.getSendChat())
                 servers.put(server, null);
-
-        // find all remote gates within range
+        
         Location loc = player.getLocation();
         Gate destGate;
         Server destServer;
         for (LocalGate gate : Gates.getLocalGates()) {
-            if (gate.isInChatProximity(loc) && gate.isOpen()) {
+            if (gate.isOpen() && gate.isInChatSendProximity(loc)) {
                 try {
                     destGate = gate.getDestinationGate();
                     if (! destGate.isSameServer()) {
                         destServer = Servers.get(destGate.getServerName());
-                        if (servers.get(destServer) == null)
+                        if (servers.containsKey(destServer)) {
+                            if (servers.get(destServer) == null) continue;
+                        } else
                             servers.put(destServer, new HashSet<RemoteGate>());
                         servers.get(destServer).add((RemoteGate)destGate);
                     }
-                } catch (GateException e) {
-                }
+                } catch (GateException e) {}
             }
         }
         for (Server server : servers.keySet()) {
-            server.doRelayChat(player, player.getWorld().getName(), message, servers.get(server));
+            server.doSendChat(player, player.getWorld().getName(), message, servers.get(server));
         }
     }
 
@@ -83,15 +83,15 @@ public final class Chat {
 
         final Set<String> playersToReceive = new HashSet<String>();
 
-        if (fromServer.getReceiveAllChat())
+        if ((toGates == null) && fromServer.getReceiveChat())
             playersToReceive.addAll(players.keySet());
-        else {
+        else if ((toGates != null) && (! toGates.isEmpty())) {
             for (String gateName : toGates) {
                 Gate gate = Gates.get(gateName);
                 if (gate == null) continue;
                 if (! gate.isSameServer()) continue;
                 for (String player : players.keySet())
-                    if (((LocalGate)gate).isInChatProximity(players.get(player)))
+                    if (((LocalGate)gate).isInChatReceiveProximity(players.get(player)))
                         playersToReceive.add(player);
             }
         }
@@ -99,10 +99,10 @@ public final class Chat {
         if (playersToReceive.isEmpty()) return;
 
         String format = Config.getServerChatFormat();
-        format.replace("%player%", displayName);
-        format.replace("%server%", fromServer.getName());
-        format.replace("%world%", fromWorldName);
-        format.replace("%message%", message);
+        format = format.replace("%player%", displayName);
+        format = format.replace("%server%", fromServer.getName());
+        format = format.replace("%world%", fromWorldName);
+        format = format.replace("%message%", message);
         final String msg = format;
         Utils.fire(new Runnable() {
             @Override

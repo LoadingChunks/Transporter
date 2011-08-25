@@ -21,7 +21,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.bennedum.transporter.net.Message;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.BlockFace;
@@ -160,7 +159,7 @@ public final class Reservation {
         addGateLock(player);
         extractPlayer(player);
         extractFromGate(fromGate);
-        if (! fromGate.getTeleportInventory()) {
+        if (! fromGate.getSendInventory()) {
             inventory = null;
             armor = null;
         }
@@ -171,7 +170,7 @@ public final class Reservation {
         addGateLock(vehicle);
         extractVehicle(vehicle);
         extractFromGate(fromGate);
-        if (! fromGate.getTeleportInventory()) {
+        if (! fromGate.getSendInventory()) {
             inventory = null;
             armor = null;
         }
@@ -182,10 +181,6 @@ public final class Reservation {
         addGateLock(player);
         extractPlayer(player);
         extractToGate(toGate);
-        if (! Config.getTeleportInventory()) {
-            inventory = null;
-            armor = null;
-        }
     }
 
     // player direct to location on this server
@@ -193,10 +188,6 @@ public final class Reservation {
         addGateLock(player);
         extractPlayer(player);
         toLocation = location;
-        if (! Config.getTeleportInventory()) {
-            inventory = null;
-            armor = null;
-        }
     }
 
     // player direct to remote server, default world, spawn location
@@ -204,10 +195,6 @@ public final class Reservation {
         addGateLock(player);
         extractPlayer(player);
         toServer = server;
-        if (! Config.getTeleportInventory()) {
-            inventory = null;
-            armor = null;
-        }
     }
 
     // player direct to remote server, specified world, spawn location
@@ -216,10 +203,6 @@ public final class Reservation {
         extractPlayer(player);
         toServer = server;
         toWorldName = worldName;
-        if (! Config.getTeleportInventory()) {
-            inventory = null;
-            armor = null;
-        }
     }
 
     // player direct to remote server, specified world, specified location
@@ -229,10 +212,6 @@ public final class Reservation {
         toServer = server;
         toWorldName = worldName;
         toLocation = new Location(null, x, y, z);
-        if (! Config.getTeleportInventory()) {
-            inventory = null;
-            armor = null;
-        }
     }
 
     // reception of reservation from sending server
@@ -370,6 +349,12 @@ public final class Reservation {
             toWorld = toGateLocal.getWorld();
         } else
             toServer = Servers.get(toGate.getServerName());
+        
+        if ((! fromGate.getSendInventory()) ||
+            ((toGateLocal != null) && (! toGateLocal.getReceiveInventory()))) {
+            inventory = null;
+            armor = null;
+        }
     }
 
     private void extractToGate(Gate toGate) {
@@ -378,6 +363,10 @@ public final class Reservation {
         if (toGate.isSameServer()) {
             toGateLocal = (LocalGate)toGate;
             toWorld = toGateLocal.getWorld();
+            if (! toGateLocal.getReceiveInventory()) {
+                inventory = null;
+                armor = null;
+            }
         }
     }
 
@@ -593,10 +582,22 @@ public final class Reservation {
 
         if (player != null) {
             Context ctx = new Context(player);
-            if (((fromGateLocal != null) && fromGateLocal.getSendMessage()) ||
-                (fromGateLocal == null))
+            // TODO: remove
+            /*
+            if ((fromGateLocal != null) &&
+                (fromGateLocal.getTeleportFormat() != null) &&
+                (! fromGateLocal.getTeleportFormat().isEmpty())) {
+                String format = fromGateLocal.getTeleportFormat();
+                format = format.replace("%player%", player.getDisplayName());
+                format = format.replace("%gate%", toGate.getName(ctx));
+                format = format.replace("%world%", toGate.getWorldName());
+                format = format.replace("%server%", (toServer == null) ? "" : toServer.getName());
+                if (! format.isEmpty())
+                    ctx.send(format);
+            } else if (fromGateLocal == null)
                 ctx.send(ChatColor.GOLD + "teleporting to '%s'...", toGateName);
-
+             */
+            
             completeLocalDepartureGate();
 
             // TODO: handle cluster setting
@@ -641,8 +642,7 @@ public final class Reservation {
         Utils.debug("reservation to send %s to %s was completed", getTraveler(), getDestination());
         
         if ((toServer != null) && (player != null)) {
-            if (((fromGateLocal != null) && fromGateLocal.getDeleteInventory()) ||
-                ((fromGateLocal == null) && Config.getDeleteInventory())) {
+            if ((fromGateLocal != null) && fromGateLocal.getDeleteInventory()) {
                 PlayerInventory inv = player.getInventory();
                 inv.clear();
                 player.saveData();
@@ -796,10 +796,20 @@ public final class Reservation {
 
             Context ctx = new Context(player);
 
-            if (((fromGateLocal != null) && fromGateLocal.getSendMessage()) ||
-                (fromGateLocal == null))
-                ctx.send(ChatColor.GOLD + "teleported to '%s'", toGateLocal.getName(ctx));
-
+            if (toGateLocal.getTeleportFormat() != null) {
+                String format = toGateLocal.getTeleportFormat();
+                format = format.replace("%player%", player.getDisplayName());
+                format = format.replace("%toGateCtx%", toGateLocal.getName(ctx));
+                format = format.replace("%toGate%", toGateLocal.getName());
+                format = format.replace("%toWorld%", toGateLocal.getWorldName());
+                format = format.replace("%fromGateCtx%", (fromGate == null) ? "" : fromGate.getName(ctx));
+                format = format.replace("%fromGate%", (fromGate == null) ? "" : fromGate.getName());
+                format = format.replace("%fromWorld%", (fromGate == null) ? "" : fromGate.getWorldName());
+                format = format.replace("%fromServer%", (fromServer == null) ? "local" : fromServer.getName());
+                if (! format.isEmpty())
+                    ctx.send(format);
+            }
+            
             // player PIN
             if (toGateLocal.getRequirePin() &&
                 (! toGateLocal.hasPin(playerPin)) &&

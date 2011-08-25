@@ -56,8 +56,10 @@ public final class Server implements OptionsListener {
         OPTIONS.add("key");
         OPTIONS.add("publicAddress");
         OPTIONS.add("privateAddress");
-        OPTIONS.add("sendAllChat");
-        OPTIONS.add("receiveAllChat");
+        OPTIONS.add("sendChat");
+        OPTIONS.add("receiveChat");
+        OPTIONS.add("sendJoin");
+        OPTIONS.add("receiveJoin");
     }
 
     public static boolean isValidName(String name) {
@@ -98,11 +100,17 @@ public final class Server implements OptionsListener {
     private InetSocketAddress normalizedPrivateAddress = null;
 
     // Should all chat messages on the local server be sent to the remote server?
-    private boolean sendAllChat = false;
+    private boolean sendChat = false;
 
     // Should all chat messages received from the remote server be echoed to local users?
-    private boolean receiveAllChat = false;
+    private boolean receiveChat = false;
 
+    // Should all player join/quit/kick messages on the local server be sent to the remote server?
+    private boolean sendJoin = false;
+    
+    // Should all player join/quit/kick messages from the remote server be echoed to local users?
+    private boolean receiveJoin = false;
+    
     private Connection connection = null;
     private boolean allowReconnect = true;
     private int reconnectTask = -1;
@@ -132,8 +140,10 @@ public final class Server implements OptionsListener {
             enabled = node.getBoolean("enabled", true);
             setPublicAddress(node.getString("publicAddress", "*"));
             setPrivateAddress(node.getString("privateAddress", "*"));
-            setSendAllChat(node.getBoolean("sendAllChat", false));
-            setReceiveAllChat(node.getBoolean("receiveAllChat", false));
+            setSendChat(node.getBoolean("sendChat", false));
+            setReceiveChat(node.getBoolean("receiveChat", false));
+            setSendJoin(node.getBoolean("sendJoin", false));
+            setReceiveJoin(node.getBoolean("receiveJoin", false));
         } catch (IllegalArgumentException e) {
             throw new ServerException(e.getMessage());
         }
@@ -228,20 +238,36 @@ public final class Server implements OptionsListener {
         return normalizedPrivateAddress;
     }
 
-    public boolean getSendAllChat() {
-        return sendAllChat;
+    public boolean getSendChat() {
+        return sendChat;
     }
 
-    public void setSendAllChat(boolean b) {
-        sendAllChat = b;
+    public void setSendChat(boolean b) {
+        sendChat = b;
     }
 
-    public boolean getReceiveAllChat() {
-        return receiveAllChat;
+    public boolean getReceiveChat() {
+        return receiveChat;
     }
 
-    public void setReceiveAllChat(boolean b) {
-        receiveAllChat = b;
+    public void setReceiveChat(boolean b) {
+        receiveChat = b;
+    }
+
+    public boolean getSendJoin() {
+        return sendJoin;
+    }
+
+    public void setSendJoin(boolean b) {
+        sendJoin = b;
+    }
+
+    public boolean getReceiveJoin() {
+        return receiveJoin;
+    }
+
+    public void setReceiveJoin(boolean b) {
+        receiveJoin = b;
     }
 
     public String getRemotePublicAddress() {
@@ -324,8 +350,10 @@ public final class Server implements OptionsListener {
         node.put("enabled", enabled);
         node.put("publicAddress", publicAddress);
         node.put("privateAddress", privateAddress);
-        node.put("sendAllChat", sendAllChat);
-        node.put("receiveAllChat", receiveAllChat);
+        node.put("sendChat", sendChat);
+        node.put("receiveChat", receiveChat);
+        node.put("sendJoin", sendJoin);
+        node.put("receiveJoin", receiveJoin);
         return node;
     }
 
@@ -393,7 +421,7 @@ public final class Server implements OptionsListener {
     }
 
     public boolean connectionMessagesSuppressed() {
-        int limit = Config.getSuppressConnectionAttempts();
+        int limit = Network.getSuppressConnectionAttempts();
         return (limit >= 0) && (connectionAttempts > limit);
     }
     
@@ -546,7 +574,7 @@ public final class Server implements OptionsListener {
         sendMessage(message);
     }
 
-    public void doRelayChat(Player player, String world, String msg, Set<RemoteGate> toGates) {
+    public void doSendChat(Player player, String world, String msg, Set<RemoteGate> toGates) {
         if (! isConnected()) return;
         Message message = createMessage("relayChat");
         message.put("player", player.getName());

@@ -70,6 +70,8 @@ public final class Network {
         OPTIONS.add("reconnectSkew");
         OPTIONS.add("listenAddress");
         OPTIONS.add("key");
+        OPTIONS.add("suppressConnectionAttempts");
+        
         RESTART_OPTIONS.add("readBufferSize");
         RESTART_OPTIONS.add("selectInterval");
         RESTART_OPTIONS.add("clusterName");
@@ -187,10 +189,11 @@ public final class Network {
         try {
             if (listenAddress == null)
                 throw new NetworkException("listenAddress is not set");
-            if (getCachedKey() == null)
-                throw new NetworkException("serverKey is not set");
+            if (key == null)
+                throw new NetworkException("key is not set");
         } catch (Exception e) {
             ctx.warn("network manager cannot be started: %s", e.getMessage());
+            return;
         }
 
         networkThread = new Thread(new Runnable() {
@@ -205,6 +208,7 @@ public final class Network {
 
     public static void restart(Context ctx) {
         stop(ctx);
+        onConfigLoad(ctx);
         start(ctx);
     }
 
@@ -225,8 +229,8 @@ public final class Network {
     }
 
     public static void onConfigLoad(Context ctx) {
-        boolean restart = state == State.RUNNING;
-        if (restart) Network.stop(ctx);
+        //boolean restart = state == State.RUNNING;
+        //if (restart) Network.stop(ctx);
         try {
             listenAddress = makeInetSocketAddress(getListenAddress(), "0.0.0.0", Global.DEFAULT_PLUGIN_PORT, true);
         } catch (IllegalArgumentException e) {
@@ -247,7 +251,7 @@ public final class Network {
                     ctx.warn("ignored invalid bannedAddress pattern '%s': %s", addressPattern, pse.getMessage());
                 }
             }
-        if (restart) Network.start(ctx);
+        //if (restart) Network.start(ctx);
     }
 
     public static void onConfigSave() {
@@ -342,6 +346,14 @@ public final class Network {
         Config.setPropertyDirect("network.key", s);
     }
 
+    public static int getSuppressConnectionAttempts() {
+        return Config.getIntDirect("network.suppressConnectionAttempts", -1);
+    }
+
+    public static void setSuppressConnectionAttempts(int i) {
+        Config.setPropertyDirect("network.suppressConnectionAttempts", i);
+    }
+            
     public static void getOptions(Context ctx, String name) throws OptionsException, PermissionsException {
         options.getOptions(ctx, name);
     }

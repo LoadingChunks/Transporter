@@ -8,21 +8,20 @@ Testing:
     * banned player detection when teleporting
     * behavior of connection state when, e.g., a player is banned on destination server
     * server-server chat format
-    * server-server send/receiveAllChat options
-    * delete inventory setting
-    * teleport inventory setting
+    * server-server send/receiveChat options
+    * send/receive/deleteInventory gate option
+    * teleportFormat gate option
+    * send/receiveJoin server option
     * world commands
     * gate go command
     * pins saving/loading
-    * sendMessage gate setting
     * test reverse linking between servers
     * test trp list, player joining, quitting, etc.
 
 Wiki Updates:
     * update GateDesign:
         * ligthning
-        * teleportInventory (default true)
-        * deleteInventory (default false)
+        * send/receive/deleteInventory (default true/true/false)
     * update server add commands with renamed args
     * remove server change command
     * update ServerToServer:
@@ -38,7 +37,7 @@ Wiki Updates:
         * usePermissionsEx (default false)
         * gateLockExpiration (default 2000ms)
         * arrivalWindow (default 20000ms)
-        * teleportInventory (default true)
+        * send/receiveInventory (default true)
         * deleteInventory (default false)
         * suppressConnectionAttempts (default -1)
     * home page

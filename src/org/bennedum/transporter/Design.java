@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -57,12 +58,15 @@ public class Design {
     private boolean requirePin;
     private boolean requireValidPin;
     private int invalidPinDamage;
-    private boolean relayChat;
-    private int relayChatDistance;
+    private boolean sendChat;
+    private int sendChatDistance;
+    private boolean receiveChat;
+    private int receiveChatDistance;
     private boolean requireAllowedItems;
-    private boolean teleportInventory;
+    private boolean sendInventory;
+    private boolean receiveInventory;
     private boolean deleteInventory;
-    private boolean sendMessage;
+    private String teleportFormat;
     
     // Economy
     private double buildCost;
@@ -109,12 +113,15 @@ public class Design {
         requirePin = conf.getBoolean("requirePin", false);
         requireValidPin = conf.getBoolean("requireValidPin", true);
         invalidPinDamage = conf.getInt("invalidPinDamage", 0);
-        relayChat = conf.getBoolean("relayChat", false);
-        relayChatDistance = conf.getInt("relayChatDistance", 1000);
+        sendChat = conf.getBoolean("sendChat", false);
+        sendChatDistance = conf.getInt("sendChatDistance", 1000);
+        receiveChat = conf.getBoolean("receiveChat", false);
+        receiveChatDistance = conf.getInt("receiveChatDistance", 1000);
         requireAllowedItems = conf.getBoolean("requireAllowedItems", true);
-        teleportInventory = conf.getBoolean("teleportInventory", true);
+        sendInventory = conf.getBoolean("sendInventory", true);
+        receiveInventory = conf.getBoolean("receiveInventory", true);
         deleteInventory = conf.getBoolean("deleteInventory", false);
-        sendMessage = conf.getBoolean("sendMessage", true);
+        teleportFormat = conf.getString("teleportFormat", ChatColor.GOLD + "teleported to '%toGateCtx%'");
 
         List<String> items = conf.getStringList("bannedItems", new ArrayList<String>());
         for (String item : items) {
@@ -306,11 +313,14 @@ public class Design {
         Utils.debug("  requirePin = " + requirePin);
         Utils.debug("  requireValidPin = " + requireValidPin);
         Utils.debug("  invalidPinDamage = " + invalidPinDamage);
-        Utils.debug("  relayChat = " + relayChat);
-        Utils.debug("  relayChatDistance = " + relayChatDistance);
-        Utils.debug("  teleportInventory = " + teleportInventory);
+        Utils.debug("  sendChat = " + sendChat);
+        Utils.debug("  sendChatDistance = " + sendChatDistance);
+        Utils.debug("  receiveChat = " + receiveChat);
+        Utils.debug("  receiveChatDistance = " + receiveChatDistance);
+        Utils.debug("  sendInventory = " + sendInventory);
+        Utils.debug("  receiveInventory = " + receiveInventory);
         Utils.debug("  deleteInventory = " + deleteInventory);
-        Utils.debug("  sendMessage = " + sendMessage);
+        Utils.debug("  teleportFormat = " + teleportFormat);
 
         Utils.debug("  buildCost = " + buildCost);
         Utils.debug("  createCost = " + createCost);
@@ -382,12 +392,20 @@ public class Design {
         return invalidPinDamage;
     }
 
-    public boolean getRelayChat() {
-        return relayChat;
+    public boolean getSendChat() {
+        return sendChat;
     }
 
-    public int getRelayChatDistance() {
-        return relayChatDistance;
+    public int getSendChatDistance() {
+        return sendChatDistance;
+    }
+
+    public boolean getReceiveChat() {
+        return receiveChat;
+    }
+
+    public int getReceiveChatDistance() {
+        return receiveChatDistance;
     }
 
     public boolean getRequireAllowedItems() {
@@ -406,16 +424,20 @@ public class Design {
         return replaceItems;
     }
 
-    public boolean getTeleportInventory() {
-        return teleportInventory;
+    public boolean getSendInventory() {
+        return sendInventory;
+    }
+    
+    public boolean getReceiveInventory() {
+        return receiveInventory;
     }
     
     public boolean getDeleteInventory() {
         return deleteInventory;
     }
     
-    public boolean getSendMessage() {
-        return sendMessage;
+    public String getTeleportFormat() {
+        return teleportFormat;
     }
     
     public double getBuildCost() {

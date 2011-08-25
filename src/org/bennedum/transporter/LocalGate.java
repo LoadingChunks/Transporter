@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.bennedum.transporter.GateMap.Entry;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -54,12 +55,17 @@ public class LocalGate extends Gate implements OptionsListener {
         OPTIONS.add("requirePin");
         OPTIONS.add("requireValidPin");
         OPTIONS.add("invalidPinDamage");
-        OPTIONS.add("relayChat");
-        OPTIONS.add("relayChatDistance");
+        OPTIONS.add("sendChat");
+        OPTIONS.add("sendChatDistance");
+        OPTIONS.add("receiveChat");
+        OPTIONS.add("receiveChatDistance");
         OPTIONS.add("requireAllowedItems");
-        OPTIONS.add("teleportInventory");
+        OPTIONS.add("sendInventory");
+        OPTIONS.add("receiveInventory");
         OPTIONS.add("deleteInventory");
-        OPTIONS.add("sendMessage");
+        OPTIONS.add("sendJoin");
+        OPTIONS.add("receiveJoin");
+        OPTIONS.add("teleportFormat");
         OPTIONS.add("linkLocalCost");
         OPTIONS.add("linkWorldCost");
         OPTIONS.add("linkServerCost");
@@ -98,12 +104,15 @@ public class LocalGate extends Gate implements OptionsListener {
     private boolean requireValidPin;
     private int invalidPinDamage;
     private boolean protect;
-    private boolean relayChat;
-    private int relayChatDistance;
+    private boolean sendChat;
+    private int sendChatDistance;
+    private boolean receiveChat;
+    private int receiveChatDistance;
     private boolean requireAllowedItems;
-    private boolean teleportInventory;
+    private boolean sendInventory;
+    private boolean receiveInventory;
     private boolean deleteInventory;
-    private boolean sendMessage;
+    private String teleportFormat;
 
     private double linkLocalCost;
     private double linkWorldCost;
@@ -149,12 +158,15 @@ public class LocalGate extends Gate implements OptionsListener {
         requireValidPin = design.getRequireValidPin();
         invalidPinDamage = design.getInvalidPinDamage();
         protect = false;
-        relayChat = design.getRelayChat();
-        relayChatDistance = design.getRelayChatDistance();
+        sendChat = design.getSendChat();
+        sendChatDistance = design.getSendChatDistance();
+        receiveChat = design.getReceiveChat();
+        receiveChatDistance = design.getReceiveChatDistance();
         requireAllowedItems = design.getRequireAllowedItems();
-        teleportInventory = design.getTeleportInventory();
+        sendInventory = design.getSendInventory();
+        receiveInventory = design.getReceiveInventory();
         deleteInventory = design.getDeleteInventory();
-        sendMessage = design.getSendMessage();
+        teleportFormat = design.getTeleportFormat();
 
         linkLocalCost = design.getLinkLocalCost();
         linkWorldCost = design.getLinkWorldCost();
@@ -242,12 +254,15 @@ public class LocalGate extends Gate implements OptionsListener {
         requireValidPin = conf.getBoolean("requireValidPin", true);
         invalidPinDamage = conf.getInt("invalidPinDamage", 0);
         protect = conf.getBoolean("protect", false);
-        relayChat = conf.getBoolean("relayChat", false);
-        relayChatDistance = conf.getInt("relayChatDistance", 1000);
+        sendChat = conf.getBoolean("sendChat", false);
+        sendChatDistance = conf.getInt("sendChatDistance", 1000);
+        receiveChat = conf.getBoolean("receiveChat", false);
+        receiveChatDistance = conf.getInt("receiveChatDistance", 1000);
         requireAllowedItems = conf.getBoolean("requireAllowedItems", true);
-        teleportInventory = conf.getBoolean("teleportInventory", true);
+        sendInventory = conf.getBoolean("sendInventory", true);
+        receiveInventory = conf.getBoolean("receiveInventory", true);
         deleteInventory = conf.getBoolean("deleteInventory", false);
-        sendMessage = conf.getBoolean("sendMessage", true);
+        teleportFormat = conf.getString("teleportFormat", ChatColor.GOLD + "teleported to '%gate%'");
 
         incoming.addAll(conf.getStringList("incoming", new ArrayList<String>()));
         outgoing = conf.getString("outgoing");
@@ -322,12 +337,15 @@ public class LocalGate extends Gate implements OptionsListener {
         conf.setProperty("requireValidPin", requireValidPin);
         conf.setProperty("invalidPinDamage", invalidPinDamage);
         conf.setProperty("protect", protect);
-        conf.setProperty("relayChat", relayChat);
-        conf.setProperty("relayChatDistance", relayChatDistance);
+        conf.setProperty("sendChat", sendChat);
+        conf.setProperty("sendChatDistance", sendChatDistance);
+        conf.setProperty("receiveChat", receiveChat);
+        conf.setProperty("receiveChatDistance", receiveChatDistance);
         conf.setProperty("requireAllowedItems", requireAllowedItems);
-        conf.setProperty("teleportInventory", teleportInventory);
+        conf.setProperty("sendInventory", sendInventory);
+        conf.setProperty("receiveInventory", receiveInventory);
         conf.setProperty("deleteInventory", deleteInventory);
-        conf.setProperty("sendMessage", sendMessage);
+        conf.setProperty("teleportFormat", teleportFormat);
 
         if (! incoming.isEmpty()) conf.setProperty("incoming", new ArrayList<String>(incoming));
         if (outgoing != null) conf.setProperty("outgoing", outgoing);
@@ -546,12 +564,21 @@ public class LocalGate extends Gate implements OptionsListener {
         forceSave();
     }
 
-    public boolean getTeleportInventory() {
-        return teleportInventory;
+    public boolean getSendInventory() {
+        return sendInventory;
     }
 
-    public void setTeleportInventory(boolean b) {
-        teleportInventory = b;
+    public void setSendInventory(boolean b) {
+        sendInventory = b;
+        forceSave();
+    }
+    
+    public boolean getReceiveInventory() {
+        return receiveInventory;
+    }
+
+    public void setReceiveInventory(boolean b) {
+        receiveInventory = b;
         forceSave();
     }
     
@@ -564,12 +591,12 @@ public class LocalGate extends Gate implements OptionsListener {
         forceSave();
     }
     
-    public boolean getSendMessage() {
-        return sendMessage;
+    public String getTeleportFormat() {
+        return teleportFormat;
     }
 
-    public void setSendMessage(boolean b) {
-        sendMessage = b;
+    public void setTeleportFormat(String s) {
+        teleportFormat = s;
         forceSave();
     }
     
@@ -1204,12 +1231,20 @@ public class LocalGate extends Gate implements OptionsListener {
         return filtered;
     }
     
-    public boolean isInChatProximity(Location location) {
-        if (! relayChat) return false;
+    public boolean isInChatSendProximity(Location location) {
+        if (! sendChat) return false;
         if (location.getWorld() != world) return false;
-        if (relayChatDistance <= 0) return true;
+        if (sendChatDistance <= 0) return true;
         Vector there = new Vector(location.getX(), location.getY(), location.getZ());
-        return (there.distance(center) <= relayChatDistance);
+        return (there.distance(center) <= sendChatDistance);
+    }
+
+    public boolean isInChatReceiveProximity(Location location) {
+        if (! receiveChat) return false;
+        if (location.getWorld() != world) return false;
+        if (receiveChatDistance <= 0) return true;
+        Vector there = new Vector(location.getX(), location.getY(), location.getZ());
+        return (there.distance(center) <= receiveChatDistance);
     }
 
     private GateMap getBuildBlocks() {
