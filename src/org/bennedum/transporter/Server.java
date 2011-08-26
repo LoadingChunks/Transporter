@@ -114,6 +114,7 @@ public final class Server implements OptionsListener {
     private Connection connection = null;
     private boolean allowReconnect = true;
     private int reconnectTask = -1;
+    private boolean fastReconnect = false;
     private boolean connected = false;
     private String remoteVersion = null;
     private Map<String,Set<Pattern>> remotePublicAddressMap = null;
@@ -371,6 +372,7 @@ public final class Server implements OptionsListener {
     public void connect() {
         if (isConnected() || Network.isStopped() || isIncoming()) return;
         allowReconnect = true;
+        fastReconnect = false;
         cancelOutbound();
         if (connection != null)
             connection.close();
@@ -405,21 +407,25 @@ public final class Server implements OptionsListener {
         cancelOutbound();
         if (! allowReconnect) return;
         if (isConnected() || Network.isStopped() || isIncoming()) return;
-        int time = Network.getReconnectInterval();
-        int skew = Network.getReconnectSkew();
-        if (time < skew) time = skew;
-        time += (Math.random() * (double)(skew * 2)) - skew;
+        if (fastReconnect)
+            connect();
+        else {
+            int time = Network.getReconnectInterval();
+            int skew = Network.getReconnectSkew();
+            if (time < skew) time = skew;
+            time += (Math.random() * (double)(skew * 2)) - skew;
 
-        if (! connectionMessagesSuppressed())
-            Utils.info("will attempt to reconnect to '%s' in about %d seconds", getName(), (time / 1000));
+            if (! connectionMessagesSuppressed())
+                Utils.info("will attempt to reconnect to '%s' in about %d seconds", getName(), (time / 1000));
+            reconnectTask = Utils.fireDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    reconnectTask = -1;
+                    connect();
+                }
+            }, time);
+        }
 
-        reconnectTask = Utils.fireDelayed(new Runnable() {
-            @Override
-            public void run() {
-                reconnectTask = -1;
-                connect();
-            }
-        }, time);
     }
 
     public boolean connectionMessagesSuppressed() {
@@ -448,6 +454,7 @@ public final class Server implements OptionsListener {
         if (! isConnected()) return;
         if ((System.currentTimeMillis() - connection.getLastMessageReceivedTime()) < RECV_KEEPALIVE_INTERVAL) return;
         Utils.warning("no keepalive received from server '%s'", name);
+        fastReconnect = true;
         disconnect(true);
     }
 
