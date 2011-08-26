@@ -297,6 +297,14 @@ public class LocalGate extends Gate implements OptionsListener {
             if (savedBlocks.isEmpty()) savedBlocks = null;
         }
 
+        // convert 6.10 stuff
+        int relayChatDistance = conf.getInt("relayChatDistance", Integer.MIN_VALUE);
+        if (relayChatDistance != Integer.MIN_VALUE) {
+            sendChat = receiveChat = (relayChatDistance > 0);
+            if (relayChatDistance > 0)
+                sendChatDistance = receiveChatDistance = relayChatDistance;
+        }
+        
         calculateCenter();
         validate();
     }

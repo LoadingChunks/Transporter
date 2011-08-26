@@ -48,6 +48,7 @@ public class Context {
     public void send(String msg, Object ... args) {
         if (args.length > 0)
             msg = String.format(msg, args);
+        if (msg.isEmpty()) return;
         if (sender == null)
             Utils.info(msg);
         else if (isPlayer())
@@ -59,16 +60,18 @@ public class Context {
     }
 
     public void sendLog(String msg, Object ... args) {
-        send(msg, args);
-        if (! isPlayer()) return;
         if (args.length > 0)
             msg = String.format(msg, args);
+        if (msg.isEmpty()) return;
+        send(msg);
+        if (! isPlayer()) return;
         Utils.info("->[%s] %s", ((Player)sender).getName(), msg);
     }
 
     public void warn(String msg, Object ... args) {
         if (args.length > 0)
             msg = String.format(msg, args);
+        if (msg.isEmpty()) return;
         if (sender == null)
             Utils.warning(msg);
         else
@@ -76,10 +79,11 @@ public class Context {
     }
 
     public void warnLog(String msg, Object ... args) {
-        warn(msg, args);
-        if (! isPlayer()) return;
         if (args.length > 0)
             msg = String.format(msg, args);
+        if (msg.isEmpty()) return;
+        warn(msg);
+        if (! isPlayer()) return;
         Utils.warning("->[%s] %s", ((Player)sender).getName(), msg);
     }
 

@@ -135,18 +135,18 @@ public final class Reservation {
 
     private Location fromLocation = null;
     private Vector fromVelocity = null;
+    private BlockFace fromDirection = null;
     private Gate fromGate = null;
     private String fromGateName = null;
-    private BlockFace fromGateDirection = null;
     private LocalGate fromGateLocal = null; // local gate
     private World fromWorld = null;         // local gate
     private Server fromServer = null;       // remote gate
 
     private Location toLocation = null;
     private Vector toVelocity = null;
+    private BlockFace toDirection = null;
     private Gate toGate = null;
     private String toGateName = null;
-    private BlockFace toGateDirection = null;
     private LocalGate toGateLocal = null;   // local gate
     private String toWorldName = null;
     private World toWorld = null;           // local gate
@@ -263,7 +263,7 @@ public final class Reservation {
             if (fromGate.isSameServer())
                 throw new ReservationException("fromGate '%s' is not a remote gate", fromGateName);
             try {
-                fromGateDirection = BlockFace.valueOf(in.getString("fromGateDirection"));
+                fromDirection = BlockFace.valueOf(in.getString("fromGateDirection"));
             } catch (IllegalArgumentException e) {
                 throw new ReservationException("unknown fromGateDirection '%s'", in.getString("fromGateDirection"));
             }
@@ -278,11 +278,11 @@ public final class Reservation {
             if (! toGate.isSameServer())
                 throw new ReservationException("toGate '%s' is not a local gate", toGateName);
             toGateLocal = (LocalGate)toGate;
-            toGateDirection = toGateLocal.getDirection();
+            toDirection = toGateLocal.getDirection();
             toWorld = toGateLocal.getWorld();
             toWorldName = toWorld.getName();
-            if (fromGateDirection == null)
-                fromGateDirection = toGateDirection;
+            if (fromDirection == null)
+                fromDirection = toDirection;
         }
     }
 
@@ -335,7 +335,7 @@ public final class Reservation {
     private void extractFromGate(LocalGate fromGate) throws ReservationException {
         this.fromGate = fromGateLocal = fromGate;
         fromGateName = fromGate.getFullName();
-        fromGateDirection = fromGate.getDirection();
+        fromDirection = fromGate.getDirection();
         fromWorld = fromGate.getWorld();
 
         try {
@@ -364,6 +364,9 @@ public final class Reservation {
         if (toGate.isSameServer()) {
             toGateLocal = (LocalGate)toGate;
             toWorld = toGateLocal.getWorld();
+            toDirection = toGateLocal.getDirection();
+            if (fromDirection == null)
+                fromDirection = toDirection;
             if (! toGateLocal.getReceiveInventory()) {
                 inventory = null;
                 armor = null;
@@ -395,8 +398,8 @@ public final class Reservation {
         out.put("heldItemSlot", heldItemSlot);
         out.put("armor", encodeItemStackArray(armor));
         out.put("fromGate", fromGateName);
-        if (fromGateDirection != null)
-            out.put("fromGateDirection", fromGateDirection.toString());
+        if (fromDirection != null)
+            out.put("fromGateDirection", fromDirection.toString());
         out.put("toGate", toGateName);
         out.put("toWorldName", toWorldName);
         if (toLocation != null) {
@@ -470,6 +473,17 @@ public final class Reservation {
                 try {
                     Utils.debug("sending reservation for %s to %s...", getTraveler(), getDestination());
                     toServer.doSendReservation(this);
+
+                    // setup delayed task to remove the reservation on this side if it doesn't work out
+                    final Reservation me = this;
+                    Utils.fireDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (! remove(me)) return;
+                            Utils.warning("reservation for %s to %s timed out", getTraveler(), getDestination());
+                        }
+                    }, Config.getArrivalWindow());
+
                 } catch (ServerException e) {
                     Utils.severe(e, "reservation send for %s to %s failed:", getTraveler(), getDestination());
                     remove(this);
@@ -610,8 +624,9 @@ public final class Reservation {
             entity.remove();
     }
 
-    // called on the sending side to indicate a reservation was denies by the receiving side
+    // called on the sending side to indicate a reservation was denied by the receiving side
     public void denied(final String reason) {
+        remove(this);
         if (player == null)
             Utils.warning("reservation to send %s to %s was denied: %s", getTraveler(), getDestination(), reason);
         else
@@ -840,10 +855,10 @@ public final class Reservation {
             GateBlock block = toGateLocal.getSpawnBlocks().randomBlock();
             toLocation = block.getLocation().clone();
             toLocation.add(0.5, 0, 0.5);
-            toLocation.setYaw(block.getDetail().getSpawn().calculateYaw(fromLocation.getYaw(), fromGateDirection, toGateLocal.getDirection()));
+            toLocation.setYaw(block.getDetail().getSpawn().calculateYaw(fromLocation.getYaw(), fromDirection, toGateLocal.getDirection()));
             toLocation.setPitch(fromLocation.getPitch());
             toVelocity = fromVelocity.clone();
-            Utils.rotate(toVelocity, fromGateDirection, toGateLocal.getDirection());
+            Utils.rotate(toVelocity, fromDirection, toGateLocal.getDirection());
         } else {
             if (toLocation == null) {
                 if (toWorld == null)

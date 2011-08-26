@@ -48,6 +48,7 @@ public class WorldCommand extends TrpCommandProcessor {
     public List<String> getUsage(Context ctx) {
         List<String> cmds = new ArrayList<String>();
         cmds.add(getPrefix(ctx) + GROUP + "list");
+        // TODO: change to add, add remove
         cmds.add(getPrefix(ctx) + GROUP + "create <world> [<env>] [<seed>]");
         cmds.add(getPrefix(ctx) + GROUP + "load <world>");
         cmds.add(getPrefix(ctx) + GROUP + "unload <world>");

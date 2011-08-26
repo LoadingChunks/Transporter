@@ -3,7 +3,10 @@
 * Implement new gate design: Jail
 * add back call to gate's to do lightning/effects
 
-Testing:
+Testing/TODO:
+    * add Utils method to figure out Enum values from strings
+    * change world create to add/remove and make it use new Utils method
+    * make all format options take '-' to mean empty string
 
 Wiki Updates:
     * update GateDesign:

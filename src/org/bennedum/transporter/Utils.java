@@ -76,6 +76,7 @@ public class Utils {
         if (args.length > 0)
             msg = String.format(msg, args);
         msg = ChatColor.stripColor(msg);
+        if (msg.isEmpty()) return;
         logger.log(Level.INFO, String.format("[%s] %s", Global.pluginName, msg));
     }
 
@@ -83,6 +84,7 @@ public class Utils {
         if (args.length > 0)
             msg = String.format(msg, args);
         msg = ChatColor.stripColor(msg);
+        if (msg.isEmpty()) return;
         logger.log(Level.WARNING, String.format("[%s] %s", Global.pluginName, msg));
     }
 
@@ -90,6 +92,7 @@ public class Utils {
         if (args.length > 0)
             msg = String.format(msg, args);
         msg = ChatColor.stripColor(msg);
+        if (msg.isEmpty()) return;
         logger.log(Level.SEVERE, String.format("[%s] %s", Global.pluginName, msg), t);
     }
 
@@ -98,6 +101,7 @@ public class Utils {
         if (args.length > 0)
             msg = String.format(msg, args);
         msg = ChatColor.stripColor(msg);
+        if (msg.isEmpty()) return;
         logger.log(Level.INFO, String.format("[DEBUG] %s", msg));
     }
 
@@ -190,6 +194,7 @@ public class Utils {
     }
 
     public static int directionToYaw(BlockFace direction) {
+        if (direction == null) return 0;
         switch (direction) {
             case NORTH: return 90;
             case EAST: return 180;
@@ -281,6 +286,8 @@ public class Utils {
         if (! Global.enabled) return;
         Global.plugin.getServer().getScheduler().cancelTask(taskId);
     }
+
+    // TODO: add method to get Enum value, make use in world add command
 
     public static boolean prepareChunk(Location loc) {
         World world = loc.getWorld();
