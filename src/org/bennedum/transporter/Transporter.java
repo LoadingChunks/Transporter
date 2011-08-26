@@ -51,6 +51,7 @@ public class Transporter extends JavaPlugin {
         Global.plugin = this;
         Global.pluginName = pdf.getName();
         Global.pluginVersion = pdf.getVersion();
+        Global.started = false;
 
         Context ctx = new Context();
 
@@ -85,8 +86,6 @@ public class Transporter extends JavaPlugin {
 
         Config.load(ctx);
         Designs.load(ctx);
-        Worlds.load(ctx);
-        //Gates.load(ctx);  // Worlds handle loading gates
         Network.start(ctx);
 
         PluginManager pm = getServer().getPluginManager();
@@ -106,6 +105,8 @@ public class Transporter extends JavaPlugin {
         pm.registerEvent(Type.WORLD_LOAD, worldListener, Priority.Normal, this); // add gates on a world
         pm.registerEvent(Type.WORLD_UNLOAD, worldListener, Priority.Normal, this); // remove gates on a world
         pm.registerEvent(Type.ENTITY_DAMAGE, entityListener, Priority.Normal, this); // nullify damage in portal blocks
+
+        Global.started = true;
 
         ctx.sendLog("ready");
 

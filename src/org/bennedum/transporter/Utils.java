@@ -55,6 +55,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitWorker;
 import org.bukkit.util.Vector;
 
@@ -72,23 +73,31 @@ public class Utils {
     private static final int DEBUG_LOG_BYTES = 20 * 1024;
 
     public static void info(String msg, Object ... args) {
-        msg = ChatColor.stripColor(String.format(msg, args));
+        if (args.length > 0)
+            msg = String.format(msg, args);
+        msg = ChatColor.stripColor(msg);
         logger.log(Level.INFO, String.format("[%s] %s", Global.pluginName, msg));
     }
 
     public static void warning(String msg, Object ... args) {
-        msg = ChatColor.stripColor(String.format(msg, args));
+        if (args.length > 0)
+            msg = String.format(msg, args);
+        msg = ChatColor.stripColor(msg);
         logger.log(Level.WARNING, String.format("[%s] %s", Global.pluginName, msg));
     }
 
     public static void severe(Throwable t, String msg, Object ... args) {
-        msg = ChatColor.stripColor(String.format(msg, args));
+        if (args.length > 0)
+            msg = String.format(msg, args);
+        msg = ChatColor.stripColor(msg);
         logger.log(Level.SEVERE, String.format("[%s] %s", Global.pluginName, msg), t);
     }
 
     public static void debug(String msg, Object ... args) {
         if (! Config.getDebug()) return;
-        msg = ChatColor.stripColor(String.format(msg, args));
+        if (args.length > 0)
+            msg = String.format(msg, args);
+        msg = ChatColor.stripColor(msg);
         logger.log(Level.INFO, String.format("[DEBUG] %s", msg));
     }
 
@@ -106,6 +115,20 @@ public class Utils {
 
     public static String dir(Vector vec) {
         return String.format("%4.2f,%4.2f,%4.2f", (float)vec.getX(), (float)vec.getY(), (float)vec.getZ());
+    }
+
+    public static String itemStackArray(ItemStack[] isa) {
+        if (isa == null) return "no items";
+        StringBuilder sb = new StringBuilder();
+        sb.append(isa.length).append(" items\n");
+        for (int i = 0; i < isa.length; i++)
+            sb.append(itemStack(isa[i])).append("\n");
+        return sb.toString();
+    }
+
+    public static String itemStack(ItemStack is) {
+        if (is == null) return "null";
+        return is.getAmount() + " of " + is.getType().toString();
     }
 
     public static boolean copyFileFromJar(String resPath, File dstFile, boolean overwriteIfOlder) {

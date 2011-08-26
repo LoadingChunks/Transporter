@@ -71,7 +71,7 @@ public final class Network {
         OPTIONS.add("listenAddress");
         OPTIONS.add("key");
         OPTIONS.add("suppressConnectionAttempts");
-        
+
         RESTART_OPTIONS.add("readBufferSize");
         RESTART_OPTIONS.add("selectInterval");
         RESTART_OPTIONS.add("clusterName");
@@ -210,6 +210,7 @@ public final class Network {
         stop(ctx);
         onConfigLoad(ctx);
         start(ctx);
+        Servers.connectAll();
     }
 
     // called from main thread
@@ -218,6 +219,7 @@ public final class Network {
             (! networkThread.isAlive()) ||
             (state != State.RUNNING)) return;
         ctx.send("stopping network manager...");
+        Servers.disconnectAll();
         state = State.STOP;
         selector.wakeup();
         while (networkThread.isAlive()) {
@@ -353,7 +355,7 @@ public final class Network {
     public static void setSuppressConnectionAttempts(int i) {
         Config.setPropertyDirect("network.suppressConnectionAttempts", i);
     }
-            
+
     public static void getOptions(Context ctx, String name) throws OptionsException, PermissionsException {
         options.getOptions(ctx, name);
     }

@@ -49,7 +49,6 @@ public class DebugCommand extends TrpCommandProcessor {
     public List<String> getUsage(Context ctx) {
         if (! ctx.isConsole()) return null;
         List<String> cmds = new ArrayList<String>();
-        cmds.add(getPrefix(ctx) + GROUP + "true|false");
         cmds.add(getPrefix(ctx) + GROUP + "submit <player>");
         cmds.add(getPrefix(ctx) + GROUP + "dump player [<player>]");
         cmds.add(getPrefix(ctx) + GROUP + "dump gate <name>");
@@ -130,8 +129,7 @@ public class DebugCommand extends TrpCommandProcessor {
             throw new CommandException("dump what?");
         }
 
-        Config.setDebug(Boolean.parseBoolean(subCmd));
-        ctx.send("debug set to %s", Config.getDebug());
+        throw new CommandException("debug what?");
     }
 
 }

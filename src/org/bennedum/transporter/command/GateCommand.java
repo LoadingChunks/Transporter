@@ -42,13 +42,13 @@ import org.bukkit.command.Command;
 public class GateCommand extends TrpCommandProcessor {
 
     private static final String GROUP = "gate ";
-    
+
     @Override
     public boolean matches(Context ctx, Command cmd, List<String> args) {
         return super.matches(ctx, cmd, args) &&
                GROUP.startsWith(args.get(0).toLowerCase());
     }
-    
+
     @Override
     public List<String> getUsage(Context ctx) {
         List<String> cmds = new ArrayList<String>();
@@ -71,7 +71,7 @@ public class GateCommand extends TrpCommandProcessor {
         cmds.add(getPrefix(ctx) + GROUP + "replace add <old> <new> [<gate>]");
         cmds.add(getPrefix(ctx) + GROUP + "replace remove <olditem>|* [<gate>]");
         if (ctx.isPlayer())
-            cmds.add(getPrefix(ctx) + GROUP + "[<gate>]");
+            cmds.add(getPrefix(ctx) + GROUP + "go [<gate>]");
         cmds.add(getPrefix(ctx) + GROUP + "get <option>|* [<gate>]");
         cmds.add(getPrefix(ctx) + GROUP + "set <option> <value> [<gate>]");
         return cmds;
@@ -104,8 +104,6 @@ public class GateCommand extends TrpCommandProcessor {
         }
 
         if ("select".startsWith(subCmd)) {
-            if (! ctx.isPlayer())
-                throw new CommandException("this command can only be used by a player");
             LocalGate gate = getGate(ctx, args);
             Permissions.require(ctx.getPlayer(), "trp.gate.select." + gate.getName());
             Global.setSelectedGate(ctx.getPlayer(), gate);
@@ -254,9 +252,9 @@ public class GateCommand extends TrpCommandProcessor {
                     else {
                         Server server = Servers.get(toGate.getServerName());
                         if (server == null)
-                            ctx.send("unable to create reverse link from unknown or offline server");
+                            ctx.send("unable to add reverse link from unknown or offline server");
                         else
-                            server.doRemoteLink(ctx.getPlayer(), (LocalGate)fromGate, (RemoteGate)toGate);
+                            server.doAddLink(ctx.getPlayer(), (LocalGate)fromGate, (RemoteGate)toGate);
                     }
                 }
                 return;
@@ -269,8 +267,17 @@ public class GateCommand extends TrpCommandProcessor {
 
                 ctx.sendLog("removed link from '%s' to '%s'", fromGate.getName(ctx), toGate.getName(ctx));
 
-                if (reverse && (ctx.getSender() != null))
-                    Global.plugin.getServer().dispatchCommand(ctx.getSender(), "trp gate link remove \"" + fromGate.getFullName() + "\" \"" + toGate.getFullName() + "\"");
+                if (reverse && (ctx.getSender() != null)) {
+                    if (toGate.isSameServer())
+                        Global.plugin.getServer().dispatchCommand(ctx.getSender(), "trp gate link remove \"" + fromGate.getFullName() + "\" \"" + toGate.getFullName() + "\"");
+                    else {
+                        Server server = Servers.get(toGate.getServerName());
+                        if (server == null)
+                            ctx.send("unable to remove reverse link from unknown or offline server");
+                        else
+                            server.doRemoveLink(ctx.getPlayer(), (LocalGate)fromGate, (RemoteGate)toGate);
+                    }
+                }
                 return;
             }
             throw new CommandException("do what with a link?");
@@ -430,13 +437,15 @@ public class GateCommand extends TrpCommandProcessor {
         }
 
         if ("go".startsWith(subCmd)) {
+            if (! ctx.isPlayer())
+                throw new CommandException("this command can only be used by a player");
             Gate gate = null;
             if (! args.isEmpty()) {
                 String name = args.remove(0);
                 gate = Gates.get(ctx, name);
                 if (gate == null)
                     throw new CommandException("unknown gate '%s'", name);
-            } else if (ctx.isPlayer())
+            } else
                 gate = Global.getSelectedGate(ctx.getPlayer());
             if (gate == null)
                 throw new CommandException("gate name required");
@@ -450,7 +459,7 @@ public class GateCommand extends TrpCommandProcessor {
             }
             return;
         }
-        
+
         throw new CommandException("do what with a gate?");
     }
 
@@ -461,7 +470,7 @@ public class GateCommand extends TrpCommandProcessor {
             if (gate == null)
                 throw new CommandException("unknown gate '%s'", args.get(0));
             args.remove(0);
-        } else if (ctx.isPlayer())
+        } else
             gate = Global.getSelectedGate(ctx.getPlayer());
         if (gate == null)
             throw new CommandException("gate name required");

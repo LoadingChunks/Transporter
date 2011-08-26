@@ -41,12 +41,13 @@ public final class Global {
 
     public static final int DEFAULT_PLUGIN_PORT = 25555;
     public static final int DEFAULT_MC_PORT = 25565;
-    
+
     public static Thread mainThread = null;
     public static boolean enabled = false;
     public static Transporter plugin = null;
     public static String pluginName;
     public static String pluginVersion;
+    public static boolean started = false;
 
     public static final List<CommandProcessor> commands = new ArrayList<CommandProcessor>();
 
@@ -55,10 +56,10 @@ public final class Global {
 
     static {
         commands.add(new HelpCommand());
-        commands.add(new GlobalCommands());
         commands.add(new ReloadCommand());
         commands.add(new SaveCommand());
         commands.add(new PinCommand());
+        commands.add(new GlobalCommands());
         commands.add(new DesignCommand());
         commands.add(new GateCommand());
         commands.add(new ServerCommand());

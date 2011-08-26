@@ -47,7 +47,7 @@ public final class Worlds {
                 }
             }
         }
-        
+
         // add default world if it doesn't exist
         World world = Global.plugin.getServer().getWorlds().get(0);
         if (! worlds.containsKey(world.getName())) {
@@ -65,13 +65,6 @@ public final class Worlds {
         Config.setPropertyDirect("worlds", worldNodes);
     }
 
-    public static void load(Context ctx) {
-        for (WorldProxy proxy : worlds.values()) {
-            if (! proxy.getAutoLoad()) continue;
-            proxy.load(ctx);
-        }
-    }
-    
     public static void add(WorldProxy world) {
         worlds.put(world.getName(), world);
     }

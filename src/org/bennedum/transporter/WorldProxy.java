@@ -28,23 +28,23 @@ import org.bukkit.util.config.ConfigurationNode;
  * @author frdfsnlght <frdfsnlght@gmail.com>
  */
 public final class WorldProxy implements OptionsListener {
-    
+
     private static final Set<String> OPTIONS = new HashSet<String>();
-    
+
     static {
         OPTIONS.add("autoLoad");
     }
-    
+
     public static boolean isValidName(String name) {
         if (name.length() == 0) return false;
         return ! (name.contains(".") || name.contains("*"));
     }
-    
+
     private Options options = new Options(this, OPTIONS, "trp.world", this);
     private String name;
     private Environment environment;
     private boolean autoLoad;
-    
+
     public WorldProxy(String name, Environment env) throws WorldException {
         try {
             setName(name);
@@ -64,7 +64,7 @@ public final class WorldProxy implements OptionsListener {
             throw new WorldException(e.getMessage());
         }
     }
-    
+
     public String getName() {
         return name;
     }
@@ -90,25 +90,25 @@ public final class WorldProxy implements OptionsListener {
             throw new IllegalArgumentException("environment is not valid");
         }
     }
-    
+
     /* Begin options */
-    
+
     public boolean getAutoLoad() {
         return autoLoad;
     }
-    
+
     public void setAutoLoad(boolean b) {
         autoLoad = b;
     }
-    
+
     public void getOptions(Context ctx, String name) throws OptionsException, PermissionsException {
         options.getOptions(ctx, name);
     }
-    
+
     public String getOption(Context ctx, String name) throws OptionsException, PermissionsException {
         return options.getOption(ctx, name);
     }
-    
+
     public void setOption(Context ctx, String name, String value) throws OptionsException, PermissionsException {
         options.setOption(ctx, name, value);
     }
@@ -117,9 +117,9 @@ public final class WorldProxy implements OptionsListener {
     public void onOptionSet(Context ctx, String name, String value) {
         ctx.sendLog("option '%s' set to '%s' for world '%s'", name, value, getName());
     }
-    
+
     /* End options */
-    
+
     public Map<String,Object> encode() {
         Map<String,Object> node = new HashMap<String,Object>();
         node.put("name", name);
@@ -127,18 +127,19 @@ public final class WorldProxy implements OptionsListener {
         node.put("autoLoad", autoLoad);
         return node;
     }
-    
+
     public World getWorld() {
         return Global.plugin.getServer().getWorld(name);
     }
-    
+
     public World load(Context ctx) {
+        ctx.send("loading world '%s'...", name);
         World world = Global.plugin.getServer().createWorld(name, environment);
-        // TODO: remove when Bukkit sends onWorldLoaded events
-        Gates.loadGatesForWorld(ctx, world);
+        if (! Global.started)
+            Gates.loadGatesForWorld(ctx, world);
         return world;
     }
-    
+
     public World unload() {
         World world = getWorld();
         if (world != null) {
@@ -148,10 +149,10 @@ public final class WorldProxy implements OptionsListener {
         }
         return world;
     }
-    
+
     public boolean isLoaded() {
         return getWorld() != null;
     }
-    
-    
+
+
 }

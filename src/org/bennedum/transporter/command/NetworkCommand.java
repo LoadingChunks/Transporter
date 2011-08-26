@@ -30,22 +30,22 @@ import org.bukkit.command.Command;
 public class NetworkCommand  extends TrpCommandProcessor {
 
     private static final String GROUP = "network ";
-    
+
     @Override
     public boolean matches(Context ctx, Command cmd, List<String> args) {
         return super.matches(ctx, cmd, args) &&
                GROUP.startsWith(args.get(0).toLowerCase());
     }
-    
+
     @Override
     public List<String> getUsage(Context ctx) {
         List<String> cmds = new ArrayList<String>();
-        cmds.add(getPrefix(ctx) + GROUP + "get <option>|*");
-        cmds.add(getPrefix(ctx) + GROUP + "set <option> <value>");
         cmds.add(getPrefix(ctx) + GROUP + "ban add <pattern>");
         cmds.add(getPrefix(ctx) + GROUP + "ban remove <pattern>|*");
         cmds.add(getPrefix(ctx) + GROUP + "ban list");
-        
+        cmds.add(getPrefix(ctx) + GROUP + "get <option>|*");
+        cmds.add(getPrefix(ctx) + GROUP + "set <option> <value>");
+
         return cmds;
     }
 
@@ -67,7 +67,7 @@ public class NetworkCommand  extends TrpCommandProcessor {
             Network.setOption(ctx, option, value);
             return;
         }
-        
+
         if ("get".startsWith(subCmd)) {
             if (args.isEmpty())
                 throw new CommandException("option name required");
@@ -123,5 +123,5 @@ public class NetworkCommand  extends TrpCommandProcessor {
 
         throw new CommandException("do what with the network?");
     }
-    
+
 }

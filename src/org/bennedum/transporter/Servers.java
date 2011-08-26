@@ -81,6 +81,23 @@ public final class Servers {
             remove(server);
     }
 
+    public static void connectAll() {
+        for (final Server server : servers.values()) {
+            if ((! server.isConnected()) && server.isEnabled())
+                Utils.fireDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        server.connect();
+                    }
+                }, CONNECT_DELAY);
+        }
+    }
+
+    public static void disconnectAll() {
+        for (Server server : servers.values())
+            server.disconnect(false);
+    }
+    
     public static Server get(String name) {
         if (servers.containsKey(name)) return servers.get(name);
         Server server = null;

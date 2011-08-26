@@ -39,12 +39,12 @@ public final class Chat {
         for (Server server : Servers.getAll())
             if (server.getSendChat())
                 servers.put(server, null);
-        
+
         Location loc = player.getLocation();
         Gate destGate;
         Server destServer;
         for (LocalGate gate : Gates.getLocalGates()) {
-            if (gate.isOpen() && gate.isInChatSendProximity(loc)) {
+            if (gate.isOpen() && gate.getSendChat() && gate.isInChatSendProximity(loc)) {
                 try {
                     destGate = gate.getDestinationGate();
                     if (! destGate.isSameServer()) {
@@ -87,11 +87,12 @@ public final class Chat {
             playersToReceive.addAll(players.keySet());
         else if ((toGates != null) && (! toGates.isEmpty())) {
             for (String gateName : toGates) {
-                Gate gate = Gates.get(gateName);
+                LocalGate gate = Gates.getLocalGate(gateName);
                 if (gate == null) continue;
                 if (! gate.isSameServer()) continue;
+                if (! gate.getReceiveChat()) continue;
                 for (String player : players.keySet())
-                    if (((LocalGate)gate).isInChatReceiveProximity(players.get(player)))
+                    if (gate.isInChatReceiveProximity(players.get(player)))
                         playersToReceive.add(player);
             }
         }

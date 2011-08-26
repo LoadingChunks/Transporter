@@ -62,11 +62,14 @@ public final class Gates {
         for (World world : Global.plugin.getServer().getWorlds())
             loadGatesForWorld(ctx, world);
     }
-    
+
     public static void loadGatesForWorld(Context ctx, World world) {
         File worldFolder = Worlds.worldPluginFolder(world);
         File gatesFolder = new File(worldFolder, "gates");
-        if (! gatesFolder.exists()) return;
+        if (! gatesFolder.exists()) {
+            Utils.warning("gates folder '%s' for world '%s' not found; no gates will be loaded", gatesFolder.getAbsolutePath(), world.getName());
+            return;
+        }
         for (File gateFile : Utils.listYAMLFiles(gatesFolder)) {
             try {
                 LocalGate gate = new LocalGate(world, gateFile);

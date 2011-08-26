@@ -29,14 +29,14 @@ import org.bukkit.command.Command;
 public class PinCommand extends TrpCommandProcessor {
 
     private static final String GROUP = "pin ";
-    
+
     @Override
     public boolean matches(Context ctx, Command cmd, List<String> args) {
         return super.matches(ctx, cmd, args) &&
                GROUP.startsWith(args.get(0).toLowerCase()) &&
                ctx.isPlayer();
     }
-    
+
     @Override
     public List<String> getUsage(Context ctx) {
         if (! ctx.isPlayer()) return null;
@@ -47,6 +47,8 @@ public class PinCommand extends TrpCommandProcessor {
 
     @Override
     public void process(Context ctx, Command cmd, List<String> args) throws TransporterException {
+        if (! ctx.isPlayer())
+            throw new CommandException("this command can only be used by a player");
         args.remove(0);
         if (args.isEmpty())
             throw new CommandException("pin required");

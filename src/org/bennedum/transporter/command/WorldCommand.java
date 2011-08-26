@@ -37,13 +37,13 @@ import org.bukkit.command.Command;
 public class WorldCommand extends TrpCommandProcessor {
 
     private static final String GROUP = "world ";
-    
+
     @Override
     public boolean matches(Context ctx, Command cmd, List<String> args) {
         return super.matches(ctx, cmd, args) &&
                GROUP.startsWith(args.get(0).toLowerCase());
     }
-    
+
     @Override
     public List<String> getUsage(Context ctx) {
         List<String> cmds = new ArrayList<String>();
@@ -58,7 +58,7 @@ public class WorldCommand extends TrpCommandProcessor {
         cmds.add(getPrefix(ctx) + GROUP + "set <world> <option> <value>");
         return cmds;
     }
-    
+
     @Override
     public void process(final Context ctx, Command cmd, List<String> args) throws TransporterException {
         args.remove(0);
@@ -293,7 +293,7 @@ public class WorldCommand extends TrpCommandProcessor {
             world.getOptions(ctx, option);
             return;
         }
-        
+
         throw new CommandException("do what with a world?");
     }
 

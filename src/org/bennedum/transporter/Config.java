@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.bennedum.transporter.net.Network;
+import org.bukkit.ChatColor;
 import org.bukkit.util.config.Configuration;
 import org.bukkit.util.config.ConfigurationNode;
 
@@ -82,7 +83,7 @@ public final class Config {
         File confFile = getConfigFile();
         config = new Configuration(confFile);
         config.load();
-        
+
         int version = config.getInt("configVersion", -9999);
         if (version == -9999) {
             // this is an old version of the config
@@ -105,10 +106,10 @@ public final class Config {
             ctx.warn("");
             ctx.warn("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
         }
-        
+
         else if (version < CONFIG_VERSION) {
             // do conversion here
-            
+
         } else if (version > CONFIG_VERSION) {
             ctx.warn("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
             ctx.warn("");
@@ -163,7 +164,7 @@ public final class Config {
     public static ConfigurationNode getNode(String path) {
         return config.getNode(path);
     }
-    
+
     public static void setPropertyDirect(String path, Object v) {
         config.setProperty(path, v);
     }
@@ -278,7 +279,7 @@ public final class Config {
     }
 
     public static String getServerJoinFormat() {
-        return config.getString("global.serverJoinFormat", "%player%@%server% joined the game.");
+        return config.getString("global.serverJoinFormat", ChatColor.YELLOW + "%player%@%world%@%server% joined the game.");
     }
 
     public static void setServerJoinFormat(String s) {
@@ -286,7 +287,7 @@ public final class Config {
     }
 
     public static String getServerQuitFormat() {
-        return config.getString("global.serverQuitFormat", "%player%@%server% left the game.");
+        return config.getString("global.serverQuitFormat", ChatColor.YELLOW + "%player%@%world%@%server% left the game.");
     }
 
     public static void setServerQuitFormat(String s) {
@@ -294,7 +295,7 @@ public final class Config {
     }
 
     public static String getServerKickFormat() {
-        return config.getString("global.serverKickFormat", "%player%@%server% was kicked.");
+        return config.getString("global.serverKickFormat", ChatColor.YELLOW + "%player%@%world%@%server% was kicked.");
     }
 
     public static void setServerKickFormat(String s) {

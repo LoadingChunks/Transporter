@@ -63,8 +63,6 @@ public class LocalGate extends Gate implements OptionsListener {
         OPTIONS.add("sendInventory");
         OPTIONS.add("receiveInventory");
         OPTIONS.add("deleteInventory");
-        OPTIONS.add("sendJoin");
-        OPTIONS.add("receiveJoin");
         OPTIONS.add("teleportFormat");
         OPTIONS.add("linkLocalCost");
         OPTIONS.add("linkWorldCost");
@@ -262,7 +260,7 @@ public class LocalGate extends Gate implements OptionsListener {
         sendInventory = conf.getBoolean("sendInventory", true);
         receiveInventory = conf.getBoolean("receiveInventory", true);
         deleteInventory = conf.getBoolean("deleteInventory", false);
-        teleportFormat = conf.getString("teleportFormat", ChatColor.GOLD + "teleported to '%gate%'");
+        teleportFormat = conf.getString("teleportFormat", ChatColor.GOLD + "teleported to '%toGateCtx%'");
 
         incoming.addAll(conf.getStringList("incoming", new ArrayList<String>()));
         outgoing = conf.getString("outgoing");
@@ -383,7 +381,7 @@ public class LocalGate extends Gate implements OptionsListener {
         dirty = true;
         saveInBackground();
     }
-    
+
     public void saveInBackground() {
         if (! dirty) return;
         Utils.worker(new Runnable() {
@@ -460,7 +458,7 @@ public class LocalGate extends Gate implements OptionsListener {
     }
 
     /* Begin options */
-    
+
     public int getDuration() {
         return duration;
     }
@@ -522,7 +520,7 @@ public class LocalGate extends Gate implements OptionsListener {
     public boolean getRestoreOnClose() {
         return restoreOnClose;
     }
-    
+
     public void setRestoreOnClose(boolean b) {
         restoreOnClose = b;
         forceSave();
@@ -536,7 +534,7 @@ public class LocalGate extends Gate implements OptionsListener {
         requirePin = b;
         forceSave();
     }
-    
+
     public boolean getRequireValidPin() {
         return requireValidPin;
     }
@@ -545,7 +543,7 @@ public class LocalGate extends Gate implements OptionsListener {
         requireValidPin = b;
         forceSave();
     }
-    
+
     public int getInvalidPinDamage() {
         return invalidPinDamage;
     }
@@ -554,7 +552,43 @@ public class LocalGate extends Gate implements OptionsListener {
         invalidPinDamage = i;
         forceSave();
     }
-    
+
+    public boolean getSendChat() {
+        return sendChat;
+    }
+
+    public void setSendChat(boolean b) {
+        sendChat = b;
+        forceSave();
+    }
+
+    public int getSendChatDistance() {
+        return sendChatDistance;
+    }
+
+    public void setSendChat(int i) {
+        sendChatDistance = i;
+        forceSave();
+    }
+
+    public boolean getReceiveChat() {
+        return receiveChat;
+    }
+
+    public void setReceiveChat(boolean b) {
+        receiveChat = b;
+        forceSave();
+    }
+
+    public int getReceiveChatDistance() {
+        return receiveChatDistance;
+    }
+
+    public void setReceiveChat(int i) {
+        receiveChatDistance = i;
+        forceSave();
+    }
+
     public boolean getRequireAllowedItems() {
         return requireAllowedItems;
     }
@@ -572,7 +606,7 @@ public class LocalGate extends Gate implements OptionsListener {
         sendInventory = b;
         forceSave();
     }
-    
+
     public boolean getReceiveInventory() {
         return receiveInventory;
     }
@@ -581,7 +615,7 @@ public class LocalGate extends Gate implements OptionsListener {
         receiveInventory = b;
         forceSave();
     }
-    
+
     public boolean getDeleteInventory() {
         return deleteInventory;
     }
@@ -590,7 +624,7 @@ public class LocalGate extends Gate implements OptionsListener {
         deleteInventory = b;
         forceSave();
     }
-    
+
     public String getTeleportFormat() {
         return teleportFormat;
     }
@@ -599,7 +633,7 @@ public class LocalGate extends Gate implements OptionsListener {
         teleportFormat = s;
         forceSave();
     }
-    
+
     public double getLinkLocalCost() {
         return linkLocalCost;
     }
@@ -608,7 +642,7 @@ public class LocalGate extends Gate implements OptionsListener {
         linkLocalCost = cost;
         forceSave();
     }
-    
+
     public double getLinkWorldCost() {
         return linkWorldCost;
     }
@@ -617,7 +651,7 @@ public class LocalGate extends Gate implements OptionsListener {
         linkWorldCost = cost;
         forceSave();
     }
-    
+
     public double getLinkServerCost() {
         return linkServerCost;
     }
@@ -626,7 +660,7 @@ public class LocalGate extends Gate implements OptionsListener {
         linkServerCost = cost;
         forceSave();
     }
-    
+
     public double getSendLocalCost() {
         return sendLocalCost;
     }
@@ -635,7 +669,7 @@ public class LocalGate extends Gate implements OptionsListener {
         sendLocalCost = cost;
         forceSave();
     }
-    
+
     public double getSendWorldCost() {
         return sendWorldCost;
     }
@@ -644,7 +678,7 @@ public class LocalGate extends Gate implements OptionsListener {
         sendWorldCost = cost;
         forceSave();
     }
-    
+
     public double getSendServerCost() {
         return sendServerCost;
     }
@@ -653,7 +687,7 @@ public class LocalGate extends Gate implements OptionsListener {
         sendServerCost = cost;
         forceSave();
     }
-    
+
     public double getReceiveLocalCost() {
         return receiveLocalCost;
     }
@@ -662,7 +696,7 @@ public class LocalGate extends Gate implements OptionsListener {
         receiveLocalCost = cost;
         forceSave();
     }
-    
+
     public double getReceiveWorldCost() {
         return receiveWorldCost;
     }
@@ -671,7 +705,7 @@ public class LocalGate extends Gate implements OptionsListener {
         receiveWorldCost = cost;
         forceSave();
     }
-    
+
     public double getReceiveServerCost() {
         return receiveServerCost;
     }
@@ -680,16 +714,16 @@ public class LocalGate extends Gate implements OptionsListener {
         receiveServerCost = cost;
         forceSave();
     }
-    
-    
+
+
     public void getOptions(Context ctx, String name) throws OptionsException, PermissionsException {
         options.getOptions(ctx, name);
     }
-    
+
     public String getOption(Context ctx, String name) throws OptionsException, PermissionsException {
         return options.getOption(ctx, name);
     }
-    
+
     public void setOption(Context ctx, String name, String value) throws OptionsException, PermissionsException {
         options.setOption(ctx, name, value);
     }
@@ -700,7 +734,7 @@ public class LocalGate extends Gate implements OptionsListener {
     }
 
     /* End options */
-    
+
     /* Gate interface */
 
     @Override
@@ -734,7 +768,7 @@ public class LocalGate extends Gate implements OptionsListener {
         return receiveServerCost;
     }
 
-    
+
     @Override
     public void onRenameComplete() {
         file.delete();
@@ -1230,7 +1264,7 @@ public class LocalGate extends Gate implements OptionsListener {
         }
         return filtered;
     }
-    
+
     public boolean isInChatSendProximity(Location location) {
         if (! sendChat) return false;
         if (location.getWorld() != world) return false;

@@ -4,19 +4,6 @@
 * add back call to gate's to do lightning/effects
 
 Testing:
-    * new teleportation shit
-    * banned player detection when teleporting
-    * behavior of connection state when, e.g., a player is banned on destination server
-    * server-server chat format
-    * server-server send/receiveChat options
-    * send/receive/deleteInventory gate option
-    * teleportFormat gate option
-    * send/receiveJoin server option
-    * world commands
-    * gate go command
-    * pins saving/loading
-    * test reverse linking between servers
-    * test trp list, player joining, quitting, etc.
 
 Wiki Updates:
     * update GateDesign:

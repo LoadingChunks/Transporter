@@ -40,13 +40,14 @@ public class Context {
         if (playerName != null)
             this.sender = Global.plugin.getServer().getPlayer(playerName);
     }
-    
+
     public CommandSender getSender() {
         return sender;
     }
 
     public void send(String msg, Object ... args) {
-        msg = String.format(msg, args);
+        if (args.length > 0)
+            msg = String.format(msg, args);
         if (sender == null)
             Utils.info(msg);
         else if (isPlayer())
@@ -60,12 +61,14 @@ public class Context {
     public void sendLog(String msg, Object ... args) {
         send(msg, args);
         if (! isPlayer()) return;
-        msg = String.format(msg, args);
+        if (args.length > 0)
+            msg = String.format(msg, args);
         Utils.info("->[%s] %s", ((Player)sender).getName(), msg);
     }
 
     public void warn(String msg, Object ... args) {
-        msg = String.format(msg, args);
+        if (args.length > 0)
+            msg = String.format(msg, args);
         if (sender == null)
             Utils.warning(msg);
         else
@@ -75,7 +78,8 @@ public class Context {
     public void warnLog(String msg, Object ... args) {
         warn(msg, args);
         if (! isPlayer()) return;
-        msg = String.format(msg, args);
+        if (args.length > 0)
+            msg = String.format(msg, args);
         Utils.warning("->[%s] %s", ((Player)sender).getName(), msg);
     }
 

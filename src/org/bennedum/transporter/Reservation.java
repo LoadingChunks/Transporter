@@ -227,7 +227,8 @@ public final class Reservation {
         if (playerName != null) {
             Reservation other = get(playerName);
             if (other != null)
-                throw new ReservationException("a reservation for player '%s' already exists", playerName);
+                remove(other);
+                //throw new ReservationException("a reservation for player '%s' already exists", playerName);
             player = Global.plugin.getServer().getPlayer(playerName);
         }
         playerPin = in.getString("playerPin");
@@ -349,7 +350,7 @@ public final class Reservation {
             toWorld = toGateLocal.getWorld();
         } else
             toServer = Servers.get(toGate.getServerName());
-        
+
         if ((! fromGate.getSendInventory()) ||
             ((toGateLocal != null) && (! toGateLocal.getReceiveInventory()))) {
             inventory = null;
@@ -367,7 +368,8 @@ public final class Reservation {
                 inventory = null;
                 armor = null;
             }
-        }
+        } else
+            toServer = Servers.get(toGate.getServerName());
     }
 
     public Message encode() {
@@ -393,7 +395,8 @@ public final class Reservation {
         out.put("heldItemSlot", heldItemSlot);
         out.put("armor", encodeItemStackArray(armor));
         out.put("fromGate", fromGateName);
-        out.put("fromGateDirection", fromGateDirection.toString());
+        if (fromGateDirection != null)
+            out.put("fromGateDirection", fromGateDirection.toString());
         out.put("toGate", toGateName);
         out.put("toWorldName", toWorldName);
         if (toLocation != null) {
@@ -414,10 +417,10 @@ public final class Reservation {
 
     private ItemStack[] decodeItemStackArray(List<Message> inv) {
         if (inv == null) return null;
-        inventory = new ItemStack[inv.size()];
+        ItemStack[] decoded = new ItemStack[inv.size()];
         for (int slot = 0; slot < inv.size(); slot++)
-            inventory[slot] = decodeItemStack(inv.get(slot));
-        return inventory;
+            decoded[slot] = decodeItemStack(inv.get(slot));
+        return decoded;
     }
 
     private Message encodeItemStack(ItemStack stack) {
@@ -582,22 +585,7 @@ public final class Reservation {
 
         if (player != null) {
             Context ctx = new Context(player);
-            // TODO: remove
-            /*
-            if ((fromGateLocal != null) &&
-                (fromGateLocal.getTeleportFormat() != null) &&
-                (! fromGateLocal.getTeleportFormat().isEmpty())) {
-                String format = fromGateLocal.getTeleportFormat();
-                format = format.replace("%player%", player.getDisplayName());
-                format = format.replace("%gate%", toGate.getName(ctx));
-                format = format.replace("%world%", toGate.getWorldName());
-                format = format.replace("%server%", (toServer == null) ? "" : toServer.getName());
-                if (! format.isEmpty())
-                    ctx.send(format);
-            } else if (fromGateLocal == null)
-                ctx.send(ChatColor.GOLD + "teleporting to '%s'...", toGateName);
-             */
-            
+
             completeLocalDepartureGate();
 
             // TODO: handle cluster setting
@@ -640,7 +628,7 @@ public final class Reservation {
     public void arrived() {
         remove(this);
         Utils.debug("reservation to send %s to %s was completed", getTraveler(), getDestination());
-        
+
         if ((toServer != null) && (player != null)) {
             if ((fromGateLocal != null) && fromGateLocal.getDeleteInventory()) {
                 PlayerInventory inv = player.getInventory();
@@ -809,7 +797,7 @@ public final class Reservation {
                 if (! format.isEmpty())
                     ctx.send(format);
             }
-            
+
             // player PIN
             if (toGateLocal.getRequirePin() &&
                 (! toGateLocal.hasPin(playerPin)) &&
@@ -898,6 +886,7 @@ public final class Reservation {
     }
 
     private void prepareTraveler() throws ReservationException {
+        Utils.debug("prepareTraveler %s", entityType);
         if ((player == null) && (playerName != null)) {
             player = Global.plugin.getServer().getPlayer(playerName);
             if (player == null)
@@ -940,8 +929,10 @@ public final class Reservation {
                 player.setVelocity(toVelocity);
                 if (inventory != null) {
                     PlayerInventory inv = player.getInventory();
-                    for (int slot = 0; slot <  inventory.length; slot++)
+                    for (int slot = 0; slot < inventory.length; slot++) {
+                        if (inventory[slot] == null) continue;
                         inv.setItem(slot, inventory[slot]);
+                    }
                     // PENDING: This doesn't work as expected. it replaces whatever's
                     // in slot 0 with whatever's in the held slot. There doesn't appear to
                     // be a way to change just the slot of the held item

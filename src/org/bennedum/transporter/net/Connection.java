@@ -314,26 +314,30 @@ public final class Connection {
 
             String error = message.getString("error");
             if (error != null) {
-                Utils.warning("received handshake error with '%s': %s", getName(), error);
+                if ((server == null) || (! server.connectionMessagesSuppressed()))
+                    Utils.warning("received handshake error with '%s': %s", getName(), error);
                 close();
                 return;
             }
 
             // handle handshake message
             if (! message.containsKey("protocolVersion")) {
-                Utils.warning("expected protocolVersion on connection with '%s'", getName());
+                if ((server == null) || (! server.connectionMessagesSuppressed()))
+                    Utils.warning("expected protocolVersion on connection with '%s'", getName());
                 close();
                 return;
             }
             int protocol = message.getInt("protocolVersion", 0);
             if (protocol != PROTOCOL_VERSION) {
-                Utils.warning("protocol version mismatch on connection with '%s', wanted '%d', got '%d'", getName(), PROTOCOL_VERSION, protocol);
+                if ((server == null) || (! server.connectionMessagesSuppressed()))
+                    Utils.warning("protocol version mismatch on connection with '%s', wanted '%d', got '%d'", getName(), PROTOCOL_VERSION, protocol);
                 close();
                 return;
             }
             String version = message.getString("pluginVersion");
             if (version == null) {
-                Utils.warning("expected pluginVersion on connection with '%s'", getName());
+                if ((server == null) || (! server.connectionMessagesSuppressed()))
+                    Utils.warning("expected pluginVersion on connection with '%s'", getName());
                 close();
                 return;
             }
@@ -342,7 +346,8 @@ public final class Connection {
                 // compare hashed keys with all the available servers to determine which server is connecting
                 String key = message.getString("key");
                 if (key == null) {
-                    Utils.warning("no server key detected on connection with %s", getName());
+                    if ((server == null) || (! server.connectionMessagesSuppressed()))
+                        Utils.warning("no server key detected on connection with %s", getName());
                     close();
                     return;
                 }
@@ -356,7 +361,7 @@ public final class Connection {
                             Utils.info("server key match detected for '%s' on connection with %s", serv.getName(), getName());
                             if (serv.isEnabled()) {
                                 if (serv.isConnected()) {
-                                    Utils.info("server '%s' is already connected", serv.getName());
+                                    Utils.warning("server '%s' is already connected", serv.getName());
                                     close();
                                     return;
                                 } else if (serv.isConnecting())
@@ -385,7 +390,8 @@ public final class Connection {
                     } catch (NoSuchAlgorithmException e) {
                     } catch (UnsupportedEncodingException e) {}
                 }
-                Utils.warning("unknown key detected on connection with %s", this);
+                if ((server == null) || (! server.connectionMessagesSuppressed()))
+                    Utils.warning("unknown key detected on connection with %s", this);
                 Message errMsg = new Message();
                 errMsg.put("error", "unknown key");
                 sendMessage(errMsg, false);
