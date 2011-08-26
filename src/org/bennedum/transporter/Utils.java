@@ -287,8 +287,23 @@ public class Utils {
         Global.plugin.getServer().getScheduler().cancelTask(taskId);
     }
 
-    // TODO: add method to get Enum value, make use in world add command
-
+    public static <T extends Enum<T>> T valueOf(Class<T> cls, String s) {
+        try {
+            return Enum.valueOf(cls, s);
+        } catch (IllegalArgumentException e) {}
+        s = s.toLowerCase();
+        T theOne = null;
+        for (T value : cls.getEnumConstants()) {
+            if (value.toString().toLowerCase().startsWith(s)) {
+                if (theOne == null)
+                    theOne = value;
+                else
+                    throw new IllegalArgumentException("ambiguous value");
+            }
+        }
+        return theOne;
+    }
+    
     public static boolean prepareChunk(Location loc) {
         World world = loc.getWorld();
         Chunk chunk = world.getChunkAt(loc.getBlockX() >> 4, loc.getBlockZ() >> 4);
@@ -303,7 +318,7 @@ public class Utils {
         if (proxyHost != null) {
             Proxy.Type proxyType = null;
             try {
-                proxyType = Proxy.Type.valueOf(Config.getHttpProxyType());
+                proxyType = Utils.valueOf(Proxy.Type.class, Config.getHttpProxyType());
             } catch (IllegalArgumentException iae) {}
             int proxyPort = Config.getHttpProxyPort();
             proxy = new Proxy(proxyType, new InetSocketAddress(proxyHost, proxyPort));

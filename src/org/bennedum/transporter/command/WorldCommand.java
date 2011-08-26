@@ -24,6 +24,7 @@ import org.bennedum.transporter.Context;
 import org.bennedum.transporter.Global;
 import org.bennedum.transporter.Permissions;
 import org.bennedum.transporter.TransporterException;
+import org.bennedum.transporter.Utils;
 import org.bennedum.transporter.Worlds;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -49,7 +50,8 @@ public class WorldCommand extends TrpCommandProcessor {
         List<String> cmds = new ArrayList<String>();
         cmds.add(getPrefix(ctx) + GROUP + "list");
         // TODO: change to add, add remove
-        cmds.add(getPrefix(ctx) + GROUP + "create <world> [<env>] [<seed>]");
+        cmds.add(getPrefix(ctx) + GROUP + "add <world> [<env>] [<seed>]");
+        cmds.add(getPrefix(ctx) + GROUP + "remove <world>");
         cmds.add(getPrefix(ctx) + GROUP + "load <world>");
         cmds.add(getPrefix(ctx) + GROUP + "unload <world>");
         if (ctx.isPlayer())
@@ -77,17 +79,19 @@ public class WorldCommand extends TrpCommandProcessor {
                 }
             });
             ctx.send("%d worlds:", worlds.size());
-            for (WorldProxy world : worlds)
-                ctx.send("  %s (%s) autoLoad: %s, loaded: %s",
+            for (WorldProxy world : worlds) {
+                ctx.send("  %s (%s) %s",
                         world.getName(), world.getEnvironment(),
-                        world.getAutoLoad(), world.isLoaded());
+                        world.isLoaded() ? "loaded" : "not loaded");
+                ctx.send("    autoLoad: %s", world.getAutoLoad());
+            }
             return;
         }
 
-        if ("create".startsWith(subCmd)) {
+        if ("add".startsWith(subCmd)) {
             if (args.isEmpty())
-                throw new CommandException("new name required");
-            final String newName = args.remove(0);
+                throw new CommandException("world name required");
+            String newName = args.remove(0);
             Environment env = Environment.NORMAL;
             Long seed = null;
             if (! args.isEmpty()) {
@@ -100,23 +104,36 @@ public class WorldCommand extends TrpCommandProcessor {
                     }
                 else
                     try {
-                        env = Environment.valueOf(arg.toUpperCase());
+                        env = Utils.valueOf(Environment.class, arg);
                     } catch (IllegalArgumentException e) {
-                        throw new CommandException("unknown environment");
+                        throw new CommandException("unknown or ambiguous environment");
                     }
             }
-            Permissions.require(ctx.getPlayer(), "trp.world.create");
+            Permissions.require(ctx.getPlayer(), "trp.world.add");
 
-            ctx.sendLog("creating world '%s'...", newName);
+            ctx.sendLog("adding world '%s'...", newName);
             if (seed == null)
                 Global.plugin.getServer().createWorld(newName, env);
             else
                 Global.plugin.getServer().createWorld(newName, env, seed);
-            ctx.sendLog("created world '%s'", newName);
+            ctx.sendLog("added world '%s'", newName);
             Worlds.add(new WorldProxy(newName, env));
             return;
         }
 
+        if ("remove".startsWith(subCmd)) {
+            if (args.isEmpty())
+                throw new CommandException("world name required");
+            String name = args.remove(0);
+            WorldProxy world = Worlds.get(name);
+            if (world == null)
+                throw new CommandException("unknown or ambiguous world '%s'", name);
+            Permissions.require(ctx.getPlayer(), "trp.world.remove");
+            Worlds.remove(world);
+            ctx.sendLog("removed world '%s'", name);
+            return;
+        }
+        
         if ("load".startsWith(subCmd)) {
             if (args.isEmpty())
                 throw new CommandException("world name required");
@@ -126,7 +143,7 @@ public class WorldCommand extends TrpCommandProcessor {
 
             WorldProxy world = Worlds.get(name);
             if (world == null)
-                throw new CommandException("unknown world '%s'", name);
+                throw new CommandException("unknown or ambiguous world '%s'", name);
             if (world.isLoaded())
                 throw new CommandException("world '%s' is already loaded", world.getName());
             ctx.send("loading world '%s'...", world.getName());
@@ -144,7 +161,7 @@ public class WorldCommand extends TrpCommandProcessor {
 
             WorldProxy world = Worlds.get(name);
             if (world == null)
-                throw new CommandException("unknown world '%s'", name);
+                throw new CommandException("unknown or ambiguous world '%s'", name);
             if (! world.isLoaded())
                 throw new CommandException("world '%s' is not loaded", world.getName());
             ctx.send("unloading world '%s'...", world.getName());
@@ -167,9 +184,12 @@ public class WorldCommand extends TrpCommandProcessor {
                 String name = args.remove(0);
                 WorldProxy bworld = Worlds.get(name);
                 if (bworld == null)
-                    throw new CommandException("unknown world '%s'", name);
-                if (! bworld.isLoaded())
-                    throw new CommandException("world '%s' is not loaded", bworld.getName());
+                    throw new CommandException("unknown or ambiguous world '%s'", name);
+                if (! bworld.isLoaded()) {
+                    ctx.send("loading world '%s'...", world.getName());
+                    bworld.load(ctx);
+                    ctx.send("loaded world '%s'", world.getName());
+                }
                 world = bworld.getWorld();
                 location = world.getSpawnLocation();
                 name = bworld.getName();

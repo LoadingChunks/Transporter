@@ -166,7 +166,10 @@ public final class Config {
     }
 
     public static void setPropertyDirect(String path, Object v) {
-        config.setProperty(path, v);
+        if (v == null)
+            config.removeProperty(path);
+        else
+            config.setProperty(path, v);
     }
 
 
@@ -275,7 +278,11 @@ public final class Config {
     }
 
     public static void setServerChatFormat(String s) {
-        config.setProperty("global.serverChatFormat", s);
+        if (s != null) {
+            if (s.equals("-")) s = "";
+            else if (s.equals("*")) s = null;
+        }
+        setPropertyDirect("global.serverChatFormat", s);
     }
 
     public static String getServerJoinFormat() {
@@ -283,7 +290,11 @@ public final class Config {
     }
 
     public static void setServerJoinFormat(String s) {
-        config.setProperty("global.serverJoinFormat", s);
+        if (s != null) {
+            if (s.equals("-")) s = "";
+            else if (s.equals("*")) s = null;
+        }
+        setPropertyDirect("global.serverJoinFormat", s);
     }
 
     public static String getServerQuitFormat() {
@@ -291,7 +302,11 @@ public final class Config {
     }
 
     public static void setServerQuitFormat(String s) {
-        config.setProperty("global.serverQuitFormat", s);
+        if (s != null) {
+            if (s.equals("-")) s = "";
+            else if (s.equals("*")) s = null;
+        }
+        setPropertyDirect("global.serverQuitFormat", s);
     }
 
     public static String getServerKickFormat() {
@@ -299,7 +314,11 @@ public final class Config {
     }
 
     public static void setServerKickFormat(String s) {
-        config.setProperty("global.serverKickFormat", s);
+        if (s != null) {
+            if (s.equals("-")) s = "";
+            else if (s.equals("*")) s = null;
+        }
+        setPropertyDirect("global.serverKickFormat", s);
     }
 
     public static boolean getUseIConomy() {
@@ -323,7 +342,8 @@ public final class Config {
     }
 
     public static void setExportedGatesFile(String s) {
-        config.setProperty("global.exportedGatesFile", s);
+        if ((s != null) && (s.equals("-") || s.equals("*"))) s = null;
+        setPropertyDirect("global.exportedGatesFile", s);
     }
 
     public static boolean getUsePermissions() {
@@ -343,48 +363,56 @@ public final class Config {
     }
 
     public static String getHttpProxyHost() {
-        return config.getString("httpProxy.host", null);
+        return config.getString("global.httpProxy.host", null);
     }
 
     public static void setHttpProxyHost(String s) {
-        config.setProperty("httpProxy.host", s);
+        if ((s != null) && (s.equals("-") || s.equals("*"))) s = null;
+        setPropertyDirect("global.httpProxy.host", s);
     }
 
     public static String getHttpProxyType() {
-        return config.getString("httpProxy.type", "HTTP");
+        return config.getString("global.httpProxy.type", "HTTP");
     }
 
     public static void setHttpProxyType(String s) {
-        try {
-            Proxy.Type.valueOf(s);
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("httpProxyType is invalid");
+        if ((s != null) && (s.equals("-") || s.equals("*"))) s = null;
+        if (s != null) {
+            try {
+                Utils.valueOf(Proxy.Type.class, s);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("proxy type is ambiguous or invalid");
+            }
         }
-        config.setProperty("httpProxy.type", s);
+        setPropertyDirect("global.httpProxy.type", s);
     }
 
     public static int getHttpProxyPort() {
-        return config.getInt("httpProxy.port", 80);
+        return config.getInt("global.httpProxy.port", 80);
     }
 
     public static void setHttpProxyPort(int i) {
-        config.setProperty("httpProxy.port", i);
+        if ((i < 1) || (i > 65535))
+            throw new IllegalArgumentException("proxy port is invalid");
+        config.setProperty("global.httpProxy.port", i);
     }
 
     public static String getHttpProxyUser() {
-        return config.getString("httpProxy.user", null);
+        return config.getString("global.httpProxy.user", null);
     }
 
     public static void setHttpProxyUser(String s) {
-        config.setProperty("httpProxy.user", s);
+        if ((s != null) && (s.equals("-") || s.equals("*"))) s = null;
+        setPropertyDirect("global.httpProxy.user", s);
     }
 
     public static String getHttpProxyPassword() {
-        return config.getString("httpProxy.password", null);
+        return config.getString("global.httpProxy.password", null);
     }
 
     public static void setHttpProxyPassword(String s) {
-        config.setProperty("httpProxy.password", s);
+        if ((s != null) && (s.equals("-") || s.equals("*"))) s = null;
+        setPropertyDirect("global.httpProxy.password", s);
     }
 
 

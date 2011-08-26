@@ -308,6 +308,7 @@ public final class Network {
     }
 
     public static void setClusterName(String s) {
+        if ((s != null) && (s.equals("-") || s.equals("*"))) s = null;
         Config.setPropertyDirect("network.clusterName", s);
     }
 
@@ -345,6 +346,7 @@ public final class Network {
     }
 
     public static void setKey(String s) {
+        if ((s != null) && (s.equals("-") || s.equals("*"))) s = null;
         Config.setPropertyDirect("network.key", s);
     }
 

@@ -4,9 +4,6 @@
 * add back call to gate's to do lightning/effects
 
 Testing/TODO:
-    * add Utils method to figure out Enum values from strings
-    * change world create to add/remove and make it use new Utils method
-    * make all format options take '-' to mean empty string
 
 Wiki Updates:
     * update GateDesign:
@@ -27,8 +24,6 @@ Wiki Updates:
         * usePermissionsEx (default false)
         * gateLockExpiration (default 2000ms)
         * arrivalWindow (default 20000ms)
-        * send/receiveInventory (default true)
-        * deleteInventory (default false)
         * suppressConnectionAttempts (default -1)
     * home page
         * BOSEconomy support

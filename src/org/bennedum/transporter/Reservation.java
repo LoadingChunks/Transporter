@@ -137,6 +137,7 @@ public final class Reservation {
     private Vector fromVelocity = null;
     private BlockFace fromDirection = null;
     private Gate fromGate = null;
+    private String fromWorldName = null;
     private String fromGateName = null;
     private LocalGate fromGateLocal = null; // local gate
     private World fromWorld = null;         // local gate
@@ -146,9 +147,9 @@ public final class Reservation {
     private Vector toVelocity = null;
     private BlockFace toDirection = null;
     private Gate toGate = null;
+    private String toWorldName = null;
     private String toGateName = null;
     private LocalGate toGateLocal = null;   // local gate
-    private String toWorldName = null;
     private World toWorld = null;           // local gate
     private Server toServer = null;         // remote gate
 
@@ -218,9 +219,9 @@ public final class Reservation {
     public Reservation(Message in, Server server) throws ReservationException {
         remoteId = in.getInt("id");
         try {
-            entityType = EntityType.valueOf(in.getString("entityType"));
+            entityType = Utils.valueOf(EntityType.class, in.getString("entityType"));
         } catch (IllegalArgumentException e) {
-            throw new ReservationException("unknown entityType '%s'", in.getString("entityType"));
+            throw new ReservationException("unknown or ambiguous entityType '%s'", in.getString("entityType"));
         }
         remoteEntityId = in.getInt("entityId");
         playerName = in.getString("playerName");
@@ -242,6 +243,8 @@ public final class Reservation {
         heldItemSlot = in.getInt("heldItemSlot");
         armor = decodeItemStackArray(in.getMessageList("armor"));
 
+        fromWorldName = in.getString("fromWorld");
+        
         fromServer = server;
 
         if (in.get("toX") != null)
@@ -263,9 +266,9 @@ public final class Reservation {
             if (fromGate.isSameServer())
                 throw new ReservationException("fromGate '%s' is not a remote gate", fromGateName);
             try {
-                fromDirection = BlockFace.valueOf(in.getString("fromGateDirection"));
+                fromDirection = Utils.valueOf(BlockFace.class, in.getString("fromGateDirection"));
             } catch (IllegalArgumentException e) {
-                throw new ReservationException("unknown fromGateDirection '%s'", in.getString("fromGateDirection"));
+                throw new ReservationException("unknown or ambiguous fromGateDirection '%s'", in.getString("fromGateDirection"));
             }
         }
 
@@ -303,6 +306,7 @@ public final class Reservation {
         armor = inv.getArmorContents();
         fromLocation = player.getLocation();
         fromVelocity = player.getVelocity();
+        fromWorldName = player.getWorld().getName();
         Utils.debug("player location: %s", fromLocation);
         Utils.debug("player velocity: %s", fromVelocity);
     }
@@ -328,6 +332,7 @@ public final class Reservation {
         fireTicks = vehicle.getFireTicks();
         fromLocation = vehicle.getLocation();
         fromVelocity = vehicle.getVelocity();
+        fromWorldName = vehicle.getWorld().getName();
         Utils.debug("vehicle location: %s", fromLocation);
         Utils.debug("vehicle velocity: %s", fromVelocity);
     }
@@ -337,7 +342,8 @@ public final class Reservation {
         fromGateName = fromGate.getFullName();
         fromDirection = fromGate.getDirection();
         fromWorld = fromGate.getWorld();
-
+        fromWorldName = fromGate.getWorldName();
+        
         try {
             toGate = fromGateLocal.getDestinationGate();
         } catch (GateException e) {
@@ -391,6 +397,7 @@ public final class Reservation {
         out.put("fromZ", fromLocation.getZ());
         out.put("fromPitch", fromLocation.getPitch());
         out.put("fromYaw", fromLocation.getYaw());
+        out.put("fromWorld", fromWorldName);
         out.put("inventory", encodeItemStackArray(inventory));
         out.put("health", health);
         out.put("remainingAir", remainingAir);
@@ -807,7 +814,7 @@ public final class Reservation {
                 format = format.replace("%toWorld%", toGateLocal.getWorldName());
                 format = format.replace("%fromGateCtx%", (fromGate == null) ? "" : fromGate.getName(ctx));
                 format = format.replace("%fromGate%", (fromGate == null) ? "" : fromGate.getName());
-                format = format.replace("%fromWorld%", (fromGate == null) ? "" : fromGate.getWorldName());
+                format = format.replace("%fromWorld%", fromWorldName);
                 format = format.replace("%fromServer%", (fromServer == null) ? "local" : fromServer.getName());
                 if (! format.isEmpty())
                     ctx.send(format);

@@ -19,9 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import org.bukkit.Material;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.StorageMinecart;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
@@ -44,7 +42,7 @@ public final class Inventory {
             item = material.toString();
         } catch (NumberFormatException nfe) {
             try {
-                Material material = Material.valueOf(parts[0]);
+                Material material = Utils.valueOf(Material.class, parts[0]);
                 item = material.toString();
             } catch (IllegalArgumentException iae) {
                 return null;
@@ -153,7 +151,7 @@ public final class Inventory {
 
     private static ItemStack decodeItem(ItemStack oldItem, String item) {
         String[] parts = item.split(":");
-        Material material = Material.valueOf(parts[0]);
+        Material material = Utils.valueOf(Material.class, parts[0]);
         int amount = oldItem.getAmount();
         short damage = oldItem.getDurability();
         if (parts.length > 1)

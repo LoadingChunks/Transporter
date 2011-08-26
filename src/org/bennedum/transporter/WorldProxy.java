@@ -85,9 +85,9 @@ public final class WorldProxy implements OptionsListener {
         if (name == null)
             throw new IllegalArgumentException("environment is required");
         try {
-            environment = Environment.valueOf(name);
+            environment = Utils.valueOf(Environment.class, name);
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("environment is not valid");
+            throw new IllegalArgumentException("environment is ambiguous or not valid");
         }
     }
 

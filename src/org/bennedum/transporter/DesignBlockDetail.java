@@ -88,9 +88,9 @@ public final class DesignBlockDetail {
         str = node.getString("spawn");
         if (str != null) {
             try {
-                spawn = SpawnDirection.valueOf(str);
+                spawn = Utils.valueOf(SpawnDirection.class, str);
             } catch (IllegalArgumentException iae) {
-                throw new BlockException("invalid spawn '%s'", str);
+                throw new BlockException("invalid or ambiguous spawn '%s'", str);
             }
         }
 

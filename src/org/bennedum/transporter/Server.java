@@ -273,14 +273,6 @@ public final class Server implements OptionsListener {
         receiveJoin = b;
     }
 
-    public String getRemotePublicAddress() {
-        return remotePublicAddress;
-    }
-
-    public String getRemotePrivateAddress() {
-        return remotePrivateAddress;
-    }
-
     public void getOptions(Context ctx, String name) throws OptionsException, PermissionsException {
         options.getOptions(ctx, name);
     }
@@ -300,6 +292,14 @@ public final class Server implements OptionsListener {
 
     /* End options */
 
+    public String getRemotePublicAddress() {
+        return remotePublicAddress;
+    }
+
+    public String getRemotePrivateAddress() {
+        return remotePrivateAddress;
+    }
+    
     public String getReconnectAddressForClient(InetSocketAddress clientAddress) {
         String clientAddrStr = clientAddress.getAddress().getHostAddress();
 

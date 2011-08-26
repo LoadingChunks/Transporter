@@ -69,7 +69,7 @@ public enum SpawnDirection {
 
     public BlockFace toFacing() {
         try {
-            return BlockFace.valueOf(toString());
+            return Utils.valueOf(BlockFace.class, toString());
         } catch (IllegalArgumentException iae) {
             return null;
         }
@@ -77,7 +77,7 @@ public enum SpawnDirection {
 
     public static SpawnDirection fromFacing(BlockFace facing) {
         if (facing == null) return null;
-        return SpawnDirection.valueOf(facing.toString());
+        return Utils.valueOf(SpawnDirection.class, facing.toString());
     }
 
 }

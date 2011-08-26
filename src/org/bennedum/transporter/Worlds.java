@@ -69,6 +69,10 @@ public final class Worlds {
         worlds.put(world.getName(), world);
     }
 
+    public static void remove(WorldProxy world) {
+        worlds.remove(world.getName());
+    }
+
     public static WorldProxy get(String name) {
         if (worlds.containsKey(name)) return worlds.get(name);
         WorldProxy world = null;

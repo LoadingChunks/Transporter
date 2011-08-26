@@ -80,9 +80,9 @@ public final class BuildableBlock {
                     str = node.getString("facing");
                     if (str != null) {
                         try {
-                            ((Directional)md).setFacingDirection(BlockFace.valueOf(str));
+                            ((Directional)md).setFacingDirection(Utils.valueOf(BlockFace.class, str));
                         } catch (IllegalArgumentException iae) {
-                            throw new BlockException("invalid facing '%s'", str);
+                            throw new BlockException("invalid or ambiguous facing '%s'", str);
                         }
                     }
                 }
@@ -90,9 +90,9 @@ public final class BuildableBlock {
                     str = node.getString("color");
                     if (str != null) {
                         try {
-                            ((Colorable)md).setColor(DyeColor.valueOf(str));
+                            ((Colorable)md).setColor(Utils.valueOf(DyeColor.class, str));
                         } catch (IllegalArgumentException iae) {
-                            throw new BlockException("invalid color '%s'", str);
+                            throw new BlockException("invalid or ambiguous color '%s'", str);
                         }
                     }
                 }

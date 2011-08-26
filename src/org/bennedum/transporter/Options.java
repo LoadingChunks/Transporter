@@ -135,7 +135,7 @@ public final class Options {
                 throw new OptionsException("unsupported option type '%s'", rCls);
             
             if (listener != null)
-                listener.onOptionSet(ctx, option, value);
+                listener.onOptionSet(ctx, option, getOption(ctx, option));
 
         } catch (InvocationTargetException ite) {
             throw new OptionsException(ite.getCause().getMessage());

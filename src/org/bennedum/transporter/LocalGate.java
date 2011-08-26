@@ -205,9 +205,9 @@ public class LocalGate extends Gate implements OptionsListener {
         creatorName = conf.getString("creatorName");
         designName = conf.getString("designName");
         try {
-            direction = BlockFace.valueOf(conf.getString("direction", "NORTH"));
+            direction = Utils.valueOf(BlockFace.class, conf.getString("direction", "NORTH"));
         } catch (IllegalArgumentException iae) {
-            throw new GateException("invalid direction");
+            throw new GateException("invalid or ambiguous direction");
         }
         duration = conf.getInt("duration", -1);
         linkLocal = conf.getBoolean("linkLocal", true);
@@ -473,7 +473,6 @@ public class LocalGate extends Gate implements OptionsListener {
 
     public void setDuration(int i) {
         duration = i;
-        forceSave();
     }
 
     public boolean getLinkLocal() {
@@ -482,7 +481,6 @@ public class LocalGate extends Gate implements OptionsListener {
 
     public void setLinkLocal(boolean b) {
         linkLocal = b;
-        forceSave();
     }
 
     public boolean getLinkWorld() {
@@ -491,7 +489,6 @@ public class LocalGate extends Gate implements OptionsListener {
 
     public void setLinkWorld(boolean b) {
         linkWorld = b;
-        forceSave();
     }
 
     public boolean getLinkServer() {
@@ -500,7 +497,6 @@ public class LocalGate extends Gate implements OptionsListener {
 
     public void setLinkServer(boolean b) {
         linkServer = b;
-        forceSave();
     }
 
     public boolean getMultiLink() {
@@ -509,7 +505,6 @@ public class LocalGate extends Gate implements OptionsListener {
 
     public void setMultiLink(boolean b) {
         multiLink = b;
-        forceSave();
     }
 
     public boolean getProtect() {
@@ -518,7 +513,6 @@ public class LocalGate extends Gate implements OptionsListener {
 
     public void setProtect(boolean b) {
         protect = b;
-        forceSave();
         if (protect)
             Gates.addProtectBlocks(getBuildBlocks());
         else
@@ -531,7 +525,6 @@ public class LocalGate extends Gate implements OptionsListener {
 
     public void setRestoreOnClose(boolean b) {
         restoreOnClose = b;
-        forceSave();
     }
 
     public boolean getRequirePin() {
@@ -540,7 +533,6 @@ public class LocalGate extends Gate implements OptionsListener {
 
     public void setRequirePin(boolean b) {
         requirePin = b;
-        forceSave();
     }
 
     public boolean getRequireValidPin() {
@@ -549,7 +541,6 @@ public class LocalGate extends Gate implements OptionsListener {
 
     public void setRequireValidPin(boolean b) {
         requireValidPin = b;
-        forceSave();
     }
 
     public int getInvalidPinDamage() {
@@ -557,8 +548,9 @@ public class LocalGate extends Gate implements OptionsListener {
     }
 
     public void setInvalidPinDamage(int i) {
+        if (i < 0)
+            throw new IllegalArgumentException("invalidPinDamage must be at least 0");
         invalidPinDamage = i;
-        forceSave();
     }
 
     public boolean getSendChat() {
@@ -567,34 +559,30 @@ public class LocalGate extends Gate implements OptionsListener {
 
     public void setSendChat(boolean b) {
         sendChat = b;
-        forceSave();
     }
 
     public int getSendChatDistance() {
         return sendChatDistance;
     }
 
-    public void setSendChat(int i) {
+    public void setSendChatDistance(int i) {
         sendChatDistance = i;
-        forceSave();
     }
-
+    
     public boolean getReceiveChat() {
         return receiveChat;
     }
 
     public void setReceiveChat(boolean b) {
         receiveChat = b;
-        forceSave();
     }
 
     public int getReceiveChatDistance() {
         return receiveChatDistance;
     }
 
-    public void setReceiveChat(int i) {
+    public void setReceiveChatDistance(int i) {
         receiveChatDistance = i;
-        forceSave();
     }
 
     public boolean getRequireAllowedItems() {
@@ -603,7 +591,6 @@ public class LocalGate extends Gate implements OptionsListener {
 
     public void setRequireAllowedItems(boolean b) {
         requireAllowedItems = b;
-        forceSave();
     }
 
     public boolean getSendInventory() {
@@ -612,7 +599,6 @@ public class LocalGate extends Gate implements OptionsListener {
 
     public void setSendInventory(boolean b) {
         sendInventory = b;
-        forceSave();
     }
 
     public boolean getReceiveInventory() {
@@ -621,7 +607,6 @@ public class LocalGate extends Gate implements OptionsListener {
 
     public void setReceiveInventory(boolean b) {
         receiveInventory = b;
-        forceSave();
     }
 
     public boolean getDeleteInventory() {
@@ -630,7 +615,6 @@ public class LocalGate extends Gate implements OptionsListener {
 
     public void setDeleteInventory(boolean b) {
         deleteInventory = b;
-        forceSave();
     }
 
     public String getTeleportFormat() {
@@ -638,8 +622,12 @@ public class LocalGate extends Gate implements OptionsListener {
     }
 
     public void setTeleportFormat(String s) {
+        if (s != null) {
+            if (s.equals("-")) s = "";
+            else if (s.equals("*")) s = null;
+        }
+        if (s == null) s = ChatColor.GOLD + "teleported to '%toGateCtx%'";
         teleportFormat = s;
-        forceSave();
     }
 
     public double getLinkLocalCost() {
@@ -647,8 +635,9 @@ public class LocalGate extends Gate implements OptionsListener {
     }
 
     public void setLinkLocalCost(double cost) {
+        if (cost < 0)
+            throw new IllegalArgumentException("linkLocalCost must be at least 0");
         linkLocalCost = cost;
-        forceSave();
     }
 
     public double getLinkWorldCost() {
@@ -656,8 +645,9 @@ public class LocalGate extends Gate implements OptionsListener {
     }
 
     public void setLinkWorldCost(double cost) {
+        if (cost < 0)
+            throw new IllegalArgumentException("linkWorldCost must be at least 0");
         linkWorldCost = cost;
-        forceSave();
     }
 
     public double getLinkServerCost() {
@@ -665,8 +655,9 @@ public class LocalGate extends Gate implements OptionsListener {
     }
 
     public void setLinkServerCost(double cost) {
+        if (cost < 0)
+            throw new IllegalArgumentException("linkServerCost must be at least 0");
         linkServerCost = cost;
-        forceSave();
     }
 
     public double getSendLocalCost() {
@@ -674,8 +665,9 @@ public class LocalGate extends Gate implements OptionsListener {
     }
 
     public void setSendLocalCost(double cost) {
+        if (cost < 0)
+            throw new IllegalArgumentException("sendLocalCost must be at least 0");
         sendLocalCost = cost;
-        forceSave();
     }
 
     public double getSendWorldCost() {
@@ -683,8 +675,9 @@ public class LocalGate extends Gate implements OptionsListener {
     }
 
     public void setSendWorldCost(double cost) {
+        if (cost < 0)
+            throw new IllegalArgumentException("sendWorldCost must be at least 0");
         sendWorldCost = cost;
-        forceSave();
     }
 
     public double getSendServerCost() {
@@ -692,8 +685,9 @@ public class LocalGate extends Gate implements OptionsListener {
     }
 
     public void setSendServerCost(double cost) {
+        if (cost < 0)
+            throw new IllegalArgumentException("sendServerCost must be at least 0");
         sendServerCost = cost;
-        forceSave();
     }
 
     public double getReceiveLocalCost() {
@@ -701,8 +695,9 @@ public class LocalGate extends Gate implements OptionsListener {
     }
 
     public void setReceiveLocalCost(double cost) {
+        if (cost < 0)
+            throw new IllegalArgumentException("receiveLocalCost must be at least 0");
         receiveLocalCost = cost;
-        forceSave();
     }
 
     public double getReceiveWorldCost() {
@@ -710,8 +705,9 @@ public class LocalGate extends Gate implements OptionsListener {
     }
 
     public void setReceiveWorldCost(double cost) {
+        if (cost < 0)
+            throw new IllegalArgumentException("receiveWorldCost must be at least 0");
         receiveWorldCost = cost;
-        forceSave();
     }
 
     public double getReceiveServerCost() {
@@ -719,8 +715,9 @@ public class LocalGate extends Gate implements OptionsListener {
     }
 
     public void setReceiveServerCost(double cost) {
+        if (cost < 0)
+            throw new IllegalArgumentException("receiveServerCost must be at least 0");
         receiveServerCost = cost;
-        forceSave();
     }
 
 
