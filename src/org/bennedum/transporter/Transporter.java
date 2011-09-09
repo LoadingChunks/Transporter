@@ -81,9 +81,6 @@ public class Transporter extends JavaPlugin {
         Utils.copyFilesFromJar("/resources/overviewer/manifest", overviewerFolder, true);
         Utils.copyFileFromJar("/resources/overviewer/transporterConfig.js", overviewerFolder, false);
 
-        File dynmapFolder = new File(dataFolder, "dynmap");
-        Utils.copyFilesFromJar("/resources/dynmap/manifest", dynmapFolder, true);
-
         Config.load(ctx);
         Designs.load(ctx);
         Network.start(ctx);
@@ -110,6 +107,14 @@ public class Transporter extends JavaPlugin {
 
         ctx.sendLog("ready");
 
+        // Setup delayed start tasks
+        Utils.fireDelayed(new Runnable() {
+            @Override
+            public void run() {
+                Markers.update();
+            }
+        }, 5000);
+        
     }
 
     @Override

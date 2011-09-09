@@ -1,6 +1,6 @@
 name: Transporter
 main: org.bennedum.transporter.Transporter
-version: "7.0"
+version: "7.1"
 authors:
   - frdfsnlght
 website: http://code.google.com/p/bukkit-transporter/
@@ -9,5 +9,5 @@ description: >
 commands:
   trp:
     description: Main Transporter command. See /trp help for more.
-    usage: /trp command [<option> ...]
+    usage: /<command> command [<option> ...]
 

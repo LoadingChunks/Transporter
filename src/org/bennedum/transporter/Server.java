@@ -1337,9 +1337,8 @@ public final class Server implements OptionsListener {
                 try {
                     NetworkInterface iface = NetworkInterface.getByName(addrPart);
                     InetAddress a = Network.getInterfaceAddress(iface);
-                    if (a == null)
-                        throw new IllegalArgumentException("unable to get local interface address for interface " + addrPart);
-                    addrPart = a.getHostAddress();
+                    if (a != null)
+                        addrPart = a.getHostAddress();
                 } catch (SocketException e) {
                     // assume address is a DNS name or IP address
                 }

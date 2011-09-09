@@ -46,7 +46,8 @@ public final class PlayerListenerImpl extends PlayerListener {
         if (gate != null) {
             Global.setSelectedGate(event.getPlayer(), gate);
 
-            if (gate.isClosed()) {
+            if (gate.isClosed() &&
+                Permissions.has(ctx.getPlayer(), "trp.gate.open." + gate.getName())) {
                 if (gate.hasValidDestination()) {
                     try {
                         gate.open();
@@ -60,7 +61,9 @@ public final class PlayerListenerImpl extends PlayerListener {
                 Gate switchGate = Gates.findGateForSwitch(location);
                 if (switchGate == gate) {
                     // the trigger is the same block as the switch, so do something special
-                    if (gate.isLastLink()) {
+                    if (gate.isLastLink() &&
+                        Permissions.has(ctx.getPlayer(), "trp.gate.close." + gate.getName()) &&
+                        Permissions.has(ctx.getPlayer(), "trp.gate.changeLink." + gate.getName())) {
                         gate.close();
                         ctx.sendLog("closed gate '%s'", gate.getName());
                         try {
@@ -70,7 +73,7 @@ public final class PlayerListenerImpl extends PlayerListener {
                         }
                         return;
                     }
-                } else {
+                } else if (Permissions.has(ctx.getPlayer(), "trp.gate.close." + gate.getName())) {
                     gate.close();
                     ctx.sendLog("closed gate '%s'", gate.getName());
                     return;
@@ -82,9 +85,10 @@ public final class PlayerListenerImpl extends PlayerListener {
         if (gate != null) {
             Global.setSelectedGate(event.getPlayer(), gate);
             try {
+                Permissions.require(ctx.getPlayer(), "trp.gate.changeLink." + gate.getName());
                 gate.nextLink();
-            } catch (GateException ge) {
-                ctx.warnLog(ge.getMessage());
+            } catch (TransporterException te) {
+                ctx.warnLog(te.getMessage());
             }
             return;
         }

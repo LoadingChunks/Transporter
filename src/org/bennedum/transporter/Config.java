@@ -57,9 +57,11 @@ public final class Config {
         OPTIONS.add("serverKickFormat");
         OPTIONS.add("useIConomy");
         OPTIONS.add("useBOSEconomy");
-        OPTIONS.add("exportedGatesFile");
+        OPTIONS.add("useDynmap");
         OPTIONS.add("usePermissions");
         OPTIONS.add("usePermissionsEx");
+        OPTIONS.add("dynmapMarkerSetLabel");
+        OPTIONS.add("exportedGatesFile");
         OPTIONS.add("httpProxyHost");
         OPTIONS.add("httpProxyType");
         OPTIONS.add("httpProxyPort");
@@ -337,13 +339,12 @@ public final class Config {
         config.setProperty("global.useBOSEconomy", b);
     }
 
-    public static String getExportedGatesFile() {
-        return config.getString("global.exportedGatesFile", null);
+    public static boolean getUseDynmap() {
+        return config.getBoolean("global.useDynmap", false);
     }
 
-    public static void setExportedGatesFile(String s) {
-        if ((s != null) && (s.equals("-") || s.equals("*"))) s = null;
-        setPropertyDirect("global.exportedGatesFile", s);
+    public static void setUseDynmap(boolean b) {
+        config.setProperty("global.useDynmap", b);
     }
 
     public static boolean getUsePermissions() {
@@ -362,6 +363,25 @@ public final class Config {
         config.setProperty("global.usePermissionsEx", b);
     }
 
+    public static String getDynmapMarkerSetLabel() {
+        return config.getString("global.dynmapMarkerSetLabel", "Transporter Gates");
+    }
+
+    public static void setDynmapMarkerSetLabel(String s) {
+        if ((s != null) && (s.equals("-") || s.equals("*"))) s = null;
+        setPropertyDirect("global.dynmapMarkerSetLabel", s);
+    }
+
+    public static String getExportedGatesFile() {
+        return config.getString("global.exportedGatesFile", null);
+    }
+
+    public static void setExportedGatesFile(String s) {
+        if ((s != null) && (s.equals("-") || s.equals("*"))) s = null;
+        setPropertyDirect("global.exportedGatesFile", s);
+    }
+
+    
     public static String getHttpProxyHost() {
         return config.getString("global.httpProxy.host", null);
     }

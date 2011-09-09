@@ -64,6 +64,10 @@ public class LocalGate extends Gate implements OptionsListener {
         OPTIONS.add("receiveInventory");
         OPTIONS.add("deleteInventory");
         OPTIONS.add("teleportFormat");
+        OPTIONS.add("noLinksFormat");
+        OPTIONS.add("noLinkSelectedFormat");
+        OPTIONS.add("invalidLinkFormat");
+        OPTIONS.add("unknownLinkFormat");
         OPTIONS.add("linkLocalCost");
         OPTIONS.add("linkWorldCost");
         OPTIONS.add("linkServerCost");
@@ -73,6 +77,7 @@ public class LocalGate extends Gate implements OptionsListener {
         OPTIONS.add("receiveLocalCost");
         OPTIONS.add("receiveWorldCost");
         OPTIONS.add("receiveServerCost");
+        OPTIONS.add("markerFormat");
     }
 
     private static boolean isValidPin(String pin) {
@@ -111,7 +116,12 @@ public class LocalGate extends Gate implements OptionsListener {
     private boolean receiveInventory;
     private boolean deleteInventory;
     private String teleportFormat;
-
+    private String noLinksFormat;
+    private String noLinkSelectedFormat;
+    private String invalidLinkFormat;
+    private String unknownLinkFormat;
+    private String markerFormat;
+    
     private double linkLocalCost;
     private double linkWorldCost;
     private double linkServerCost;
@@ -165,6 +175,11 @@ public class LocalGate extends Gate implements OptionsListener {
         receiveInventory = design.getReceiveInventory();
         deleteInventory = design.getDeleteInventory();
         teleportFormat = design.getTeleportFormat();
+        noLinksFormat = design.getNoLinksFormat();
+        noLinkSelectedFormat = design.getNoLinkSelectedFormat();
+        invalidLinkFormat = design.getInvalidLinkFormat();
+        unknownLinkFormat = design.getUnknownLinkFormat();
+        markerFormat = design.getMarkerFormat();
 
         linkLocalCost = design.getLinkLocalCost();
         linkWorldCost = design.getLinkWorldCost();
@@ -261,6 +276,11 @@ public class LocalGate extends Gate implements OptionsListener {
         receiveInventory = conf.getBoolean("receiveInventory", true);
         deleteInventory = conf.getBoolean("deleteInventory", false);
         teleportFormat = conf.getString("teleportFormat", ChatColor.GOLD + "teleported to '%toGateCtx%'");
+        noLinksFormat = conf.getString("noLinksFormat", "this gate has no links");
+        noLinkSelectedFormat = conf.getString("noLinkSelectedFormat", "no link is selected");
+        invalidLinkFormat = conf.getString("invalidLinkFormat", "invalid link selected");
+        unknownLinkFormat = conf.getString("unknownLinkFormat", "unknown or offline destination gate");
+        markerFormat = conf.getString("markerFormat", "%name%");
 
         incoming.addAll(conf.getStringList("incoming", new ArrayList<String>()));
         outgoing = conf.getString("outgoing");
@@ -352,6 +372,11 @@ public class LocalGate extends Gate implements OptionsListener {
         conf.setProperty("receiveInventory", receiveInventory);
         conf.setProperty("deleteInventory", deleteInventory);
         conf.setProperty("teleportFormat", teleportFormat);
+        conf.setProperty("noLinksFormat", noLinksFormat);
+        conf.setProperty("noLinkSelectedFormat", noLinkSelectedFormat);
+        conf.setProperty("invalidLinkFormat", invalidLinkFormat);
+        conf.setProperty("unknownLinkFormat", unknownLinkFormat);
+        conf.setProperty("markerFormat", markerFormat);
 
         if (! incoming.isEmpty()) conf.setProperty("incoming", new ArrayList<String>(incoming));
         if (outgoing != null) conf.setProperty("outgoing", outgoing);
@@ -630,6 +655,71 @@ public class LocalGate extends Gate implements OptionsListener {
         teleportFormat = s;
     }
 
+    public String getNoLinksFormat() {
+        return noLinksFormat;
+    }
+
+    public void setNoLinksFormat(String s) {
+        if (s != null) {
+            if (s.equals("-")) s = "";
+            else if (s.equals("*")) s = null;
+        }
+        if (s == null) s = "this gate has no links";
+        noLinksFormat = s;
+    }
+
+    public String getNoLinkSelectedFormat() {
+        return noLinkSelectedFormat;
+    }
+
+    public void setNoLinkSelectedFormat(String s) {
+        if (s != null) {
+            if (s.equals("-")) s = "";
+            else if (s.equals("*")) s = null;
+        }
+        if (s == null) s = "no link is selected";
+        noLinkSelectedFormat = s;
+    }
+
+    public String getInvalidLinkFormat() {
+        return invalidLinkFormat;
+    }
+
+    public void setInvalidLinkFormat(String s) {
+        if (s != null) {
+            if (s.equals("-")) s = "";
+            else if (s.equals("*")) s = null;
+        }
+        if (s == null) s = "invalid link selected";
+        invalidLinkFormat = s;
+    }
+    
+    public String getUnknownLinkFormat() {
+        return unknownLinkFormat;
+    }
+
+    public void setUnknownLinkFormat(String s) {
+        if (s != null) {
+            if (s.equals("-")) s = "";
+            else if (s.equals("*")) s = null;
+        }
+        if (s == null) s = "unknown or offline destination gate";
+        unknownLinkFormat = s;
+    }
+
+    public String getMarkerFormat() {
+        return markerFormat;
+    }
+
+    public void setMarkerFormat(String s) {
+        if (s != null) {
+            if (s.equals("-")) s = "";
+            else if (s.equals("*")) s = null;
+        }
+        if (s == null) s = "%name%";
+        markerFormat = s;
+    }
+    
     public double getLinkLocalCost() {
         return linkLocalCost;
     }
@@ -721,6 +811,7 @@ public class LocalGate extends Gate implements OptionsListener {
     }
 
 
+
     public void getOptions(Context ctx, String name) throws OptionsException, PermissionsException {
         options.getOptions(ctx, name);
     }
@@ -735,7 +826,8 @@ public class LocalGate extends Gate implements OptionsListener {
 
     @Override
     public void onOptionSet(Context ctx, String name, String value) {
-        ctx.sendLog("option '%s' set to '%s' for world '%s'", name, value, getName());
+        dirty = true;
+        ctx.sendLog("option '%s' set to '%s' for gate '%s'", name, value, getName(ctx));
     }
 
     /* End options */
@@ -1102,14 +1194,14 @@ public class LocalGate extends Gate implements OptionsListener {
     public Gate getDestinationGate() throws GateException {
         if (outgoing == null) {
             if (! isLinked())
-                throw new GateException("this gate has no links");
+                throw new GateException(getNoLinksFormat());
             else
-                throw new GateException("no link is selected");
+                throw new GateException(getNoLinkSelectedFormat());
         } else if (! hasLink(outgoing))
-            throw new GateException("invalid link selected");
+            throw new GateException(getInvalidLinkFormat());
         Gate gate = Gates.get(outgoing);
         if (gate == null)
-            throw new GateException("unknown or offline destination gate '%s'", outgoing);
+            throw new GateException(getUnknownLinkFormat());
         return gate;
     }
 

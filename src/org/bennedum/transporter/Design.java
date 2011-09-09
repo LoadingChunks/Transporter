@@ -67,6 +67,11 @@ public class Design {
     private boolean receiveInventory;
     private boolean deleteInventory;
     private String teleportFormat;
+    private String noLinksFormat;
+    private String noLinkSelectedFormat;
+    private String invalidLinkFormat;
+    private String unknownLinkFormat;
+    private String markerFormat;
     
     // Economy
     private double buildCost;
@@ -122,6 +127,11 @@ public class Design {
         receiveInventory = conf.getBoolean("receiveInventory", true);
         deleteInventory = conf.getBoolean("deleteInventory", false);
         teleportFormat = conf.getString("teleportFormat", ChatColor.GOLD + "teleported to '%toGateCtx%'");
+        noLinksFormat = conf.getString("noLinksFormat", "this gate has no links");
+        noLinkSelectedFormat = conf.getString("noLinkSelectedFormat", "no link is selected");
+        invalidLinkFormat = conf.getString("invalidLinkFormat", "invalid link selected");
+        unknownLinkFormat = conf.getString("unknownLinkFormat", "unknown or offline destination gate");
+        markerFormat = conf.getString("markerFormat", "%name%");
 
         List<String> items = conf.getStringList("bannedItems", new ArrayList<String>());
         for (String item : items) {
@@ -321,6 +331,11 @@ public class Design {
         Utils.debug("  receiveInventory = " + receiveInventory);
         Utils.debug("  deleteInventory = " + deleteInventory);
         Utils.debug("  teleportFormat = " + teleportFormat);
+        Utils.debug("  noLinksFormat = " + noLinksFormat);
+        Utils.debug("  noLinkSelectedFormat = " + noLinkSelectedFormat);
+        Utils.debug("  invalidLinkFormat = " + invalidLinkFormat);
+        Utils.debug("  unknownLinkFormat = " + unknownLinkFormat);
+        Utils.debug("  markerFormat = " + markerFormat);
 
         Utils.debug("  buildCost = " + buildCost);
         Utils.debug("  createCost = " + createCost);
@@ -438,6 +453,26 @@ public class Design {
     
     public String getTeleportFormat() {
         return teleportFormat;
+    }
+    
+    public String getNoLinksFormat() {
+        return noLinksFormat;
+    }
+
+    public String getNoLinkSelectedFormat() {
+        return noLinkSelectedFormat;
+    }
+
+    public String getInvalidLinkFormat() {
+        return invalidLinkFormat;
+    }
+
+    public String getUnknownLinkFormat() {
+        return unknownLinkFormat;
+    }
+    
+    public String getMarkerFormat() {
+        return markerFormat;
     }
     
     public double getBuildCost() {

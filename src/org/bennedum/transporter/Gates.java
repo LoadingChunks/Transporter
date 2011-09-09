@@ -16,17 +16,13 @@
 package org.bennedum.transporter;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.util.Vector;
 
 /**
  * Manages a collection of both local and remote gates.
@@ -87,63 +83,13 @@ public final class Gates {
     }
 
     public static void save(Context ctx) {
-        exportJSON();
+        Markers.update();
         if (size() == 0) return;
         for (String name : gates.keySet()) {
             Gate gate = gates.get(name);
             if (! gate.isSameServer()) continue;
             ((LocalGate)gate).save();
             ctx.sendLog("saved gate '%s' for world '%s'", gate.getName(), gate.getWorldName());
-        }
-    }
-
-    public static void exportJSON() {
-        String fileName = Config.getExportedGatesFile();
-        if (fileName == null) return;
-        File file = new File(fileName);
-        if (! file.isAbsolute())
-            file = new File(Global.plugin.getDataFolder(), fileName);
-        Utils.debug("exporting gates to %s", file.getAbsolutePath());
-        try {
-            PrintStream out = new PrintStream(file);
-            out.println("[");
-            for (Iterator<LocalGate> i = getLocalGates().iterator(); i.hasNext();) {
-                LocalGate gate = i.next();
-                Vector center = gate.getCenter();
-                out.println("  {");
-                out.println("    \"name\": \"" + gate.getName() + "\",");
-                out.println("    \"world\": \"" + gate.getWorldName() + "\",");
-                out.println("    \"links\": [");
-                for (Iterator<String> li = gate.getLinks().iterator(); li.hasNext();) {
-                    out.print("      \"" + li.next() + "\"");
-                    out.println(li.hasNext() ? "," : "");
-                }
-                out.println("    ],");
-                out.println("    \"x\": " + center.getX() + ",");
-                out.println("    \"y\": " + center.getY() + ",");
-                out.println("    \"z\": " + center.getZ() + ",");
-                if (Economy.isAvailable()) {
-                    if (gate.getLinkLocal()) {
-                        out.println("    \"onWorldSend\": \"" + Economy.format(gate.getSendLocalCost()) + "\",");
-                        out.println("    \"onWorldReceive\": \"" + Economy.format(gate.getReceiveLocalCost()) + "\",");
-                    }
-                    if (gate.getLinkWorld()) {
-                        out.println("    \"offWorldSend\": \"" + Economy.format(gate.getSendWorldCost()) + "\",");
-                        out.println("    \"offWorldReceive\": \"" + Economy.format(gate.getReceiveWorldCost()) + "\",");
-                    }
-                    if (gate.getLinkServer()) {
-                        out.println("    \"offServerSend\": \"" + Economy.format(gate.getSendServerCost()) + "\",");
-                        out.println("    \"offServerReceive\": \"" + Economy.format(gate.getReceiveServerCost()) + "\",");
-                    }
-                }
-                out.println("    \"design\": \"" + gate.getDesignName() + "\",");
-                out.println("    \"creator\": \"" + gate.getCreatorName() + "\"");
-                out.println("  }" + (i.hasNext() ? "," : ""));
-            }
-            out.println("]");
-            out.close();
-        } catch (IOException ioe) {
-            Utils.warning("unable to write %s: %s", file.getAbsolutePath(), ioe.getMessage());
         }
     }
 
@@ -163,7 +109,7 @@ public final class Gates {
             ((LocalGate)g).onGateAdded(gate);
         }
         if (gate.isSameServer()) {
-            exportJSON();
+            Markers.update();
             for (Server server : Servers.getAll())
                 server.doGateAdded((LocalGate)gate);
         }
@@ -183,7 +129,7 @@ public final class Gates {
         }
         for (Server server : Servers.getAll())
             server.doGateRemoved(gate);
-        exportJSON();
+        Markers.update();
     }
 
     public static void remove(RemoteGate gate) {
@@ -225,7 +171,7 @@ public final class Gates {
         }
         for (Server server : Servers.getAll())
             server.doGateDestroyed(gate);
-        exportJSON();
+        Markers.update();
     }
 
     public static void destroy(RemoteGate gate) {
@@ -264,7 +210,7 @@ public final class Gates {
             ((LocalGate)g).onGateRenamed(gate, oldFullName);
         }
         if (gate.isSameServer()) {
-            exportJSON();
+            Markers.update();
             for (Server server : Servers.getAll())
                 server.doGateRenamed(oldFullName, newName);
         }

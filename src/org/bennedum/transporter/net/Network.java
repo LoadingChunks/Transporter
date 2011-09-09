@@ -164,6 +164,7 @@ public final class Network {
     }
 
     public static InetAddress getInterfaceAddress(NetworkInterface iface) {
+        if (iface == null) return null;
         for (Enumeration<InetAddress> e = iface.getInetAddresses(); e.hasMoreElements(); ) {
             InetAddress addr = e.nextElement();
             if (addr.isLoopbackAddress()) continue;

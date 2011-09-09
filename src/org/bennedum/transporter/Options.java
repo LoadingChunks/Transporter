@@ -138,7 +138,10 @@ public final class Options {
                 listener.onOptionSet(ctx, option, getOption(ctx, option));
 
         } catch (InvocationTargetException ite) {
-            throw new OptionsException(ite.getCause().getMessage());
+            if (ite.getCause().getMessage() == null)
+                throw new OptionsException(ite.getCause().toString());
+            else
+                throw new OptionsException(ite.getCause().getMessage());
         } catch (NoSuchMethodException nsme) {
             throw new OptionsException("invalid method '%s'", methodName);
         } catch (IllegalAccessException iae) {
