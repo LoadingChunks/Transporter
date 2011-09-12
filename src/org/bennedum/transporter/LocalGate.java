@@ -421,6 +421,7 @@ public class LocalGate extends Gate implements OptionsListener {
             @Override
             public void run() {
                 save();
+                Markers.update();
             }
         });
     }
@@ -828,6 +829,7 @@ public class LocalGate extends Gate implements OptionsListener {
     public void onOptionSet(Context ctx, String name, String value) {
         dirty = true;
         ctx.sendLog("option '%s' set to '%s' for gate '%s'", name, value, getName(ctx));
+        saveInBackground();
     }
 
     /* End options */
