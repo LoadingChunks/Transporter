@@ -211,7 +211,7 @@ public class GateCommand extends TrpCommandProcessor {
             String toGateName = args.remove(args.size() - 1);
             LocalGate fromGate = getGate(ctx, args);
             Gate toGate = Gates.get(ctx, toGateName);
-            if (toGate == null)
+            if ((toGate == null) && (! "remove".startsWith(subCmd)))
                 throw new CommandException("unknown 'to' gate '%s'", toGateName);
 
             if ("add".startsWith(subCmd)) {
@@ -262,12 +262,14 @@ public class GateCommand extends TrpCommandProcessor {
 
             if ("remove".startsWith(subCmd)) {
                 Permissions.require(ctx.getPlayer(), "trp.gate.link.remove." + fromGate.getName());
-                if (! fromGate.removeLink(toGate.getFullName()))
+                if (toGate != null) toGateName = toGate.getFullName();
+
+                if (! fromGate.removeLink(toGateName))
                     throw new CommandException("gate '%s' does not have a link to '%s'", fromGate.getName(ctx), toGate.getName(ctx));
 
-                ctx.sendLog("removed link from '%s' to '%s'", fromGate.getName(ctx), toGate.getName(ctx));
+                ctx.sendLog("removed link from '%s' to '%s'", fromGate.getName(ctx), toGateName);
 
-                if (reverse && (ctx.getSender() != null)) {
+                if (reverse && (ctx.getSender() != null) && (toGate != null)) {
                     if (toGate.isSameServer())
                         Global.plugin.getServer().dispatchCommand(ctx.getSender(), "trp gate link remove \"" + fromGate.getFullName() + "\" \"" + toGate.getFullName() + "\"");
                     else {

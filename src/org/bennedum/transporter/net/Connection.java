@@ -31,6 +31,7 @@ import java.util.Map;
 import org.bennedum.transporter.Global;
 import org.bennedum.transporter.Server;
 import org.bennedum.transporter.Servers;
+import org.bennedum.transporter.TransporterException;
 import org.bennedum.transporter.Utils;
 
 /**
@@ -199,7 +200,7 @@ public final class Connection {
                     Message message = Message.decode(encoded);
                     onMessage(message);
                 } catch (Throwable t) {
-                    Utils.warning("exception while processing message from %s: %s", name, t.getMessage());
+                    Utils.severe(t, "exception while processing message from %s: %s", name, t.getMessage());
                     close();
                     return;
                 }
@@ -406,7 +407,7 @@ public final class Connection {
         } else if (state == State.ESTABLISHED) {
             // sanity check
             if (server.getConnection() != this) {
-                Utils.warning("connection '%s' has been orphaned from server '%s'!?!", getName(), server.getName());
+                Utils.warning("connection '%s' has been disowned by server '%s'!?!", getName(), server.getName());
                 server = null;
                 close();
             }

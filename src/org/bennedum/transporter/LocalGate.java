@@ -121,7 +121,7 @@ public class LocalGate extends Gate implements OptionsListener {
     private String invalidLinkFormat;
     private String unknownLinkFormat;
     private String markerFormat;
-    
+
     private double linkLocalCost;
     private double linkWorldCost;
     private double linkServerCost;
@@ -324,7 +324,7 @@ public class LocalGate extends Gate implements OptionsListener {
             if (relayChatDistance > 0)
                 sendChatDistance = receiveChatDistance = relayChatDistance;
         }
-        
+
         calculateCenter();
         validate();
     }
@@ -594,7 +594,7 @@ public class LocalGate extends Gate implements OptionsListener {
     public void setSendChatDistance(int i) {
         sendChatDistance = i;
     }
-    
+
     public boolean getReceiveChat() {
         return receiveChat;
     }
@@ -694,7 +694,7 @@ public class LocalGate extends Gate implements OptionsListener {
         if (s == null) s = "invalid link selected";
         invalidLinkFormat = s;
     }
-    
+
     public String getUnknownLinkFormat() {
         return unknownLinkFormat;
     }
@@ -720,7 +720,7 @@ public class LocalGate extends Gate implements OptionsListener {
         if (s == null) s = "%name%";
         markerFormat = s;
     }
-    
+
     public double getLinkLocalCost() {
         return linkLocalCost;
     }
