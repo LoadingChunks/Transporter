@@ -133,9 +133,14 @@ public final class WorldProxy implements OptionsListener {
     }
 
     public World load(Context ctx) {
-        ctx.send("loading world '%s'...", name);
-        World world = Global.plugin.getServer().createWorld(name, environment);
-        if (! Global.started)
+        World world = getWorld();
+        boolean loadGates = (world != null);
+        if (world == null) {
+            ctx.send("loading world '%s'...", name);
+            world = Global.plugin.getServer().createWorld(name, environment);
+        } else
+            ctx.send("world '%s' is already loaded", name);
+        if (loadGates)
             Gates.loadGatesForWorld(ctx, world);
         return world;
     }

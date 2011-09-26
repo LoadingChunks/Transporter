@@ -32,7 +32,10 @@ import ru.tehkode.permissions.PermissionManager;
 import ru.tehkode.permissions.bukkit.PermissionsEx;
 
 /**
- *
+ * This class doesn't support Bukkit's built-in permissions because there's no
+ * way to check permissions for non-players yet (players who are not currently
+ * connected to the server).
+ * 
  * @author frdfsnlght <frdfsnlght@gmail.com>
  */
 public final class Permissions {

@@ -53,7 +53,7 @@ public class Transporter extends JavaPlugin {
         Global.pluginVersion = pdf.getVersion();
         Global.started = false;
 
-        Context ctx = new Context();
+        final Context ctx = new Context();
 
         ctx.sendLog("this is v%s", Global.pluginVersion);
 
@@ -108,9 +108,12 @@ public class Transporter extends JavaPlugin {
         ctx.sendLog("ready");
 
         // Setup delayed start tasks
+        // It would be better if bukkit someday offered an event that indicated
+        // all the plugins were done loading and the server was started
         Utils.fireDelayed(new Runnable() {
             @Override
             public void run() {
+                Worlds.autoLoad(ctx);
                 Markers.update();
             }
         }, 5000);

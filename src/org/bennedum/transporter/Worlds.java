@@ -40,7 +40,7 @@ public final class Worlds {
                 try {
                     WorldProxy world = new WorldProxy(node);
                     add(world);
-                    if (Config.getAutoLoadWorlds() && world.getAutoLoad())
+                    if (Global.started && Config.getAutoLoadWorlds() && world.getAutoLoad())
                         world.load(ctx);
                 } catch (WorldException e) {
                     ctx.warn(e.getMessage());
@@ -56,6 +56,9 @@ public final class Worlds {
                 add(newWorld);
             } catch (WorldException e) {}
         }
+
+        if (Global.started)
+            autoLoad(ctx);
     }
 
     public static void onConfigSave() {
@@ -65,6 +68,13 @@ public final class Worlds {
         Config.setPropertyDirect("worlds", worldNodes);
     }
 
+    public static void autoLoad(Context ctx) {
+        if (! Config.getAutoLoadWorlds()) return;
+        for (WorldProxy world : worlds.values())
+            if (world.getAutoLoad())
+                world.load(ctx);
+    }
+    
     public static void add(WorldProxy world) {
         worlds.put(world.getName(), world);
     }
