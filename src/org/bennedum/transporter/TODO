@@ -1,0 +1,15 @@
+
+Ideas:
+* Deposit accounts for the money collected when building/creating/linking/using gates.
+* Implement gate permissions when Permissions plugin supports adding a gate to a group.
+
+TODO:
+* Add API options like allow*
+* Add per-world inventory
+    * global option to turn on/off
+
+Testing:
+* Test stairs with facing option
+
+Wiki Updates:
+

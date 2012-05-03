@@ -1,0 +1,15 @@
+GuiDisconnected
+
+         {
+             errorDetail = stringtranslate.translateKey(s1);
+         }
+-        Transporter.detectKick(par1Str, par2Str, par3ArrayOfObj);
+     }
+
+         drawCenteredString(fontRenderer, errorMessage, width / 2, height / 2 - 50, 0xffffff);
+         drawCenteredString(fontRenderer, errorDetail, width / 2, height / 2 - 10, 0xffffff);
+         super.drawScreen(i, j, f);
+-        Transporter.teleportIfKicked(mc);
+     }
+
+     private String errorMessage;
