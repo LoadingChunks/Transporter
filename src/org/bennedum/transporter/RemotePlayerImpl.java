@@ -21,7 +21,6 @@ import org.bennedum.transporter.api.RemoteLocation;
 import org.bennedum.transporter.api.RemotePlayer;
 import org.bennedum.transporter.api.RemoteServer;
 import org.bennedum.transporter.api.RemoteWorld;
-import org.bennedum.transporter.net.Message;
 import org.bukkit.entity.Player;
 
 /**
@@ -84,12 +83,12 @@ public final class RemotePlayerImpl implements RemotePlayer {
 
     @Override
     public void getRemoteLocation(final Callback<RemoteLocation> cb) {
-        Message args = new Message();
+        TypeMap args = new TypeMap();
         args.put("player", name);
-        server.sendAPIRequest(new APICallback<Message>() {
+        server.sendAPIRequest(new APICallback<TypeMap>() {
             @Override
-            public void onSuccess(Message m) {
-                Message locMsg = m.getMessage("result");
+            public void onSuccess(TypeMap m) {
+                TypeMap locMsg = m.getMap("result");
                 RemoteLocation loc = new RemoteLocation(server, server.getRemoteWorld(locMsg.getString("world")), locMsg.getDouble("x"), locMsg.getDouble("y"), locMsg.getDouble("z"));
                 cb.onSuccess(loc);
             }
@@ -102,12 +101,12 @@ public final class RemotePlayerImpl implements RemotePlayer {
 
     @Override
     public void sendMessage(final Callback<Void> cb, String msg) {
-        Message args = new Message();
+        TypeMap args = new TypeMap();
         args.put("player", name);
         args.put("message", msg);
-        server.sendAPIRequest(new APICallback<Message>() {
+        server.sendAPIRequest(new APICallback<TypeMap>() {
             @Override
-            public void onSuccess(Message m) {
+            public void onSuccess(TypeMap m) {
                 if (cb != null) cb.onSuccess(null);
             }
             @Override
@@ -119,12 +118,12 @@ public final class RemotePlayerImpl implements RemotePlayer {
 
     @Override
     public void sendRawMessage(final Callback<Void> cb, String msg) {
-        Message args = new Message();
+        TypeMap args = new TypeMap();
         args.put("player", name);
         args.put("message", msg);
-        server.sendAPIRequest(new APICallback<Message>() {
+        server.sendAPIRequest(new APICallback<TypeMap>() {
             @Override
-            public void onSuccess(Message m) {
+            public void onSuccess(TypeMap m) {
                 if (cb != null) cb.onSuccess(null);
             }
             @Override

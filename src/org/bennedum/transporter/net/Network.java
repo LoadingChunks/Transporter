@@ -48,6 +48,7 @@ import org.bennedum.transporter.OptionsListener;
 import org.bennedum.transporter.PermissionsException;
 import org.bennedum.transporter.Server;
 import org.bennedum.transporter.Servers;
+import org.bennedum.transporter.ThreadState;
 import org.bennedum.transporter.Utils;
 
 /**
@@ -178,7 +179,7 @@ public final class Network {
     }
 
     private static Thread networkThread;
-    private static State state = State.STOPPED;
+    private static ThreadState state = ThreadState.STOPPED;
     private static InetSocketAddress listenAddress = null;
     private static String key;
     private static int selectInterval;
@@ -222,10 +223,10 @@ public final class Network {
     public static void stop(Context ctx) {
         if ((networkThread == null) ||
             (! networkThread.isAlive()) ||
-            (state != State.RUNNING)) return;
+            (state != ThreadState.RUNNING)) return;
         ctx.send("stopping network manager...");
         Servers.disconnectAll();
-        state = State.STOP;
+        state = ThreadState.STOP;
         selector.wakeup();
         while (networkThread.isAlive()) {
             try {
@@ -383,7 +384,7 @@ public final class Network {
     }
 
     public static boolean isStopped() {
-        return (state == State.STOP) || (state == State.STOPPING) || (state == State.STOPPED);
+        return (state == ThreadState.STOP) || (state == ThreadState.STOPPING) || (state == ThreadState.STOPPED);
     }
 
     // called from main thread
@@ -450,12 +451,12 @@ public final class Network {
             serverChannel.register(selector, SelectionKey.OP_ACCEPT);
 
             Utils.info("network manager listening on %s:%d", listenAddress.getAddress().getHostAddress(), listenAddress.getPort());
-            state = State.RUNNING;
+            state = ThreadState.RUNNING;
 
             // processing
             while (true) {
-                if (state == State.STOP) {
-                    state = State.STOPPING;
+                if (state == ThreadState.STOP) {
+                    state = ThreadState.STOPPING;
                     serverChannel.keyFor(selector).cancel();
                     synchronized (closing) {
                         closing.addAll(channels.values());
@@ -466,7 +467,7 @@ public final class Network {
                         opening.removeAll(channels.values());
                     }
                 }
-                if ((state == State.STOPPING) && channels.isEmpty()) break;
+                if ((state == ThreadState.STOPPING) && channels.isEmpty()) break;
 
                 // Close connections that are still waiting to open
                 synchronized (closing) {
@@ -478,7 +479,7 @@ public final class Network {
                         }
                     }
                 }
-                if ((state == State.STOPPING) && channels.isEmpty()) break;
+                if ((state == ThreadState.STOPPING) && channels.isEmpty()) break;
 
                 // Open connections that are waiting
                 synchronized (opening) {
@@ -528,7 +529,7 @@ public final class Network {
         } catch (IOException ioe) {
             Utils.severe(ioe, "network manager IOException: " + ioe.getMessage());
         }
-        state = State.STOPPED;
+        state = ThreadState.STOPPED;
 
         if (selector != null)
             try {
@@ -658,7 +659,7 @@ public final class Network {
 
         ByteBuffer buffer;
         byte[] data;
-        int numWrote = 0;
+        int numWrote;
         while (true) {
             data = conn.onGetWriteData();
             if (data == null) break;
@@ -723,13 +724,6 @@ public final class Network {
         */
         
         selector.wakeup();
-    }
-
-    private enum State {
-        STOPPED,
-        RUNNING,
-        STOP,
-        STOPPING;
     }
 
 }

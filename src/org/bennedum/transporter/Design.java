@@ -28,8 +28,6 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import org.bennedum.transporter.api.GateException;
 import org.bennedum.transporter.api.TransporterException;
-import org.bennedum.transporter.config.Configuration;
-import org.bennedum.transporter.config.ConfigurationNode;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -119,7 +117,7 @@ public class Design {
             throw new DesignException("%s is not a file", file.getAbsolutePath());
         if (! file.canRead())
             throw new DesignException("unable to read %s", file.getAbsoluteFile());
-        Configuration conf = new Configuration(file);
+        TypeMap conf = new TypeMap(file);
         conf.load();
 
         name = conf.getString("name");
@@ -247,26 +245,26 @@ public class Design {
             if (key.length() > 1)
                 throw new DesignException("blockKey keys must be a single character: %s", key);
             DesignBlockDetail db;
-            ConfigurationNode blockKeyNode = conf.getNode("blockKey." + key);
-            if (blockKeyNode == null) {
+            TypeMap blockKeyMap = conf.getMap("blockKey." + key);
+            if (blockKeyMap == null) {
                 String blockType = conf.getString("blockKey." + key);
                 if (blockType == null)
                     throw new DesignException("missing material for blockKey key '%s'", key);
                 else
                     db = new DesignBlockDetail(blockType);
             } else
-                db = new DesignBlockDetail(blockKeyNode);
+                db = new DesignBlockDetail(blockKeyMap);
             blockKey.put(key.charAt(0), db);
         }
 
         blocks = new ArrayList<DesignBlock>();
         sizeX = sizeY = sizeZ = -1;
         int x, y, z;
-        List<Object> blocksNode = conf.getList("blocks");
-        if (blocksNode == null)
+        List<Object> blocksMap = conf.getList("blocks");
+        if (blocksMap == null)
             throw new DesignException("at least one block slice is required");
-        z = sizeZ = blocksNode.size();
-        for (Object o : blocksNode) {
+        z = sizeZ = blocksMap.size();
+        for (Object o : blocksMap) {
             z--;
             if ((! (o instanceof List)) ||
                 ((List)o).isEmpty() ||

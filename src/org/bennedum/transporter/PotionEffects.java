@@ -15,7 +15,10 @@
  */
 package org.bennedum.transporter;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.bukkit.potion.PotionEffect;
@@ -26,6 +29,43 @@ import org.bukkit.potion.PotionEffectType;
  * @author frdfsnlght <frdfsnlght@gmail.com>
  */
 public final class PotionEffects {
+    
+    public static List<TypeMap> encodePotionEffects(Collection<PotionEffect> effects) {
+        return encodePotionEffects(effects.toArray(new PotionEffect[] {}));
+    }
+    
+    public static List<TypeMap> encodePotionEffects(PotionEffect[] effects) {
+        if (effects == null) return null;
+        List<TypeMap> eff = new ArrayList<TypeMap>();
+        for (PotionEffect pe : effects) {
+            if (pe == null) continue;
+            TypeMap pm = new TypeMap();
+            pm.put("type", pe.getType().toString());
+            pm.put("duration", pe.getDuration());
+            pm.put("amplifier", pe.getAmplifier());
+            eff.add(pm);
+        }
+        return eff;
+    }
+
+    public static PotionEffect[] decodePotionEffects(List<TypeMap> eff) {
+        if (eff == null) return null;
+        PotionEffect[] effects = new PotionEffect[eff.size()];
+        for (int i = 0; i < eff.size(); i++) {
+            TypeMap pm = eff.get(i);
+            if (pm == null)
+                effects[i] = null;
+            else {
+                PotionEffectType type = PotionEffectType.getByName(pm.getString("type"));
+                if (type == null)
+                    effects[i] = null;
+                else
+                    effects[i] = type.createEffect(pm.getInt("duration"), pm.getInt("amplifier"));
+            }
+        }
+        return effects;
+    }
+    
     
     public static String normalizePotion(String potion) {
         if (potion == null) return null;

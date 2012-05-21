@@ -15,6 +15,7 @@
  */
 package org.bennedum.transporter.api;
 
+import java.net.InetSocketAddress;
 import java.util.Set;
 import org.bukkit.GameMode;
 import org.bukkit.command.CommandSender;
@@ -78,6 +79,15 @@ public interface RemoteServer {
      * @return              a RemoteGate object or null
      */
     public RemoteGate getRemoteGate(String gateName);
+    
+    /**
+     * Returns the message used to kick the player with the specified address and
+     * reconnect them to this server.
+     * 
+     * @param clientAddress
+     * @return the kick message, or null if there's a problem
+     */
+    public String getKickMessage(InetSocketAddress clientAddress);
     
     /**
      * Broadcasts a message to all players on the remote server with the specified permission.

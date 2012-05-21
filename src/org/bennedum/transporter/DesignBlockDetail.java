@@ -18,7 +18,6 @@ package org.bennedum.transporter;
 import java.util.HashMap;
 import java.util.Map;
 import org.bennedum.transporter.api.SpawnDirection;
-import org.bennedum.transporter.config.ConfigurationNode;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
 
@@ -66,35 +65,35 @@ public final class DesignBlockDetail {
         if (! buildBlock.hasType()) buildBlock = null;
     }
 
-    public DesignBlockDetail(ConfigurationNode node) throws BlockException {
-        ConfigurationNode subNode;
+    public DesignBlockDetail(TypeMap map) throws BlockException {
+        TypeMap subMap;
         String str;
 
-        subNode = node.getNode("build");
-        if (subNode == null) {
-            str = node.getString("build");
+        subMap = map.getMap("build");
+        if (subMap == null) {
+            str = map.getString("build");
             if (str != null)
                 buildBlock = new BuildableBlock(str);
         } else
-            buildBlock = new BuildableBlock(subNode);
+            buildBlock = new BuildableBlock(subMap);
         if ((buildBlock != null) && (! buildBlock.hasType())) buildBlock = null;
 
-        subNode = node.getNode("open");
-        if (subNode == null) {
-            str = node.getString("open");
+        subMap = map.getMap("open");
+        if (subMap == null) {
+            str = map.getString("open");
             if (str != null)
                 openBlock = new BuildableBlock(str);
         } else
-            openBlock = new BuildableBlock(subNode);
+            openBlock = new BuildableBlock(subMap);
         if ((openBlock != null) && (! openBlock.hasType())) openBlock = null;
 
-        isScreen = node.getBoolean("screen", false);
-        isPortal = node.getBoolean("portal", false);
-        isTrigger = node.getBoolean("trigger", false);
-        isSwitch = node.getBoolean("switch", false);
-        isInsert = node.getBoolean("insert", false);
+        isScreen = map.getBoolean("screen", false);
+        isPortal = map.getBoolean("portal", false);
+        isTrigger = map.getBoolean("trigger", false);
+        isSwitch = map.getBoolean("switch", false);
+        isInsert = map.getBoolean("insert", false);
 
-        str = node.getString("spawn");
+        str = map.getString("spawn");
         if (str != null) {
             try {
                 spawn = Utils.valueOf(SpawnDirection.class, str);
@@ -103,14 +102,14 @@ public final class DesignBlockDetail {
             }
         }
 
-        str = node.getString("sendLightningMode", "NONE");
+        str = map.getString("sendLightningMode", "NONE");
         try {
             sendLightningMode = Utils.valueOf(LightningMode.class, str);
         } catch (IllegalArgumentException iae) {
             throw new BlockException(iae.getMessage() + " sendLightningMode '%s'", str);
         }
         
-        str = node.getString("receiveLightningMode", "NONE");
+        str = map.getString("receiveLightningMode", "NONE");
         try {
             receiveLightningMode = Utils.valueOf(LightningMode.class, str);
         } catch (IllegalArgumentException iae) {
@@ -118,7 +117,7 @@ public final class DesignBlockDetail {
         }
 
         // backwards compatibility in v7.8, remove someday
-        str = node.getString("lightningMode");
+        str = map.getString("lightningMode");
         if (str != null) {
             str = str.toUpperCase();
             if (! str.equals("NONE"))
@@ -133,21 +132,21 @@ public final class DesignBlockDetail {
             }
         }
         
-        str = node.getString("triggerOpenMode", "HIGH");
+        str = map.getString("triggerOpenMode", "HIGH");
         try {
             triggerOpenMode = Utils.valueOf(RedstoneMode.class, str);
         } catch (IllegalArgumentException iae) {
             throw new BlockException(iae.getMessage() + " triggerOpenMode '%s'", str);
         }
         
-        str = node.getString("triggerCloseMode", "LOW");
+        str = map.getString("triggerCloseMode", "LOW");
         try {
             triggerCloseMode = Utils.valueOf(RedstoneMode.class, str);
         } catch (IllegalArgumentException iae) {
             throw new BlockException(iae.getMessage() + " triggerCloseMode '%s'", str);
         }
         
-        str = node.getString("switchMode", "HIGH");
+        str = map.getString("switchMode", "HIGH");
         try {
             switchMode = Utils.valueOf(RedstoneMode.class, str);
         } catch (IllegalArgumentException iae) {

@@ -20,7 +20,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.bennedum.transporter.api.RemoteServer;
-import org.bennedum.transporter.config.ConfigurationNode;
 
 /**
  *
@@ -35,11 +34,11 @@ public final class Servers {
     public static void onConfigLoad(Context ctx) {
         removeAll();
         servers.clear();
-        List<ConfigurationNode> serverNodes = Config.getNodeList("servers");
-        if (serverNodes != null) {
-            for (ConfigurationNode node : serverNodes) {
+        List<TypeMap> serverMaps = Config.getMapList("servers");
+        if (serverMaps != null) {
+            for (TypeMap map : serverMaps) {
                 try {
-                    Server server = new Server(node);
+                    Server server = new Server(map);
                     add(server);
                     ctx.sendLog("loaded server '%s'", server.getName());
                 } catch (ServerException se) {

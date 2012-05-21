@@ -102,6 +102,8 @@ public class ServerCommand extends TrpCommandProcessor {
                                     server.getNormalizedPrivateAddress().getAddress().getHostAddress(),
                                     server.getNormalizedPrivateAddress().getPort()));
                     if (server.isConnectionConnected()) {
+                        ctx.send("    remoteServerName:     %s",
+                                server.getRemoteServer());
                         ctx.send("    remotePublicAddress:  %s",
                                 server.getRemotePublicAddress());
                         ctx.send("    remotePrivateAddress: %s",

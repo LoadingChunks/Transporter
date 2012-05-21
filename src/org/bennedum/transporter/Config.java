@@ -22,8 +22,6 @@ import java.net.URL;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.bennedum.transporter.config.Configuration;
-import org.bennedum.transporter.config.ConfigurationNode;
 import org.bennedum.transporter.net.Network;
 
 /**
@@ -36,7 +34,7 @@ public final class Config {
 
     private static final Set<String> OPTIONS = new HashSet<String>();
     private static final Options options;
-    private static Configuration config = null;
+    private static TypeMap config = null;
 
     static {
         OPTIONS.add("debug");
@@ -69,6 +67,7 @@ public final class Config {
         OPTIONS.add("dynmapMarkerSetLabel");
         OPTIONS.add("exportedGatesFile");
         OPTIONS.add("worldLoadDelay");
+        OPTIONS.add("showGatesSavedMessage");
         OPTIONS.add("httpProxyHost");
         OPTIONS.add("httpProxyType");
         OPTIONS.add("httpProxyPort");
@@ -94,7 +93,7 @@ public final class Config {
 
     public static void load(Context ctx) {
         File confFile = getConfigFile();
-        config = new Configuration(confFile);
+        config = new TypeMap(confFile);
         config.load();
 
         int version = config.getInt("configVersion", -9999);
@@ -110,7 +109,7 @@ public final class Config {
                 ctx.warn("configuration, so things may not work as expected.");
             } else {
                 Utils.copyFileFromJar("/resources/config.yml", Global.plugin.getDataFolder(), true);
-                config = new Configuration(confFile);
+                config = new TypeMap(confFile);
                 config.load();
                 ctx.warn("I've renamed it to %s and installed the", backupFile.getName());
                 ctx.warn("default configuration file. You'll have to manually convert");
@@ -142,6 +141,7 @@ public final class Config {
 
     public static void save(Context ctx) {
         Network.onConfigSave();
+        Realm.onConfigSave();
         Worlds.onConfigSave();
         Servers.onConfigSave();
         APIBackend.onConfigSave();
@@ -173,19 +173,19 @@ public final class Config {
         return config.getStringList(path);
     }
 
-    public static List<ConfigurationNode> getNodeList(String path) {
-        return config.getNodeList(path);
+    public static List<TypeMap> getMapList(String path) {
+        return config.getMapList(path);
     }
 
-    public static ConfigurationNode getNode(String path) {
-        return config.getNode(path);
+    public static TypeMap getMap(String path) {
+        return config.getMap(path);
     }
 
     public static void setPropertyDirect(String path, Object v) {
         if (v == null)
-            config.removeProperty(path);
+            config.remove(path);
         else
-            config.setProperty(path, v);
+            config.set(path, v);
     }
 
 
@@ -197,7 +197,7 @@ public final class Config {
     }
 
     public static void setDebug(boolean b) {
-        config.setProperty("global.debug", b);
+        config.set("global.debug", b);
     }
 
     public static String getDebugURL() {
@@ -210,7 +210,7 @@ public final class Config {
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException("debugURL is invalid");
         }
-        config.setProperty("global.debugURL", s);
+        config.set("global.debugURL", s);
     }
 
     public static boolean getDeleteDebugFile() {
@@ -218,7 +218,7 @@ public final class Config {
     }
 
     public static void setDeleteDebugFile(boolean b) {
-        config.setProperty("global.deleteDebugFile", b);
+        config.set("global.deleteDebugFile", b);
     }
 
     public static boolean getAllowBuild() {
@@ -226,7 +226,7 @@ public final class Config {
     }
 
     public static void setAllowBuild(boolean b) {
-        config.setProperty("global.allowBuild", b);
+        config.set("global.allowBuild", b);
     }
 
     public static boolean getAllowLinkLocal() {
@@ -234,7 +234,7 @@ public final class Config {
     }
 
     public static void setAllowLinkLocal(boolean b) {
-        config.setProperty("global.allowLinkLocal", b);
+        config.set("global.allowLinkLocal", b);
     }
 
     public static boolean getAllowLinkWorld() {
@@ -242,7 +242,7 @@ public final class Config {
     }
 
     public static void setAllowLinkWorld(boolean b) {
-        config.setProperty("global.allowLinkWorld", b);
+        config.set("global.allowLinkWorld", b);
     }
 
     public static boolean getAllowLinkServer() {
@@ -250,7 +250,7 @@ public final class Config {
     }
 
     public static void setAllowLinkServer(boolean b) {
-        config.setProperty("global.allowLinkServer", b);
+        config.set("global.allowLinkServer", b);
     }
 
     public static boolean getAutoAddWorlds() {
@@ -258,7 +258,7 @@ public final class Config {
     }
 
     public static void setAutoAddWorlds(boolean b) {
-        config.setProperty("global.autoAddWorlds", b);
+        config.set("global.autoAddWorlds", b);
     }
 
     public static boolean getAutoLoadWorlds() {
@@ -266,7 +266,7 @@ public final class Config {
     }
 
     public static void setAutoLoadWorlds(boolean b) {
-        config.setProperty("global.autoLoadWorlds", b);
+        config.set("global.autoLoadWorlds", b);
     }
 
     public static int getGateLockExpiration() {
@@ -276,7 +276,7 @@ public final class Config {
     public static void setGateLockExpiration(int i) {
         if (i < 500)
             throw new IllegalArgumentException("gateLockExpiration must be at least 500");
-        config.setProperty("global.gateLockExpiration", i);
+        config.set("global.gateLockExpiration", i);
     }
 
     public static int getArrivalWindow() {
@@ -286,7 +286,7 @@ public final class Config {
     public static void setArrivalWindow(int i) {
         if (i < 1000)
             throw new IllegalArgumentException("arrivalWindow must be at least 1000");
-        config.setProperty("global.arrivalWindow", i);
+        config.set("global.arrivalWindow", i);
     }
 
     public static boolean getUseGatePermissions() {
@@ -294,7 +294,7 @@ public final class Config {
     }
 
     public static void setUseGatePermissions(boolean b) {
-        config.setProperty("global.useGatePermissions", b);
+        config.set("global.useGatePermissions", b);
     }
 
     public static String getServerChatFormat() {
@@ -411,7 +411,7 @@ public final class Config {
     }
 
     public static void setUseVaultEconomy(boolean b) {
-        config.setProperty("global.useVaultEconomy", b);
+        config.set("global.useVaultEconomy", b);
     }
 
     public static boolean getUseRegisterEconomy() {
@@ -419,7 +419,7 @@ public final class Config {
     }
 
     public static void setUseRegisterEconomy(boolean b) {
-        config.setProperty("global.useRegisterEconomy", b);
+        config.set("global.useRegisterEconomy", b);
     }
 
     public static boolean getUseDynmap() {
@@ -427,7 +427,7 @@ public final class Config {
     }
 
     public static void setUseDynmap(boolean b) {
-        config.setProperty("global.useDynmap", b);
+        config.set("global.useDynmap", b);
     }
 
     public static boolean getUseVaultPermissions() {
@@ -435,7 +435,7 @@ public final class Config {
     }
 
     public static void setUseVaultPermissions(boolean b) {
-        config.setProperty("global.useVaultPermissions", b);
+        config.set("global.useVaultPermissions", b);
     }
 
     public static boolean getUsePermissions() {
@@ -443,7 +443,7 @@ public final class Config {
     }
 
     public static void setUsePermissions(boolean b) {
-        config.setProperty("global.usePermissions", b);
+        config.set("global.usePermissions", b);
     }
 
     public static boolean getUsePermissionsEx() {
@@ -451,7 +451,7 @@ public final class Config {
     }
 
     public static void setUsePermissionsEx(boolean b) {
-        config.setProperty("global.usePermissionsEx", b);
+        config.set("global.usePermissionsEx", b);
     }
 
     public static String getDynmapMarkerSetLabel() {
@@ -479,6 +479,14 @@ public final class Config {
     public static void setWorldLoadDelay(int i) {
         if (i < 0) i = 0;
         setPropertyDirect("global.worldLoadDelay", i);
+    }
+    
+    public static boolean getShowGatesSavedMessage() {
+        return config.getBoolean("global.showGatesSavedMessages", true);
+    }
+    
+    public static void setShowGatesSavedMessage(boolean b) {
+        setPropertyDirect("global.showGatesSavedMessages", b);
     }
     
     public static String getHttpProxyHost() {
@@ -513,7 +521,7 @@ public final class Config {
     public static void setHttpProxyPort(int i) {
         if ((i < 1) || (i > 65535))
             throw new IllegalArgumentException("proxy port is invalid");
-        config.setProperty("global.httpProxy.port", i);
+        config.set("global.httpProxy.port", i);
     }
 
     public static String getHttpProxyUser() {

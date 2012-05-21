@@ -4,31 +4,36 @@ Ideas:
 * Implement gate permissions when Permissions plugin supports adding a gate to a group.
 * Realms!
     * Add a MySQL driver
-    * Save player stuff to DB at periodic intervals
+    X Save player stuff to DB at periodic intervals
     * Web server to display customizable templates for player stats
     * On join, check DB and reconnect player to last server
     * On death, check DB for "realm home" and reconnect player
     * On quit, save player stuff in DB
-    * Add command to set "realm home".
+    * Add command to set "realm home". "trp home"
     * Player stuff to save
-        * Name, displayName
-        * Level, experience
-        * Potion effects
-        * Inventory, armor
-        * Server, world, location
+        X client address
+        X Name, displayName
+        X Level, experience
+        X Potion effects
+        X Inventory, armor
+        X air, food, fire
+        X Server, world, location
         * Realm home
-        * Realm name
+        X Realm name
         * Last join date/time
-        * Last update date/time
+        X Last update date/time
         * Death count, last cause of death
-        
-TODO:
+* Per-world inventories?
 * Add API options like allow*
-* Add per-world inventory
-    * global option to turn on/off
+
+TODO:
 
 Testing:
 * Test stairs with facing option
 
 Wiki Updates:
-
+* Honor canceled chat events.
+* Added "showGatesSavedMessages" global option to suppress messages during mass gate saves.
+* Unified configuration and network message classes.
+* Removed old client patches (pre 1.2.4).
+* Need to set Bukkit's server name for Realm support.

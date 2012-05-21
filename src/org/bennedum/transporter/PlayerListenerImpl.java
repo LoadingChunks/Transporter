@@ -299,6 +299,7 @@ public final class PlayerListenerImpl implements Listener {
     
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerChat(PlayerChatEvent event) {
+        if (event.isCancelled()) return;
         Chat.send(event.getPlayer(), event.getMessage());
     }
 

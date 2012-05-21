@@ -48,9 +48,7 @@ import org.bennedum.transporter.api.event.RemotePlayerKickEvent;
 import org.bennedum.transporter.api.event.RemotePlayerQuitEvent;
 import org.bennedum.transporter.api.event.RemoteServerConnectEvent;
 import org.bennedum.transporter.api.event.RemoteServerDisconnectEvent;
-import org.bennedum.transporter.config.ConfigurationNode;
 import org.bennedum.transporter.net.Connection;
-import org.bennedum.transporter.net.Message;
 import org.bennedum.transporter.net.Network;
 import org.bukkit.GameMode;
 import org.bukkit.World;
@@ -118,7 +116,7 @@ public final class Server implements OptionsListener, RemoteServer {
     private static void addMessageHandler(String name) {
         try {
             String mname = "receive" + name.substring(0, 1).toUpperCase() + name.substring(1);
-            MESSAGE_HANDLERS.put(name, Server.class.getDeclaredMethod(mname, Message.class));
+            MESSAGE_HANDLERS.put(name, Server.class.getDeclaredMethod(mname, TypeMap.class));
         } catch (NoSuchMethodException nsme) {
             nsme.printStackTrace(System.err);
         }
@@ -179,6 +177,7 @@ public final class Server implements OptionsListener, RemoteServer {
     private List<AddressMatch> remotePublicAddressMatches = null;
     private String remotePublicAddress = null;
     private String remotePrivateAddress = null;
+    private String remoteServer = null;
     private String remoteCluster = null;
 
     private boolean readyForAPI = false;
@@ -188,7 +187,7 @@ public final class Server implements OptionsListener, RemoteServer {
     private Map<String,RemoteGateImpl> remoteGates = new HashMap<String,RemoteGateImpl>();
     
     private long nextRequestId = 1;
-    private Map<Long,Callback<Message>> requests = new HashMap<Long,Callback<Message>>();
+    private Map<Long,Callback<TypeMap>> requests = new HashMap<Long,Callback<TypeMap>>();
     
     // TODO: add a way to expire old API requests
     
@@ -205,17 +204,17 @@ public final class Server implements OptionsListener, RemoteServer {
         }
     }
 
-    public Server(ConfigurationNode node) throws ServerException {
+    public Server(TypeMap map) throws ServerException {
         try {
-            setName(node.getString("name"));
-            setPluginAddress(node.getString("pluginAddress"));
-            setKey(node.getString("key"));
-            enabled = node.getBoolean("enabled", true);
-            setPublicAddress(node.getString("publicAddress", "*"));
-            setPrivateAddress(node.getString("privateAddress", "*"));
-            setSendChat(node.getBoolean("sendChat", false));
-            setReceiveChat(node.getBoolean("receiveChat", false));
-            setAnnouncePlayers(node.getBoolean("announcePlayers", false));
+            setName(map.getString("name"));
+            setPluginAddress(map.getString("pluginAddress"));
+            setKey(map.getString("key"));
+            enabled = map.getBoolean("enabled", true);
+            setPublicAddress(map.getString("publicAddress", "*"));
+            setPrivateAddress(map.getString("privateAddress", "*"));
+            setSendChat(map.getBoolean("sendChat", false));
+            setReceiveChat(map.getBoolean("receiveChat", false));
+            setAnnouncePlayers(map.getBoolean("announcePlayers", false));
         } catch (IllegalArgumentException e) {
             throw new ServerException(e.getMessage());
         }
@@ -260,12 +259,12 @@ public final class Server implements OptionsListener, RemoteServer {
     
     @Override
     public void broadcast(final Callback<Integer> cb, String message, String permission) {
-        Message args = new Message();
+        TypeMap args = new TypeMap();
         args.put("message", message);
         args.put("permission", permission);
-        sendAPIRequest(new APICallback<Message>() {
+        sendAPIRequest(new APICallback<TypeMap>() {
             @Override
-            public void onSuccess(Message m) {
+            public void onSuccess(TypeMap m) {
                 if (cb != null) cb.onSuccess(m.getInt("result"));
             }
             @Override
@@ -277,11 +276,11 @@ public final class Server implements OptionsListener, RemoteServer {
     
     @Override
     public void broadcastMessage(final Callback<Integer> cb, String message) {
-        Message args = new Message();
+        TypeMap args = new TypeMap();
         args.put("message", message);
-        sendAPIRequest(new APICallback<Message>() {
+        sendAPIRequest(new APICallback<TypeMap>() {
             @Override
-            public void onSuccess(Message m) {
+            public void onSuccess(TypeMap m) {
                 if (cb != null) cb.onSuccess(m.getInt("result"));
             }
             @Override
@@ -293,7 +292,7 @@ public final class Server implements OptionsListener, RemoteServer {
     
     @Override
     public void dispatchCommand(final Callback<Boolean> cb, CommandSender sender, String commandLine) {
-        Message args = new Message();
+        TypeMap args = new TypeMap();
         if ((sender instanceof ConsoleCommandSender) || (sender instanceof RemoteConsoleCommandSender))
             args.put("sender", "console");
         else if (sender instanceof Player) {
@@ -301,9 +300,9 @@ public final class Server implements OptionsListener, RemoteServer {
             args.put("name", sender.getName());
         }
         args.put("commandLine", commandLine);
-        sendAPIRequest(new APICallback<Message>() {
+        sendAPIRequest(new APICallback<TypeMap>() {
             @Override
-            public void onSuccess(Message m) {
+            public void onSuccess(TypeMap m) {
                 if (cb != null) cb.onSuccess(m.getBoolean("result"));
             }
             @Override
@@ -315,10 +314,10 @@ public final class Server implements OptionsListener, RemoteServer {
     
     @Override
     public void getDefaultGameMode(final Callback<GameMode> cb) {
-        Message args = new Message();
-        sendAPIRequest(new APICallback<Message>() {
+        TypeMap args = new TypeMap();
+        sendAPIRequest(new APICallback<TypeMap>() {
             @Override
-            public void onSuccess(Message m) {
+            public void onSuccess(TypeMap m) {
                 if (cb != null) cb.onSuccess(Utils.valueOf(GameMode.class, m.getString("result")));
             }
             @Override
@@ -330,10 +329,10 @@ public final class Server implements OptionsListener, RemoteServer {
 
     @Override
     public void getName(final Callback<String> cb) {
-        Message args = new Message();
-        sendAPIRequest(new APICallback<Message>() {
+        TypeMap args = new TypeMap();
+        sendAPIRequest(new APICallback<TypeMap>() {
             @Override
-            public void onSuccess(Message m) {
+            public void onSuccess(TypeMap m) {
                 if (cb != null) cb.onSuccess(m.getString("result"));
             }
             @Override
@@ -345,10 +344,10 @@ public final class Server implements OptionsListener, RemoteServer {
     
     @Override
     public void getServerId(final Callback<String> cb) {
-        Message args = new Message();
-        sendAPIRequest(new APICallback<Message>() {
+        TypeMap args = new TypeMap();
+        sendAPIRequest(new APICallback<TypeMap>() {
             @Override
-            public void onSuccess(Message m) {
+            public void onSuccess(TypeMap m) {
                 if (cb != null) cb.onSuccess(m.getString("result"));
             }
             @Override
@@ -360,10 +359,10 @@ public final class Server implements OptionsListener, RemoteServer {
     
     @Override
     public void getVersion(final Callback<String> cb) {
-        Message args = new Message();
-        sendAPIRequest(new APICallback<Message>() {
+        TypeMap args = new TypeMap();
+        sendAPIRequest(new APICallback<TypeMap>() {
             @Override
-            public void onSuccess(Message m) {
+            public void onSuccess(TypeMap m) {
                 if (cb != null) cb.onSuccess(m.getString("result"));
             }
             @Override
@@ -574,10 +573,34 @@ public final class Server implements OptionsListener, RemoteServer {
         return remoteVersion;
     }
 
+    public String getRemoteServer() {
+        return remoteServer;
+    }
+    
     public String getRemoteCluster() {
         return remoteCluster;
     }
 
+    public String getKickMessage(InetSocketAddress clientAddress) {
+        // TODO: handle cluster setting
+        // if toServer.getCluster().equals(Network.getCluster()) then send Cluster Redirect, otherwise send Client Redirect
+        String addr = getReconnectAddressForClient(clientAddress);
+        if (addr == null) {
+            Utils.warning("reconnect address for '%s' is null?", name);
+            return null;
+        }
+        final String[] addrParts = addr.split("/");
+        if (addrParts.length == 1) {
+            // this is a client based reconnect
+            Utils.debug("kick %s via client reconnect to '%s'", clientAddress.getAddress().getHostAddress(), addrParts[0]);
+            return "[Redirect] please reconnect to: " + addrParts[0];
+        } else {
+            // this is a proxy based reconnect
+            Utils.debug("kick %s via proxy reconnect to '%s,%s'", clientAddress.getAddress().getHostAddress(), addrParts[0], addrParts[1]);
+            return "[Redirect] please reconnect to: " + addrParts[0] + "," + addrParts[1];
+        }
+    }
+    
     public Map<String,Object> encode() {
         Map<String,Object> node = new HashMap<String,Object>();
         node.put("name", name);
@@ -668,7 +691,7 @@ public final class Server implements OptionsListener, RemoteServer {
         if (! isConnectionConnected())
             connect();
         else {
-            Message message = createMessage("refresh");
+            TypeMap message = createMessage("refresh");
             sendMessage(message);
         }
     }
@@ -728,7 +751,7 @@ public final class Server implements OptionsListener, RemoteServer {
         }
     }
 
-    public void onMessage(final Message message) {
+    public void onMessage(final TypeMap message) {
         String error = message.getString("error");
         if (error != null) {
             Utils.warning("server '%s' complained: %s", getName(), error);
@@ -755,13 +778,13 @@ public final class Server implements OptionsListener, RemoteServer {
         if (! isConnectionConnected()) return;
         if ((System.currentTimeMillis() - connection.getLastMessageSentTime()) < SEND_KEEPALIVE_INTERVAL) return;
         Utils.debug("sending keepalive to '%s'", name);
-        Message message = createMessage("nop");
+        TypeMap message = createMessage("nop");
         sendMessage(message);
     }
 
     public void sendPing(Player player) {
         if (! isConnectionConnected()) return;
-        final Message message = createMessage("ping");
+        final TypeMap message = createMessage("ping");
         message.put("time", System.currentTimeMillis());
         message.put("player", (player == null) ? null : player.getName());
         sendMessage(message);
@@ -769,7 +792,7 @@ public final class Server implements OptionsListener, RemoteServer {
 
     public void sendGateCreated(LocalGateImpl gate) {
         if (! isConnectionConnected()) return;
-        Message message = createMessage("gateCreated");
+        TypeMap message = createMessage("gateCreated");
         message.put("type", gate.getType().toString());
         message.put("name", gate.getLocalName());
         sendMessage(message);
@@ -777,7 +800,7 @@ public final class Server implements OptionsListener, RemoteServer {
     
     public void sendGateAdded(LocalGateImpl gate) {
         if (! isConnectionConnected()) return;
-        Message message = createMessage("gateAdded");
+        TypeMap message = createMessage("gateAdded");
         message.put("type", gate.getType().toString());
         message.put("name", gate.getLocalName());
         sendMessage(message);
@@ -785,7 +808,7 @@ public final class Server implements OptionsListener, RemoteServer {
 
     public void sendGateRenamed(String oldLocalName, String newName) {
         if (! isConnectionConnected()) return;
-        Message message = createMessage("gateRenamed");
+        TypeMap message = createMessage("gateRenamed");
         message.put("oldName", oldLocalName);
         message.put("newName", newName);
         sendMessage(message);
@@ -793,21 +816,21 @@ public final class Server implements OptionsListener, RemoteServer {
 
     public void sendGateRemoved(LocalGateImpl gate) {
         if (! isConnectionConnected()) return;
-        Message message = createMessage("gateRemoved");
+        TypeMap message = createMessage("gateRemoved");
         message.put("name", gate.getLocalName());
         sendMessage(message);
     }
 
     public void sendGateDestroyed(LocalGateImpl gate) {
         if (! isConnectionConnected()) return;
-        Message message = createMessage("gateDestroyed");
+        TypeMap message = createMessage("gateDestroyed");
         message.put("name", gate.getLocalName());
         sendMessage(message);
     }
 
     public void sendGateAttach(RemoteGateImpl toGate, LocalGateImpl fromGate) {
         if (! isConnectionConnected()) return;
-        Message message = createMessage("gateAttach");
+        TypeMap message = createMessage("gateAttach");
         message.put("to", toGate.getLocalName());
         message.put("from", fromGate.getLocalName());
         sendMessage(message);
@@ -815,7 +838,7 @@ public final class Server implements OptionsListener, RemoteServer {
 
     public void sendGateDetach(RemoteGateImpl toGate, LocalGateImpl fromGate) {
         if (! isConnectionConnected()) return;
-        Message message = createMessage("gateDetach");
+        TypeMap message = createMessage("gateDetach");
         message.put("to", toGate.getLocalName());
         message.put("from", fromGate.getLocalName());
         sendMessage(message);
@@ -824,7 +847,7 @@ public final class Server implements OptionsListener, RemoteServer {
     public void sendReservation(ReservationImpl res) throws ServerException {
         if (! isConnectionConnected())
             throw new ServerException("server '%s' is offline", name);
-        Message message = createMessage("reservation");
+        TypeMap message = createMessage("reservation");
         message.put("reservation", res.encode());
         sendMessage(message);
     }
@@ -832,7 +855,7 @@ public final class Server implements OptionsListener, RemoteServer {
     public void sendReservationApproved(long id) throws ServerException {
         if (! isConnectionConnected())
             throw new ServerException("server '%s' is offline", name);
-        Message message = createMessage("reservationApproved");
+        TypeMap message = createMessage("reservationApproved");
         message.put("id", id);
         sendMessage(message);
     }
@@ -840,7 +863,7 @@ public final class Server implements OptionsListener, RemoteServer {
     public void sendReservationDenied(long id, String reason) throws ServerException {
         if (! isConnectionConnected())
             throw new ServerException("server '%s' is offline", name);
-        Message message = createMessage("reservationDenied");
+        TypeMap message = createMessage("reservationDenied");
         message.put("id", id);
         message.put("reason", reason);
         sendMessage(message);
@@ -849,7 +872,7 @@ public final class Server implements OptionsListener, RemoteServer {
     public void sendReservationArrived(long id) throws ServerException {
         if (! isConnectionConnected())
             throw new ServerException("server '%s' is offline", name);
-        Message message = createMessage("reservationArrived");
+        TypeMap message = createMessage("reservationArrived");
         message.put("id", id);
         sendMessage(message);
     }
@@ -857,14 +880,14 @@ public final class Server implements OptionsListener, RemoteServer {
     public void sendReservationTimeout(long id) throws ServerException {
         if (! isConnectionConnected())
             throw new ServerException("server '%s' is offline", name);
-        Message message = createMessage("reservationTimeout");
+        TypeMap message = createMessage("reservationTimeout");
         message.put("id", id);
         sendMessage(message);
     }
 
     public void sendChat(Player player, String msg, Set<RemoteGateImpl> toGates) {
         if (! isConnectionConnected()) return;
-        Message message = createMessage("chat");
+        TypeMap message = createMessage("chat");
         message.put("player", player.getName());
         message.put("message", msg);
         if (toGates != null) {
@@ -878,7 +901,7 @@ public final class Server implements OptionsListener, RemoteServer {
 
     public void sendLinkAdd(Player player, LocalGateImpl fromGate, RemoteGateImpl toGate) {
         if (! isConnectionConnected()) return;
-        Message message = createMessage("linkAdd");
+        TypeMap message = createMessage("linkAdd");
         message.put("from", fromGate.getLocalName());
         message.put("to", toGate.getLocalName());
         message.put("player", (player == null) ? null : player.getName());
@@ -887,7 +910,7 @@ public final class Server implements OptionsListener, RemoteServer {
 
     public void sendLinkAddComplete(String playerName, LocalGateImpl fromGate, RemoteGateImpl toGate) {
         if (! isConnectionConnected()) return;
-        Message message = createMessage("linkAddComplete");
+        TypeMap message = createMessage("linkAddComplete");
         message.put("from", fromGate.getLocalName());
         message.put("to", toGate.getLocalName());
         message.put("player", playerName);
@@ -896,7 +919,7 @@ public final class Server implements OptionsListener, RemoteServer {
 
     public void sendLinkRemove(Player player, LocalGateImpl fromGate, RemoteGateImpl toGate) {
         if (! isConnectionConnected()) return;
-        Message message = createMessage("linkRemove");
+        TypeMap message = createMessage("linkRemove");
         message.put("from", fromGate.getLocalName());
         message.put("to", toGate.getLocalName());
         message.put("player", (player == null) ? null : player.getName());
@@ -905,7 +928,7 @@ public final class Server implements OptionsListener, RemoteServer {
 
     public void sendLinkRemoveComplete(String playerName, LocalGateImpl fromGate, RemoteGateImpl toGate) {
         if (! isConnectionConnected()) return;
-        Message message = createMessage("linkRemoveComplete");
+        TypeMap message = createMessage("linkRemoveComplete");
         message.put("from", fromGate.getLocalName());
         message.put("to", toGate.getLocalName());
         message.put("player", playerName);
@@ -914,7 +937,7 @@ public final class Server implements OptionsListener, RemoteServer {
 
     public void sendPlayerChangeWorld(Player player) {
         if (! isConnectionConnected()) return;
-        Message message = createMessage("playerChangeWorld");
+        TypeMap message = createMessage("playerChangeWorld");
         message.put("player", player.getName());
         message.put("world", player.getWorld().getName());
         sendMessage(message);
@@ -922,7 +945,7 @@ public final class Server implements OptionsListener, RemoteServer {
 
     public void sendPlayerJoin(Player player, boolean hasReservation) {
         if (! isConnectionConnected()) return;
-        Message message = createMessage("playerJoin");
+        TypeMap message = createMessage("playerJoin");
         message.put("name", player.getName());
         message.put("displayName", player.getDisplayName());
         message.put("world", player.getWorld().getName());
@@ -932,7 +955,7 @@ public final class Server implements OptionsListener, RemoteServer {
 
     public void sendPlayerQuit(Player player, boolean hasReservation) {
         if (! isConnectionConnected()) return;
-        Message message = createMessage("playerQuit");
+        TypeMap message = createMessage("playerQuit");
         message.put("name", player.getName());
         message.put("hasReservation", hasReservation);
         sendMessage(message);
@@ -940,7 +963,7 @@ public final class Server implements OptionsListener, RemoteServer {
 
     public void sendPlayerKick(Player player, boolean hasReservation) {
         if (! isConnectionConnected()) return;
-        Message message = createMessage("playerKick");
+        TypeMap message = createMessage("playerKick");
         message.put("name", player.getName());
         message.put("hasReservation", hasReservation);
         sendMessage(message);
@@ -948,14 +971,14 @@ public final class Server implements OptionsListener, RemoteServer {
 
     public void sendPlayerDeath(Player player) {
         if (! isConnectionConnected()) return;
-        Message message = createMessage("playerDeath");
+        TypeMap message = createMessage("playerDeath");
         message.put("name", player.getName());
         sendMessage(message);
     }
 
     public void sendPrivateMessage(Player fromPlayer, RemotePlayer toPlayer, String msg) {
         if (! isConnectionConnected()) return;
-        Message message = createMessage("privateMessage");
+        TypeMap message = createMessage("privateMessage");
         if (fromPlayer != null)
             message.put("from", fromPlayer.getName());
         message.put("to", toPlayer.getName());
@@ -963,13 +986,13 @@ public final class Server implements OptionsListener, RemoteServer {
         sendMessage(message);
     }
     
-    public void sendAPIRequest(APICallback<Message> cb, String target, String method, Message args) {
+    public void sendAPIRequest(APICallback<TypeMap> cb, String target, String method, TypeMap args) {
         if (! isConnectionConnected()) {
             cb.onFailure(new RemoteException("not connected"));
             return;
         }
         final long rid = nextRequestId++;
-        Message out = createMessage("apiRequest");
+        TypeMap out = createMessage("apiRequest");
         out.put("requestId", rid);
         out.put("target", target);
         out.put("method", method);
@@ -983,7 +1006,7 @@ public final class Server implements OptionsListener, RemoteServer {
         Utils.fireDelayed(new Runnable() {
             @Override
             public void run() {
-                Callback<Message> cb = requests.remove(rid);
+                Callback<TypeMap> cb = requests.remove(rid);
                 if (cb != null) {
                     cb.onFailure(new RemoteException("timeout"));
                     Utils.debug("api request %s to %s timed out", rid, name);
@@ -998,7 +1021,7 @@ public final class Server implements OptionsListener, RemoteServer {
     // Message handling
 
     // run in the main thread
-    private void receiveMessage(Message message, String command) {
+    private void receiveMessage(TypeMap message, String command) {
         try {
             if (! MESSAGE_HANDLERS.containsKey(command)) {
                 Utils.warning("receive unrecognized command '%s' from '%s'", command, getName());
@@ -1012,7 +1035,7 @@ public final class Server implements OptionsListener, RemoteServer {
             if (c instanceof TransporterException) {
                 Utils.warning( "while processing command '%s' from '%s': %s", command, getName(), c.getMessage());
                 if (isConnectionConnected()) {
-                    Message response = createMessage("error");
+                    TypeMap response = createMessage("error");
                     response.put("success", false);
                     response.put("error", c.getMessage());
                     sendMessage(response);
@@ -1020,7 +1043,7 @@ public final class Server implements OptionsListener, RemoteServer {
             } else {
                 Utils.severe(t, "while processing command '%s' from '%s': %s", command, getName(), t.getMessage());
                 if (isConnectionConnected()) {
-                    Message response = createMessage("error");
+                    TypeMap response = createMessage("error");
                     response.put("success", false);
                     response.put("error", t.getMessage());
                     sendMessage(response);
@@ -1029,24 +1052,25 @@ public final class Server implements OptionsListener, RemoteServer {
         }
     }
 
-    private void receivePing(Message message) {
+    private void receivePing(TypeMap message) {
         message.put("command", "pong");
         sendMessage(message);
     }
 
-    private void receivePong(Message message) {
+    private void receivePong(TypeMap message) {
         long diff = System.currentTimeMillis() - message.getLong("time");
         String playerName = message.getString("player");
         Context ctx = new Context(playerName);
         ctx.send("ping to '%s' took %d millis", name, diff);
     }
     
-    private void receiveRefresh(Message message) {
+    private void receiveRefresh(TypeMap message) {
         if (! isConnectionConnected()) return;
         
-        Message out = createMessage("refreshData");
+        TypeMap out = createMessage("refreshData");
 
         out.put("publicAddress", normalizedPublicAddress);
+        out.put("server", Global.plugin.getServer().getName());
         out.put("cluster", Network.getClusterName());
 
         // NAT stuff
@@ -1063,9 +1087,9 @@ public final class Server implements OptionsListener, RemoteServer {
         out.put("worlds", worlds);
         
         // players
-        List<Message> players = new ArrayList<Message>();
+        List<TypeMap> players = new ArrayList<TypeMap>();
         for (Player player : Global.plugin.getServer().getOnlinePlayers()) {
-            Message msg = new Message();
+            TypeMap msg = new TypeMap();
             msg.put("name", player.getName());
             msg.put("displayName", player.getDisplayName());
             msg.put("worldName", player.getWorld().getName());
@@ -1074,9 +1098,9 @@ public final class Server implements OptionsListener, RemoteServer {
         out.put("players", players);
         
         // gates
-        List<Message> gates = new ArrayList<Message>();
+        List<TypeMap> gates = new ArrayList<TypeMap>();
         for (LocalGateImpl gate : Gates.getLocalGates()) {
-            Message gm = new Message();
+            TypeMap gm = new TypeMap();
             gm.put("type", gate.getType().toString());
             gm.put("name", gate.getLocalName());
             gates.add(gm);
@@ -1086,8 +1110,12 @@ public final class Server implements OptionsListener, RemoteServer {
         sendMessage(out);
     }
 
-    private void receiveRefreshData(Message message) throws ServerException {
+    private void receiveRefreshData(TypeMap message) throws ServerException {
         remotePublicAddress = message.getString("publicAddress");
+        remoteServer = message.getString("server");
+        if ((remoteServer != null) && (! remoteServer.equals(name)))
+            Utils.warning("Remote server name '%s' doesn't match configured name '%s'.", remoteServer, name);
+        
         remoteCluster = message.getString("cluster");
         try {
             expandPublicAddress(remotePublicAddress);
@@ -1116,11 +1144,11 @@ public final class Server implements OptionsListener, RemoteServer {
         Utils.debug("received %d worlds from '%s'", remoteWorlds.size(), getName());
         
         // players
-        Collection<Message> players = message.getMessageList("players");
+        Collection<TypeMap> players = message.getMapList("players");
         if (players == null)
             throw new ServerException("player list required");
         remotePlayers.clear();
-        for (Message msg : players) {
+        for (TypeMap msg : players) {
             try {
                 RemotePlayerImpl player = new RemotePlayerImpl(this, msg.getString("name"), msg.getString("displayName"), msg.getString("worldName"));
                 remotePlayers.put(player.getName(), player);
@@ -1131,12 +1159,12 @@ public final class Server implements OptionsListener, RemoteServer {
         Utils.debug("received %d players from '%s'", remotePlayers.size(), getName());
         
         // gates
-        Collection<Message> gates = message.getMessageList("gates");
+        Collection<TypeMap> gates = message.getMapList("gates");
         if (gates == null)
             throw new ServerException("gate list required");
         remoteGates.clear();
         Gates.removeGatesForServer(this);
-        for (Message gm : gates) {
+        for (TypeMap gm : gates) {
             try {
                 String gTypeStr = gm.getString("type");
                 GateType gType = Utils.valueOf(GateType.class, gTypeStr);
@@ -1164,7 +1192,7 @@ public final class Server implements OptionsListener, RemoteServer {
         }
     }
 
-    private void receiveGateCreated(Message message) {
+    private void receiveGateCreated(TypeMap message) {
         if (remoteWorlds.isEmpty()) {
             Utils.debug("ignored premature gateCreated command");
             return;
@@ -1191,7 +1219,7 @@ public final class Server implements OptionsListener, RemoteServer {
         }
     }
     
-    private void receiveGateAdded(Message message) {
+    private void receiveGateAdded(TypeMap message) {
         if (remoteWorlds.isEmpty()) {
             Utils.debug("ignored premature gateAdded command");
             return;
@@ -1217,7 +1245,7 @@ public final class Server implements OptionsListener, RemoteServer {
         }
     }
 
-    private void receiveGateRenamed(Message message) throws ServerException {
+    private void receiveGateRenamed(TypeMap message) throws ServerException {
         String oldName = message.getString("oldName");
         if (oldName == null)
             throw new ServerException("missing oldName");
@@ -1235,7 +1263,7 @@ public final class Server implements OptionsListener, RemoteServer {
         Gates.rename(gate, oldFullName);
     }
 
-    private void receiveGateRemoved(Message message) throws ServerException {
+    private void receiveGateRemoved(TypeMap message) throws ServerException {
         String lname = message.getString("name");
         if (lname == null)
             throw new ServerException("missing name");
@@ -1248,7 +1276,7 @@ public final class Server implements OptionsListener, RemoteServer {
         } catch (GateException ge) {}
     }
 
-    private void receiveGateDestroyed(Message message) throws ServerException {
+    private void receiveGateDestroyed(TypeMap message) throws ServerException {
         String lname = message.getString("name");
         if (lname == null)
             throw new ServerException("missing name");
@@ -1261,7 +1289,7 @@ public final class Server implements OptionsListener, RemoteServer {
         Gates.destroy(gate, false);
     }
 
-    private void receiveGateAttach(Message message) throws ServerException {
+    private void receiveGateAttach(TypeMap message) throws ServerException {
         String toName = message.getString("to");
         if (toName == null)
             throw new ServerException("missing to");
@@ -1277,7 +1305,7 @@ public final class Server implements OptionsListener, RemoteServer {
         toGate.attach(fromGate);
     }
 
-    private void receiveGateDetach(Message message) throws ServerException {
+    private void receiveGateDetach(TypeMap message) throws ServerException {
         String toName = message.getString("to");
         if (toName == null)
             throw new ServerException("missing to");
@@ -1293,8 +1321,8 @@ public final class Server implements OptionsListener, RemoteServer {
         toGate.detach(fromGate);
     }
 
-    private void receiveReservation(Message message) throws ServerException {
-        Message resMsg = message.getMessage("reservation");
+    private void receiveReservation(TypeMap message) throws ServerException {
+        TypeMap resMsg = message.getMap("reservation");
         if (resMsg == null)
             throw new ServerException("missing reservation");
         ReservationImpl res;
@@ -1306,7 +1334,7 @@ public final class Server implements OptionsListener, RemoteServer {
         }
     }
 
-    private void receiveReservationApproved(Message message) throws ServerException {
+    private void receiveReservationApproved(TypeMap message) throws ServerException {
         long id = message.getLong("id");
         ReservationImpl res = ReservationImpl.get(id);
         if (res == null)
@@ -1314,7 +1342,7 @@ public final class Server implements OptionsListener, RemoteServer {
         res.approved();
     }
 
-    private void receiveReservationDenied(Message message) throws ServerException {
+    private void receiveReservationDenied(TypeMap message) throws ServerException {
         long id = message.getLong("id");
         ReservationImpl res = ReservationImpl.get(id);
         if (res == null)
@@ -1325,7 +1353,7 @@ public final class Server implements OptionsListener, RemoteServer {
         res.denied(reason);
     }
 
-    private void receiveReservationArrived(Message message) throws ServerException {
+    private void receiveReservationArrived(TypeMap message) throws ServerException {
         long id = message.getLong("id");
         ReservationImpl res = ReservationImpl.get(id);
         if (res == null)
@@ -1333,7 +1361,7 @@ public final class Server implements OptionsListener, RemoteServer {
         res.arrived();
     }
 
-    private void receiveReservationTimeout(Message message) throws ServerException {
+    private void receiveReservationTimeout(TypeMap message) throws ServerException {
         long id = message.getLong("id");
         ReservationImpl res = ReservationImpl.get(id);
         if (res == null)
@@ -1341,7 +1369,7 @@ public final class Server implements OptionsListener, RemoteServer {
         res.timeout();
     }
 
-    private void receiveLinkAdd(Message message) throws TransporterException {
+    private void receiveLinkAdd(TypeMap message) throws TransporterException {
         String playerName = message.getString("player");
 
         // "to" and "from" are from perspective of message sender!!!
@@ -1366,7 +1394,7 @@ public final class Server implements OptionsListener, RemoteServer {
         sendLinkAddComplete(playerName, fromGate, toGate);
     }
 
-    private void receiveLinkAddComplete(Message message) throws ServerException {
+    private void receiveLinkAddComplete(TypeMap message) throws ServerException {
         String playerName = message.getString("player");
 
         // "to" and "from" are from perspective of message sender!!!
@@ -1391,7 +1419,7 @@ public final class Server implements OptionsListener, RemoteServer {
         ctx.sendLog("added link from '%s' to '%s'", toGate.getName(ctx), fromGate.getName(ctx));
     }
 
-    private void receiveLinkRemove(Message message) throws TransporterException {
+    private void receiveLinkRemove(TypeMap message) throws TransporterException {
         String playerName = message.getString("player");
 
         // "to" and "from" are from perspective of message sender!!!
@@ -1416,7 +1444,7 @@ public final class Server implements OptionsListener, RemoteServer {
         sendLinkRemoveComplete(playerName, fromgate, toGate);
     }
 
-    private void receiveLinkRemoveComplete(Message message) throws ServerException {
+    private void receiveLinkRemoveComplete(TypeMap message) throws ServerException {
         String playerName = message.getString("player");
 
         // "to" and "from" are from perspective of message sender!!!
@@ -1441,7 +1469,7 @@ public final class Server implements OptionsListener, RemoteServer {
         ctx.sendLog("removed link from '%s' to '%s'", toGate.getName(ctx), fromGate.getName(ctx));
     }
 
-    private void receivePlayerChangeWorld(Message message) throws ServerException {
+    private void receivePlayerChangeWorld(TypeMap message) throws ServerException {
         String playerName = message.getString("player");
         if (playerName == null)
             throw new ServerException("missing player");
@@ -1455,7 +1483,7 @@ public final class Server implements OptionsListener, RemoteServer {
         Global.plugin.getServer().getPluginManager().callEvent(event);        
     }
 
-    private void receivePlayerJoin(Message message) throws ServerException {
+    private void receivePlayerJoin(TypeMap message) throws ServerException {
         String playerName = message.getString("name");
         if (playerName == null)
             throw new ServerException("missing name");
@@ -1476,7 +1504,7 @@ public final class Server implements OptionsListener, RemoteServer {
         }
     }
 
-    private void receivePlayerQuit(Message message) throws ServerException {
+    private void receivePlayerQuit(TypeMap message) throws ServerException {
         String playerName = message.getString("name");
         if (playerName == null)
             throw new ServerException("missing name");
@@ -1493,7 +1521,7 @@ public final class Server implements OptionsListener, RemoteServer {
         }
     }
 
-    private void receivePlayerKick(Message message) throws ServerException {
+    private void receivePlayerKick(TypeMap message) throws ServerException {
         String playerName = message.getString("name");
         if (playerName == null)
             throw new ServerException("missing name");
@@ -1509,7 +1537,7 @@ public final class Server implements OptionsListener, RemoteServer {
         }
     }
 
-    private void receivePlayerDeath(Message message) throws ServerException {
+    private void receivePlayerDeath(TypeMap message) throws ServerException {
         String playerName = message.getString("name");
         if (playerName == null)
             throw new ServerException("missing name");
@@ -1521,7 +1549,7 @@ public final class Server implements OptionsListener, RemoteServer {
             Global.plugin.getServer().broadcastMessage(Chat.colorize(player.format(Config.getServerDeathFormat())));
     }
     
-    private void receiveChat(Message message) throws ServerException {
+    private void receiveChat(TypeMap message) throws ServerException {
         String playerName = message.getString("player");
         if (playerName == null)
             throw new ServerException("missing player");
@@ -1534,7 +1562,7 @@ public final class Server implements OptionsListener, RemoteServer {
         Chat.receive(player, msg, toGates);
     }
 
-    private void receivePrivateMessage(Message message) throws ServerException {
+    private void receivePrivateMessage(TypeMap message) throws ServerException {
         String fromPlayerName = message.getString("from");
         String toPlayerName = message.getString("to");
         if (toPlayerName == null)
@@ -1550,7 +1578,7 @@ public final class Server implements OptionsListener, RemoteServer {
         Chat.receivePrivateMessage(fromPlayer, toPlayerName, msg);
     }
 
-    private void receiveApiRequest(Message message) throws ServerException {
+    private void receiveApiRequest(TypeMap message) throws ServerException {
         String target = message.getString("target");
         if (target == null)
             throw new ServerException("missing target");
@@ -1558,9 +1586,9 @@ public final class Server implements OptionsListener, RemoteServer {
         if (method == null)
             throw new ServerException("missing method");
         long rid = message.getLong("requestId");
-        Message args = message.getMessage("args");
+        TypeMap args = message.getMap("args");
         
-        Message out = createMessage("apiResult");
+        TypeMap out = createMessage("apiResult");
         out.put("requestId", rid);
         try {
             APIBackend.invoke(target, method, args, out);
@@ -1570,9 +1598,9 @@ public final class Server implements OptionsListener, RemoteServer {
         sendMessage(out);
     }
     
-    private void receiveApiResult(Message message) throws ServerException {
+    private void receiveApiResult(TypeMap message) throws ServerException {
         long rid = message.getLong("requestId");
-        Callback<Message> cb = requests.remove(rid);
+        Callback<TypeMap> cb = requests.remove(rid);
         if (cb == null) {
             Utils.debug("received result for unknown api request %s from %s (maybe it timed out?)", rid, name);
             return;
@@ -1586,13 +1614,13 @@ public final class Server implements OptionsListener, RemoteServer {
     
     // Utility methods
 
-    private Message createMessage(String command) {
-        Message m = new Message();
+    private TypeMap createMessage(String command) {
+        TypeMap m = new TypeMap();
         m.put("command", command);
         return m;
     }
 
-    private void sendMessage(final Message message) {
+    private void sendMessage(final TypeMap message) {
         Utils.debug("sending command '%s' to %s", message.getString("command", "<none>"), name);
         Utils.worker(new Runnable() {
             @Override

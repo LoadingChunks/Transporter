@@ -15,24 +15,20 @@
  */
 package org.bennedum.transporter;
 
-import org.bennedum.transporter.api.ReservationException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import org.bennedum.transporter.api.Gate;
 import org.bennedum.transporter.api.GateException;
 import org.bennedum.transporter.api.Reservation;
+import org.bennedum.transporter.api.ReservationException;
 import org.bennedum.transporter.api.event.EntityArriveEvent;
 import org.bennedum.transporter.api.event.EntityDepartEvent;
-import org.bennedum.transporter.net.Message;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.BlockFace;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Boat;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
@@ -40,10 +36,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.PoweredMinecart;
 import org.bukkit.entity.StorageMinecart;
 import org.bukkit.entity.Vehicle;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
-import org.bukkit.material.MaterialData;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
@@ -212,7 +206,7 @@ public final class ReservationImpl implements Reservation {
     }
 
     // reception of reservation from sending server
-    public ReservationImpl(Message in, Server server) throws ReservationException {
+    public ReservationImpl(TypeMap in, Server server) throws ReservationException {
         remoteId = in.getInt("id");
         try {
             entityType = Utils.valueOf(EntityType.class, in.getString("entityType"));
@@ -232,7 +226,7 @@ public final class ReservationImpl implements Reservation {
         clientAddress = in.getString("clientAddress");
         fromLocation = new Location(null, in.getDouble("fromX"), in.getDouble("fromY"), in.getDouble("fromZ"), in.getFloat("fromYaw"), in.getFloat("fromPitch"));
         fromVelocity = new Vector(in.getDouble("velX"), in.getDouble("velY"), in.getDouble("velZ"));
-        inventory = decodeItemStackArray(in.getMessageList("inventory"));
+        inventory = Inventory.decodeItemStackArray(in.getMapList("inventory"));
         health = in.getInt("health");
         remainingAir = in.getInt("remainingAir");
         fireTicks = in.getInt("fireTicks");
@@ -241,10 +235,10 @@ public final class ReservationImpl implements Reservation {
         saturation = in.getFloat("saturation");
         gameMode = in.getString("gameMode");
         heldItemSlot = in.getInt("heldItemSlot");
-        armor = decodeItemStackArray(in.getMessageList("armor"));
+        armor = Inventory.decodeItemStackArray(in.getMapList("armor"));
         level = in.getInt("level");
         xp = in.getFloat("xp");
-        potionEffects = decodePotionEffects(in.getMessageList("potionEffects"));
+        potionEffects = PotionEffects.decodePotionEffects(in.getMapList("potionEffects"));
         
         fromWorldName = in.getString("fromWorld");
 
@@ -350,7 +344,7 @@ public final class ReservationImpl implements Reservation {
             entityType = EntityType.POWERED_MINECART;
         else if (vehicle instanceof StorageMinecart) {
             entityType = EntityType.STORAGE_MINECART;
-            Inventory inv = ((StorageMinecart)vehicle).getInventory();
+            org.bukkit.inventory.Inventory inv = ((StorageMinecart)vehicle).getInventory();
             inventory = Arrays.copyOf(inv.getContents(), inv.getSize());
         } else if (vehicle instanceof Boat)
             entityType = EntityType.BOAT;
@@ -407,8 +401,8 @@ public final class ReservationImpl implements Reservation {
             toServer = (Server)((RemoteGateImpl)toGate).getRemoteServer();
     }
 
-    public Message encode() {
-        Message out = new Message();
+    public TypeMap encode() {
+        TypeMap out = new TypeMap();
         out.put("id", localId);
         out.put("entityType", entityType.toString());
         out.put("entityId", localEntityId);
@@ -424,7 +418,7 @@ public final class ReservationImpl implements Reservation {
         out.put("fromPitch", fromLocation.getPitch());
         out.put("fromYaw", fromLocation.getYaw());
         out.put("fromWorld", fromWorldName);
-        out.put("inventory", encodeItemStackArray(inventory));
+        out.put("inventory", Inventory.encodeItemStackArray(inventory));
         out.put("health", health);
         out.put("remainingAir", remainingAir);
         out.put("fireTicks", fireTicks);
@@ -433,10 +427,10 @@ public final class ReservationImpl implements Reservation {
         out.put("saturation", saturation);
         out.put("gameMode", gameMode);
         out.put("heldItemSlot", heldItemSlot);
-        out.put("armor", encodeItemStackArray(armor));
+        out.put("armor", Inventory.encodeItemStackArray(armor));
         out.put("level", level);
         out.put("xp", xp);
-        out.put("potionEffects", encodePotionEffects(potionEffects));
+        out.put("potionEffects", PotionEffects.encodePotionEffects(potionEffects));
         out.put("fromGate", fromGateName);
         if (fromDirection != null)
             out.put("fromGateDirection", fromDirection.toString());
@@ -450,94 +444,7 @@ public final class ReservationImpl implements Reservation {
         return out;
     }
 
-    private List<Message> encodeItemStackArray(ItemStack[] isa) {
-        if (isa == null) return null;
-        List<Message> inv = new ArrayList<Message>();
-        for (int slot = 0; slot < isa.length; slot++) {
-                inv.add(encodeItemStack(isa[slot]));
-        }
-        return inv;
-    }
 
-    private ItemStack[] decodeItemStackArray(List<Message> inv) {
-        if (inv == null) return null;
-        ItemStack[] decoded = new ItemStack[inv.size()];
-        for (int slot = 0; slot < inv.size(); slot++) {
-            decoded[slot] = decodeItemStack(inv.get(slot));
-        }
-        return decoded;
-    }
-
-    private Message encodeItemStack(ItemStack stack) {
-        if (stack == null) {
-            return null;
-        }
-        Message s = new Message();
-        s.put("type", stack.getTypeId());
-        s.put("amount", stack.getAmount());
-        s.put("durability", stack.getDurability());
-        MaterialData data = stack.getData();
-        if (data != null)
-            s.put("data", (int)data.getData());
-        Message ench = new Message();
-        for (Enchantment e : stack.getEnchantments().keySet())
-            ench.put(e.getName(), stack.getEnchantments().get(e));
-        s.put("enchantments", ench);
-        return s;
-    }
-
-    private ItemStack decodeItemStack(Message s) {
-        if (s == null) {
-            return null;
-        }
-        ItemStack stack = new ItemStack(
-            s.getInt("type"),
-            s.getInt("amount"),
-            (short)s.getInt("durability"));
-        if (s.containsKey("data")) {
-            MaterialData data = stack.getData();
-            if (data != null)
-                data.setData((byte)s.getInt("data"));
-        }
-        Message ench = s.getMessage("enchantments");
-        if (ench != null)
-            for (String name : ench.keySet())
-                stack.addEnchantment(Enchantment.getByName(name), ench.getInt(name));
-        return stack;
-    }
-
-    private List<Message> encodePotionEffects(PotionEffect[] effects) {
-        if (effects == null) return null;
-        List<Message> eff = new ArrayList<Message>();
-        for (PotionEffect pe : effects) {
-            if (pe == null) continue;
-            Message pm = new Message();
-            pm.put("type", pe.getType().toString());
-            pm.put("duration", pe.getDuration());
-            pm.put("amplifier", pe.getAmplifier());
-            eff.add(pm);
-        }
-        return eff;
-    }
-
-    private PotionEffect[] decodePotionEffects(List<Message> eff) {
-        if (eff == null) return null;
-        PotionEffect[] effects = new PotionEffect[eff.size()];
-        for (int i = 0; i < eff.size(); i++) {
-            Message pm = eff.get(i);
-            if (pm == null)
-                effects[i] = null;
-            else {
-                PotionEffectType type = PotionEffectType.getByName(gameMode);
-                if (type == null)
-                    effects[i] = null;
-                else
-                    effects[i] = type.createEffect(pm.getInt("duration"), pm.getInt("amplifier"));
-            }
-        }
-        return effects;
-    }
-    
     // called to handle departure on the sending side
     public void depart() throws ReservationException {
         put(this);
@@ -687,23 +594,11 @@ public final class ReservationImpl implements Reservation {
 
             completeLocalDepartureGate();
 
-            // TODO: handle cluster setting
-            // if toServer.getCluster().equals(Network.getCluster()) then send Cluster Redirect, otherwise send Client Redirect
-            String addr = toServer.getReconnectAddressForClient(player.getAddress());
-            if (addr == null) {
-                Utils.warning("reconnect address for '%s' is null?", toServer.getName());
-                return;
-            }
-            final String[] addrParts = addr.split("/");
-            if (addrParts.length == 1) {
-                // this is a client based reconnect
-                Utils.debug("sending player '%s' @%s to '%s' via client reconnect", player.getName(), player.getAddress().getAddress().getHostAddress(), addrParts[0]);
-                player.kickPlayer("[Redirect] please reconnect to: " + addrParts[0]);
-            } else {
-                // this is a proxy based reconnect
-                Utils.debug("sending player '%s' @%s to '%s,%s' via proxy reconnect", player.getName(), player.getAddress().getAddress().getHostAddress(), addrParts[0], addrParts[1]);
-                player.kickPlayer("[Redirect] please reconnect to: " + addrParts[0] + "," + addrParts[1]);
-            }
+            String kickMessage = toServer.getKickMessage(player.getAddress());
+            if (kickMessage == null) return;
+            Utils.debug("kicking player '%s' @%s: %s", player.getName(), player.getAddress().getAddress().getHostAddress(), kickMessage);
+            player.kickPlayer(kickMessage);
+            
         }
         if ((entity != null) && (entity != player))
             entity.remove();
@@ -1127,7 +1022,7 @@ public final class ReservationImpl implements Reservation {
                 entity.setVelocity(toVelocity);
                 if ((inventory != null) && ((toGateLocal == null) || toGateLocal.getReceiveInventory())) {
                     StorageMinecart mc = (StorageMinecart)entity;
-                    Inventory inv = mc.getInventory();
+                    org.bukkit.inventory.Inventory inv = mc.getInventory();
                     for (int slot = 0; slot <  inventory.length; slot++)
                         inv.setItem(slot, inventory[slot]);
                 }

@@ -16,7 +16,6 @@
 package org.bennedum.transporter;
 
 import java.util.Map;
-import org.bennedum.transporter.config.ConfigurationNode;
 import org.bukkit.Location;
 import org.bukkit.World;
 
@@ -34,12 +33,12 @@ public final class SavedBlock {
         this.block = new BuildableBlock(location);
     }
 
-    public SavedBlock(ConfigurationNode node) throws BlockException {
-        block = new BuildableBlock(node);
+    public SavedBlock(TypeMap map) throws BlockException {
+        block = new BuildableBlock(map);
 
         String str;
 
-        str = node.getString("location");
+        str = map.getString("location");
         if (str != null) {
             String[] coordsStr = str.split("\\s*,\\s*");
             if (coordsStr.length != 3)

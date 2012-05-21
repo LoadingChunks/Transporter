@@ -15,19 +15,19 @@
  */
 package org.bennedum.transporter;
 
-import org.bennedum.transporter.api.TransporterException;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import org.bennedum.transporter.api.API;
+import org.bennedum.transporter.api.TransporterException;
 import org.bennedum.transporter.command.CommandException;
 import org.bennedum.transporter.command.CommandProcessor;
 import org.bennedum.transporter.net.Network;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
+import org.bukkit.plugin.java.JavaPlugin;
 
 
 /**
@@ -86,6 +86,7 @@ public class Transporter extends JavaPlugin {
         Config.load(ctx);
         Designs.load(ctx);
         Network.start(ctx);
+        Realm.start(ctx);
 
         PluginManager pm = getServer().getPluginManager();
 
@@ -122,6 +123,7 @@ public class Transporter extends JavaPlugin {
     public void onDisable() {
         Global.enabled = false;
         Context ctx = new Context();
+        Realm.stop(ctx);
         Network.stop(ctx);
         Config.save(ctx);
         Gates.save(ctx);

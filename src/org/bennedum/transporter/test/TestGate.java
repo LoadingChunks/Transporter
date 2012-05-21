@@ -21,9 +21,9 @@ import java.util.Set;
 import org.bennedum.transporter.GateMap.Point;
 import org.bennedum.transporter.GateMap.Volume;
 import org.bennedum.transporter.LocalGateImpl;
+import org.bennedum.transporter.TypeMap;
 import org.bennedum.transporter.api.GateException;
 import org.bennedum.transporter.api.GateType;
-import org.bennedum.transporter.config.Configuration;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.BlockFace;
@@ -90,7 +90,7 @@ public final class TestGate extends LocalGateImpl {
     protected void onDestinationChanged() {}
 
     @Override
-    protected void onSave(Configuration conf) {}
+    protected void onSave(TypeMap map) {}
     
     @Override
     protected void calculateCenter() {}

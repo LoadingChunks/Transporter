@@ -1,7 +1,0 @@
-version=1.0.0
-
-# New files - CRC
-new.1=Transporter.class,0x48b81a79
-
-# Replace files - New CRC, Original CRC
-replace.1=aam.class,0xb0a9554c,0xb3739c02

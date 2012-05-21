@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.bennedum.transporter.config.ConfigurationNode;
 import org.bukkit.World;
 
 /**
@@ -44,11 +43,11 @@ public final class Worlds {
             } catch (WorldException e) {}
         }
 
-        List<ConfigurationNode> worldNodes = Config.getNodeList("worlds");
-        if (worldNodes != null) {
-            for (ConfigurationNode node : worldNodes) {
+        List<TypeMap> worldMaps = Config.getMapList("worlds");
+        if (worldMaps != null) {
+            for (TypeMap map : worldMaps) {
                 try {
-                    LocalWorldImpl world = new LocalWorldImpl(node);
+                    LocalWorldImpl world = new LocalWorldImpl(map);
                     if (add(world)) {
                         if (Global.started && Config.getAutoLoadWorlds() && world.getAutoLoad())
                             world.load(ctx);

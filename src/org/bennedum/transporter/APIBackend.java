@@ -20,7 +20,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.bennedum.transporter.api.RemoteException;
 import org.bennedum.transporter.api.TransporterException;
-import org.bennedum.transporter.net.Message;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -100,7 +99,7 @@ public final class APIBackend {
         Utils.logger.log(Level.INFO, String.format("[%s] (API-DEBUG) %s", Global.pluginName, msg));
     }
     
-    public static void invoke(String target, String method, Message args, Message out) throws TransporterException {
+    public static void invoke(String target, String method, TypeMap args, TypeMap out) throws TransporterException {
         debug("invoke %s.%s: %s", target, method, args);
         if (target.equals("server"))
             invokeServerMethod(method, args, out);
@@ -113,7 +112,7 @@ public final class APIBackend {
             throw new RemoteException("unknown API target '%s'", target);
     }
     
-    private static void invokeServerMethod(String method, Message args, Message out) throws TransporterException {
+    private static void invokeServerMethod(String method, TypeMap args, TypeMap out) throws TransporterException {
         org.bukkit.Server server = Global.plugin.getServer();
         if (method.equals("broadcast"))
             out.put("result", server.broadcast(args.getString("message"), args.getString("permission")));
@@ -139,7 +138,7 @@ public final class APIBackend {
             throw new RemoteException("unknown server method '%s'", method);
     }
     
-    private static void invokeWorldMethod(String method, Message args, Message out) throws TransporterException {
+    private static void invokeWorldMethod(String method, TypeMap args, TypeMap out) throws TransporterException {
         String worldName = args.getString("world");
         if (worldName == null)
             throw new RemoteException("world is required");
@@ -161,7 +160,7 @@ public final class APIBackend {
             throw new RemoteException("unknown world method '%s'", method);
     }
     
-    private static void invokePlayerMethod(String method, Message args, Message out) throws TransporterException {
+    private static void invokePlayerMethod(String method, TypeMap args, TypeMap out) throws TransporterException {
         String playerName = args.getString("player");
         if (playerName == null)
             throw new RemoteException("player is required");
@@ -170,7 +169,7 @@ public final class APIBackend {
             throw new ServerException("player '%s' is unknown", playerName);
         
         if (method.equals("getLocation")) {
-            Message locMsg = new Message();
+            TypeMap locMsg = new TypeMap();
             Location loc = player.getLocation();
             locMsg.put("world", loc.getWorld().getName());
             locMsg.put("x", loc.getX());

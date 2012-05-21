@@ -15,9 +15,6 @@
  */
 package org.bennedum.transporter;
 
-import org.bennedum.transporter.api.TransporterException;
-import org.bennedum.transporter.api.GateException;
-import org.bennedum.transporter.api.GateType;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -26,9 +23,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.bennedum.transporter.api.GateException;
+import org.bennedum.transporter.api.GateType;
 import org.bennedum.transporter.api.LocalGate;
+import org.bennedum.transporter.api.TransporterException;
 import org.bennedum.transporter.command.CommandException;
-import org.bennedum.transporter.config.Configuration;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -51,7 +50,7 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
             throw new GateException("%s is not a file", file.getAbsolutePath());
         if (! file.canRead())
             throw new GateException("unable to read %s", file.getAbsoluteFile());
-        Configuration conf = new Configuration(file);
+        TypeMap conf = new TypeMap(file);
         conf.load();
         String typeStr = conf.getString("type", "BLOCK");
         GateType type;
@@ -190,7 +189,7 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
     protected long portalOpenTime = 0;
     protected Options options = new Options(this, BASEOPTIONS, "trp.gate", this);
 
-    protected LocalGateImpl(World world, Configuration conf) throws GateException {
+    protected LocalGateImpl(World world, TypeMap conf) throws GateException {
         this.file = conf.getFile();
         this.world = world;
         name = conf.getString("name");
@@ -397,7 +396,7 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
     protected abstract void onClose();
     protected abstract void onNameChanged();
     protected abstract void onDestinationChanged();
-    protected abstract void onSave(Configuration conf);
+    protected abstract void onSave(TypeMap conf);
 
     protected abstract void calculateCenter();
     
@@ -610,71 +609,71 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
         if (file == null) return;
         dirty = false;
 
-        Configuration conf = new Configuration(file);
-        conf.setProperty("name", name);
-        conf.setProperty("type", getType().toString());
-        conf.setProperty("creatorName", creatorName);
-        conf.setProperty("direction", direction.toString());
-        conf.setProperty("duration", duration);
-        conf.setProperty("linkLocal", linkLocal);
-        conf.setProperty("linkWorld", linkWorld);
-        conf.setProperty("linkServer", linkServer);
+        TypeMap conf = new TypeMap(file);
+        conf.set("name", name);
+        conf.set("type", getType().toString());
+        conf.set("creatorName", creatorName);
+        conf.set("direction", direction.toString());
+        conf.set("duration", duration);
+        conf.set("linkLocal", linkLocal);
+        conf.set("linkWorld", linkWorld);
+        conf.set("linkServer", linkServer);
         
-        conf.setProperty("linkNoneFormat", linkNoneFormat);
-        conf.setProperty("linkUnselectedFormat", linkUnselectedFormat);
-        conf.setProperty("linkOfflineFormat", linkOfflineFormat);
-        conf.setProperty("linkLocalFormat", linkLocalFormat);
-        conf.setProperty("linkWorldFormat", linkWorldFormat);
-        conf.setProperty("linkServerFormat", linkServerFormat);
+        conf.set("linkNoneFormat", linkNoneFormat);
+        conf.set("linkUnselectedFormat", linkUnselectedFormat);
+        conf.set("linkOfflineFormat", linkOfflineFormat);
+        conf.set("linkLocalFormat", linkLocalFormat);
+        conf.set("linkWorldFormat", linkWorldFormat);
+        conf.set("linkServerFormat", linkServerFormat);
         
-        conf.setProperty("multiLink", multiLink);
-        conf.setProperty("links", links);
-        conf.setProperty("pins", new ArrayList<String>(pins));
-        conf.setProperty("bannedItems", new ArrayList<String>(bannedItems));
-        conf.setProperty("allowedItems", new ArrayList<String>(allowedItems));
-        conf.setProperty("replaceItems", replaceItems);
-        conf.setProperty("requirePin", requirePin);
-        conf.setProperty("requireValidPin", requireValidPin);
-        conf.setProperty("invalidPinDamage", invalidPinDamage);
-        conf.setProperty("protect", protect);
-        conf.setProperty("sendChat", sendChat);
-        conf.setProperty("sendChatDistance", sendChatDistance);
-        conf.setProperty("receiveChat", receiveChat);
-        conf.setProperty("receiveChatDistance", receiveChatDistance);
-        conf.setProperty("requireAllowedItems", requireAllowedItems);
-        conf.setProperty("receiveInventory", receiveInventory);
-        conf.setProperty("deleteInventory", deleteInventory);
-        conf.setProperty("receiveGameMode", receiveGameMode);
-        conf.setProperty("allowGameModes", allowGameModes);
-        conf.setProperty("gameMode", gameMode);
-        conf.setProperty("receiveXP", receiveXP);
-        conf.setProperty("receivePotions", receivePotions);
-        conf.setProperty("requireAllowedPotions", requireAllowedPotions);
-        conf.setProperty("bannedPotions", new ArrayList<String>(bannedPotions));
-        conf.setProperty("allowedPotions", new ArrayList<String>(allowedPotions));
-        conf.setProperty("replacePotions", replacePotions);
-        conf.setProperty("randomNextLink", randomNextLink);
-        conf.setProperty("sendNextLink", sendNextLink);
-        conf.setProperty("teleportFormat", teleportFormat);
-        conf.setProperty("noLinksFormat", noLinksFormat);
-        conf.setProperty("noLinkSelectedFormat", noLinkSelectedFormat);
-        conf.setProperty("invalidLinkFormat", invalidLinkFormat);
-        conf.setProperty("unknownLinkFormat", unknownLinkFormat);
-        conf.setProperty("markerFormat", markerFormat);
-        conf.setProperty("portalOpen", portalOpen);
+        conf.set("multiLink", multiLink);
+        conf.set("links", links);
+        conf.set("pins", new ArrayList<String>(pins));
+        conf.set("bannedItems", new ArrayList<String>(bannedItems));
+        conf.set("allowedItems", new ArrayList<String>(allowedItems));
+        conf.set("replaceItems", replaceItems);
+        conf.set("requirePin", requirePin);
+        conf.set("requireValidPin", requireValidPin);
+        conf.set("invalidPinDamage", invalidPinDamage);
+        conf.set("protect", protect);
+        conf.set("sendChat", sendChat);
+        conf.set("sendChatDistance", sendChatDistance);
+        conf.set("receiveChat", receiveChat);
+        conf.set("receiveChatDistance", receiveChatDistance);
+        conf.set("requireAllowedItems", requireAllowedItems);
+        conf.set("receiveInventory", receiveInventory);
+        conf.set("deleteInventory", deleteInventory);
+        conf.set("receiveGameMode", receiveGameMode);
+        conf.set("allowGameModes", allowGameModes);
+        conf.set("gameMode", gameMode);
+        conf.set("receiveXP", receiveXP);
+        conf.set("receivePotions", receivePotions);
+        conf.set("requireAllowedPotions", requireAllowedPotions);
+        conf.set("bannedPotions", new ArrayList<String>(bannedPotions));
+        conf.set("allowedPotions", new ArrayList<String>(allowedPotions));
+        conf.set("replacePotions", replacePotions);
+        conf.set("randomNextLink", randomNextLink);
+        conf.set("sendNextLink", sendNextLink);
+        conf.set("teleportFormat", teleportFormat);
+        conf.set("noLinksFormat", noLinksFormat);
+        conf.set("noLinkSelectedFormat", noLinkSelectedFormat);
+        conf.set("invalidLinkFormat", invalidLinkFormat);
+        conf.set("unknownLinkFormat", unknownLinkFormat);
+        conf.set("markerFormat", markerFormat);
+        conf.set("portalOpen", portalOpen);
 
-        if (! incoming.isEmpty()) conf.setProperty("incoming", new ArrayList<String>(incoming));
-        if (outgoing != null) conf.setProperty("outgoing", outgoing);
+        if (! incoming.isEmpty()) conf.set("incoming", new ArrayList<String>(incoming));
+        if (outgoing != null) conf.set("outgoing", outgoing);
 
-        conf.setProperty("linkLocalCost", linkLocalCost);
-        conf.setProperty("linkWorldCost", linkWorldCost);
-        conf.setProperty("linkServerCost", linkServerCost);
-        conf.setProperty("sendLocalCost", sendLocalCost);
-        conf.setProperty("sendWorldCost", sendWorldCost);
-        conf.setProperty("sendServerCost", sendServerCost);
-        conf.setProperty("receiveLocalCost", receiveLocalCost);
-        conf.setProperty("receiveWorldCost", receiveWorldCost);
-        conf.setProperty("receiveServerCost", receiveServerCost);
+        conf.set("linkLocalCost", linkLocalCost);
+        conf.set("linkWorldCost", linkWorldCost);
+        conf.set("linkServerCost", linkServerCost);
+        conf.set("sendLocalCost", sendLocalCost);
+        conf.set("sendWorldCost", sendWorldCost);
+        conf.set("sendServerCost", sendServerCost);
+        conf.set("receiveLocalCost", receiveLocalCost);
+        conf.set("receiveWorldCost", receiveWorldCost);
+        conf.set("receiveServerCost", receiveServerCost);
 
         onSave(conf);
         

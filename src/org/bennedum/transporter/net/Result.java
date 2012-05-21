@@ -17,6 +17,7 @@ package org.bennedum.transporter.net;
 
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeoutException;
+import org.bennedum.transporter.TypeMap;
 
 /**
  *
@@ -25,9 +26,9 @@ import java.util.concurrent.TimeoutException;
 public final class Result {
 
     private State state = State.WAITING;
-    private Message result = null;
+    private TypeMap result = null;
 
-    public void setResult(Message result) {
+    public void setResult(TypeMap result) {
         this.result = result;
         this.state = State.COMPLETED;
         synchronized (this) {
@@ -63,15 +64,15 @@ public final class Result {
         return state == State.WAITING;
     }
 
-    public Message getResult() {
+    public TypeMap getResult() {
         return result;
     }
     
-    public Message get() throws InterruptedException, CancellationException, TimeoutException {
+    public TypeMap get() throws InterruptedException, CancellationException, TimeoutException {
         return get(0);
     }
 
-    public Message get(long time) throws InterruptedException, CancellationException, TimeoutException {
+    public TypeMap get(long time) throws InterruptedException, CancellationException, TimeoutException {
         synchronized (this) {
             if (state == State.COMPLETED) return result;
             if (state == State.TIMEOUT) throw new TimeoutException();

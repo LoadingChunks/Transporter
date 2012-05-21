@@ -15,8 +15,6 @@
  */
 package org.bennedum.transporter;
 
-import org.bennedum.transporter.api.GateException;
-import org.bennedum.transporter.api.GateType;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -26,9 +24,9 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import org.bennedum.transporter.GateMap.Point;
 import org.bennedum.transporter.GateMap.Volume;
+import org.bennedum.transporter.api.GateException;
+import org.bennedum.transporter.api.GateType;
 import org.bennedum.transporter.api.LocalBlockGate;
-import org.bennedum.transporter.config.Configuration;
-import org.bennedum.transporter.config.ConfigurationNode;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -59,20 +57,20 @@ public final class LocalBlockGateImpl extends LocalGateImpl implements LocalBloc
     private List<SavedBlock> savedBlocks = null;
 
     // creation from file
-    public LocalBlockGateImpl(World world, Configuration conf) throws GateException {
+    public LocalBlockGateImpl(World world, TypeMap conf) throws GateException {
         super(world, conf);
         options = new Options(this, OPTIONS, "trp.gate", this);
         
         designName = conf.getString("designName");
         restoreOnClose = conf.getBoolean("restoreOnClose", false);
         
-        List<ConfigurationNode> nodes = conf.getNodeList("blocks");
-        if (nodes == null)
+        List<TypeMap> maps = conf.getMapList("blocks");
+        if (maps == null)
             throw new GateException("missing blocks");
         blocks = new ArrayList<GateBlock>();
-        for (ConfigurationNode node : nodes) {
+        for (TypeMap map : maps) {
             try {
-                GateBlock block = new GateBlock(node);
+                GateBlock block = new GateBlock(map);
                 block.setWorld(world);
                 blocks.add(block);
             } catch (BlockException be) {
@@ -80,12 +78,12 @@ public final class LocalBlockGateImpl extends LocalGateImpl implements LocalBloc
             }
         }
 
-        nodes = conf.getNodeList("saved", null);
-        if (nodes != null) {
+        maps = conf.getMapList("saved");
+        if (maps != null) {
             savedBlocks = new ArrayList<SavedBlock>();
-            for (ConfigurationNode node : nodes) {
+            for (TypeMap map : maps) {
                 try {
-                    SavedBlock block = new SavedBlock(node);
+                    SavedBlock block = new SavedBlock(map);
                     block.setWorld(world);
                     savedBlocks.add(block);
                 } catch (BlockException be) {
@@ -300,20 +298,20 @@ public final class LocalBlockGateImpl extends LocalGateImpl implements LocalBloc
     }
     
     @Override
-    protected void onSave(Configuration conf) {
-        conf.setProperty("designName", designName);
-        conf.setProperty("restoreOnClose", restoreOnClose);
+    protected void onSave(TypeMap conf) {
+        conf.set("designName", designName);
+        conf.set("restoreOnClose", restoreOnClose);
 
-        List<Object> node = new ArrayList<Object>();
+        List<Object> mapList = new ArrayList<Object>();
         for (GateBlock block : blocks)
-            node.add(block.encode());
-        conf.setProperty("blocks", node);
+            mapList.add(block.encode());
+        conf.set("blocks", mapList);
 
         if (savedBlocks != null) {
-            node = new ArrayList<Object>();
+            mapList = new ArrayList<Object>();
             for (SavedBlock block : savedBlocks)
-                node.add(block.encode());
-            conf.setProperty("saved", node);
+                mapList.add(block.encode());
+            conf.set("saved", mapList);
         }
     }
 

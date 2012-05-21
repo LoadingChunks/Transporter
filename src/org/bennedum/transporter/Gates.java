@@ -93,11 +93,14 @@ public final class Gates {
     public static void save(Context ctx) {
         Markers.update();
         if (gates.isEmpty()) return;
-        for (LocalGateImpl gate : getLocalGates()) {
+        Set<LocalGateImpl> lgates = getLocalGates();
+        for (LocalGateImpl gate : lgates) {
             gate.save(true);
-            if (ctx != null)
+            if ((ctx != null) && Config.getShowGatesSavedMessage())
                 ctx.sendLog("saved '%s'", gate.getLocalName());
         }
+        if ((ctx != null) && (! Config.getShowGatesSavedMessage()))
+            ctx.sendLog("saved %s gates", lgates.size());
     }
     
     public static GateImpl find(Context ctx, String name) {

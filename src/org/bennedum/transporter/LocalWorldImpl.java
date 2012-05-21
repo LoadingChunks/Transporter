@@ -20,7 +20,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import org.bennedum.transporter.api.LocalWorld;
-import org.bennedum.transporter.config.ConfigurationNode;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
 import org.bukkit.WorldCreator;
@@ -64,12 +63,12 @@ public final class LocalWorldImpl implements OptionsListener, LocalWorld {
         }
     }
 
-    public LocalWorldImpl(ConfigurationNode node) throws WorldException {
+    public LocalWorldImpl(TypeMap map) throws WorldException {
         try {
-            setName(node.getString("name"));
+            setName(map.getString("name"));
 
             // try to convert old environment to new environment/generator
-            String envStr = node.getString("environment", "NORMAL");
+            String envStr = map.getString("environment", "NORMAL");
             if (envStr.equals("SKYLANDS")) envStr = "NORMAL";
             try {
                 setEnvironment(Utils.valueOf(Environment.class, envStr));
@@ -77,9 +76,9 @@ public final class LocalWorldImpl implements OptionsListener, LocalWorld {
                 throw new WorldException(iae.getMessage() + " environment");
             }
 
-            setGenerator(node.getString("generator", null));
-            setSeed(node.getString("seed", null));
-            setAutoLoad(node.getBoolean("autoLoad", true));
+            setGenerator(map.getString("generator", null));
+            setSeed(map.getString("seed", null));
+            setAutoLoad(map.getBoolean("autoLoad", true));
         } catch (IllegalArgumentException e) {
             throw new WorldException(e.getMessage());
         }

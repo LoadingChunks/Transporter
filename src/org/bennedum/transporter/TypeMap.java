@@ -13,8 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.bennedum.transporter.net;
+package org.bennedum.transporter;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -22,15 +28,18 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.Yaml;
 
 /**
  *
  * @author frdfsnlght <frdfsnlght@gmail.com>
  */
-public final class Message extends HashMap<String,Object> {
+public final class TypeMap extends HashMap<String,Object> {
 
-    public static Message decode(String encoded) {
-        return (Message)decodeObject(new StringBuilder(encoded));
+    public static TypeMap decode(String encoded) {
+        return (TypeMap)decodeObject(new StringBuilder(encoded));
     }
 
     private static String encodeObject(Object v) {
@@ -43,7 +52,7 @@ public final class Message extends HashMap<String,Object> {
         if (v instanceof Long) return encodeLong((Long)v);
         if (v instanceof Float) return encodeDouble(((Float)v).doubleValue());
         if (v instanceof Double) return encodeDouble((Double)v);
-        if (v instanceof Message) return encodeMessage((Message)v);
+        if (v instanceof TypeMap) return encodeMap((TypeMap)v);
         if (v instanceof Collection) return encodeList((Collection)v);
         throw new IllegalArgumentException("unable to encode '" + v.getClass().getName() + "'");
     }
@@ -63,7 +72,7 @@ public final class Message extends HashMap<String,Object> {
             case 'b': return decodeBoolean(b, len);
             case 'l': return decodeLong(b, len);
             case 'd': return decodeDouble(b, len);
-            case 'm': return decodeMessage(b, len);
+            case 'm': return decodeMap(b, len);
             case 'v': return decodeList(b, len);
             default:
                 throw new IllegalArgumentException("unable to decode '" + type + "'");
@@ -80,7 +89,7 @@ public final class Message extends HashMap<String,Object> {
         if (v instanceof Long) return stringifyLong((Long)v);
         if (v instanceof Float) return stringifyDouble(((Float)v).doubleValue());
         if (v instanceof Double) return stringifyDouble((Double)v);
-        if (v instanceof Message) return stringifyMessage((Message)v);
+        if (v instanceof TypeMap) return stringifyMap((TypeMap)v);
         if (v instanceof Collection) return stringifyList((Collection)v);
         throw new IllegalArgumentException("unable to stringify '" + v.getClass().getName() + "'");
     }
@@ -161,7 +170,7 @@ public final class Message extends HashMap<String,Object> {
         return v.toString();
     }
 
-    private static String encodeMessage(Message v) {
+    private static String encodeMap(TypeMap v) {
         StringBuilder buf = new StringBuilder("m:");
         buf.append(v.size()).append(":");
         for (String key : v.keySet()) {
@@ -171,9 +180,9 @@ public final class Message extends HashMap<String,Object> {
         return buf.toString();
     }
 
-    private static Message decodeMessage(StringBuilder b, int len) {
+    private static TypeMap decodeMap(StringBuilder b, int len) {
 //System.out.println("decode message (" + len + ")");
-        Message m = new Message();
+        TypeMap m = new TypeMap();
         for (int i = 0; i < len; i++) {
 //System.out.print(" message item " + i + ": ");
             String key = (String)decodeObject(b);
@@ -183,7 +192,7 @@ public final class Message extends HashMap<String,Object> {
         return m;
     }
 
-    private static String stringifyMessage(Message v) {
+    private static String stringifyMap(TypeMap v) {
         StringBuilder buf = new StringBuilder();
         for (String key : v.keySet())
             buf.append(key).append(": ").append(stringifyObject(v.get(key))).append("\n");
@@ -228,17 +237,133 @@ public final class Message extends HashMap<String,Object> {
         return buf.toString();
     }
 
-    public Message() {}
+    @SuppressWarnings("unchecked")
+    private static Object convertValue(Object val) {
+        if (val == null) return null;
+        if (val instanceof TypeMap) {
+            for (String k : ((TypeMap)val).keySet())
+                ((TypeMap)val).put(k, convertValue(((TypeMap)val).get(k)));
+            return val;
+        }
+        if (val instanceof Map) {
+            TypeMap child = new TypeMap();
+            for (Object k : ((Map)val).keySet())
+                child.put(k.toString(), convertValue(((Map)val).get(k)));
+            return child;
+        }
+        if (val instanceof List) {
+            for (int i = 0; i < ((List)val).size(); i++)
+                ((List)val).set(i, convertValue(((List)val).get(i)));
+            return val;
+        }
+        if (val instanceof Collection) {
+            Object[] vals = ((Collection)val).toArray();
+            ((Collection)val).clear();
+            for (Object v : vals)
+                ((Collection)val).add(convertValue(v));
+            return val;
+        }
+        return val;
+    }
+    
+    private File file = null;
+    
+    public TypeMap() {}
 
+    public TypeMap(File file) {
+        this.file = file;
+    }
+    
+    public File getFile() {
+        return file;
+    }
+    
+    public void load() {
+        if (file == null)
+            throw new IllegalStateException("no file defined");
+        clear();
+        try {
+            InputStream input = new FileInputStream(file);
+            Yaml yaml = new Yaml();
+            Object o = yaml.load(input);
+            if (! (o instanceof Map)) return;
+            for (Object k : ((Map)o).keySet())
+                set(k.toString(), ((Map)o).get(k));
+        } catch (IOException e) {}
+    }        
+
+    public void save(File file) {
+        this.file = file;
+        save();
+    }
+    
+    public void save() {
+        if (file == null)
+            throw new IllegalStateException("no file defined");
+        DumperOptions options = new DumperOptions();
+        //options.setAllowUnicode(true);
+        options.setIndent(4);
+        Yaml yaml = new Yaml(options);
+        try {
+            OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(file), "UTF-8");
+            yaml.dump(this, writer);
+            writer.close();
+        } catch (IOException e) {}
+    }
+    
     public String encode() {
-        return encodeMessage(this);
+        return encodeMap(this);
     }
 
+    public void set(String key, Object val) {
+        String[] keyParts = splitKey(key);
+        if (keyParts.length == 1) {
+            put(key, convertValue(val));
+            return;
+        }
+        TypeMap child = getMap(keyParts[0]);
+        if (child == null) {
+            child = new TypeMap();
+            put(keyParts[0], child);
+        }
+        child.set(keyParts[1], val);
+    }
+    
+    public void remove(String key) {
+        String[] keyParts = splitKey(key);
+        if (keyParts.length == 1) {
+            this.remove(key);
+            return;
+        }
+        TypeMap child = getMap(keyParts[0]);
+        if (child == null) return;
+        child.remove(keyParts[1]);
+    }
+    
+    public List<String> getKeys() {
+        return new ArrayList<String>(keySet());
+    }
+    
+    public List<String> getKeys(String key) {
+        String[] keyParts = splitKey(key);
+        TypeMap child = getMap(keyParts[0]);
+        if (child == null) return new ArrayList<String>();
+        if (keyParts.length == 1)
+            return child.getKeys();
+        return child.getKeys(keyParts[1]);
+    }
+    
     public Object get(String key, Object def) {
-        if (containsKey(key))
-            return get(key);
-        else
-            return def;
+        String[] keyParts = splitKey(key);
+        if (keyParts.length == 1) {
+            if (containsKey(key))
+                return super.get(key);
+            else
+                return def;
+        }
+        TypeMap child = getMap(keyParts[0]);
+        if (child == null) return def;
+        return child.get(keyParts[1], def);
     }
 
     public String getString(String key) {
@@ -309,31 +434,32 @@ public final class Message extends HashMap<String,Object> {
         }
     }
 
-    public Message getMessage(String key) {
-        return getMessage(key, null);
+    public TypeMap getMap(String key) {
+        return getMap(key, null);
     }
 
-    public Message getMessage(String key, Message def) {
+    public TypeMap getMap(String key, TypeMap def) {
         Object o = get(key);
         if (o == null) return def;
-        if (o instanceof Message) return (Message)o;
+        if (o instanceof TypeMap) return (TypeMap)o;
         return def;
     }
-
-    public Collection getList(String key) {
-        return getList(key, null);
-    }
-
-    public List getList(String key, List def) {
+    
+    @SuppressWarnings("unchecked")
+    public List<Object> getList(String key) {
         Object o = get(key);
-        if (o == null) return def;
-        if (o instanceof List) return (List)o;
-        return def;
+        if (o == null) return new ArrayList<Object>();
+        if (! (o instanceof Collection)) return null;
+        return new ArrayList<Object>((Collection)o);
     }
-
+    
     public List<String> getStringList(String key) {
+        return getStringList(key, null);
+    }
+    
+    public List<String> getStringList(String key, List<String> def) {
         Object o = get(key);
-        if (o == null) return null;
+        if (o == null) return def;
         List<String> c = new ArrayList<String>();
         if (o instanceof Collection) {
             for (Object obj : (Collection)o) {
@@ -344,14 +470,14 @@ public final class Message extends HashMap<String,Object> {
         return c;
     }
 
-    public List<Message> getMessageList(String key) {
+    public List<TypeMap> getMapList(String key) {
         Object o = get(key);
         if (o == null) return null;
-        List<Message> c = new ArrayList<Message>();
+        List<TypeMap> c = new ArrayList<TypeMap>();
         if (o instanceof Collection) {
             for (Object obj : (Collection)o) {
-                if ((obj instanceof Message) || (obj == null))
-                    c.add((Message)obj);
+                if ((obj instanceof TypeMap) || (obj == null))
+                    c.add((TypeMap)obj);
             }
         }
         return c;
@@ -359,7 +485,13 @@ public final class Message extends HashMap<String,Object> {
 
     @Override
     public String toString() {
-        return stringifyMessage(this);
+        return stringifyMap(this);
     }
 
+    private String[] splitKey(String key) {
+        int pos = key.indexOf(".");
+        if (pos == -1) return new String[] { key };
+        return new String[] { key.substring(0, pos), key.substring(pos + 1) };
+    }
+    
 }

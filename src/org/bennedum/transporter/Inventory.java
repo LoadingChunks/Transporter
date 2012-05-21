@@ -15,19 +15,75 @@
  */
 package org.bennedum.transporter;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.bukkit.Material;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.material.MaterialData;
 
 /**
  *
  * @author frdfsnlght <frdfsnlght@gmail.com>
  */
 public final class Inventory {
+    
+    public static List<TypeMap> encodeItemStackArray(ItemStack[] isa) {
+        if (isa == null) return null;
+        List<TypeMap> inv = new ArrayList<TypeMap>();
+        for (int slot = 0; slot < isa.length; slot++) {
+                inv.add(encodeItemStack(isa[slot]));
+        }
+        return inv;
+    }
+
+    public static ItemStack[] decodeItemStackArray(List<TypeMap> inv) {
+        if (inv == null) return null;
+        ItemStack[] decoded = new ItemStack[inv.size()];
+        for (int slot = 0; slot < inv.size(); slot++) {
+            decoded[slot] = decodeItemStack(inv.get(slot));
+        }
+        return decoded;
+    }
+
+    public static TypeMap encodeItemStack(ItemStack stack) {
+        if (stack == null) return null;
+        TypeMap s = new TypeMap();
+        s.put("type", stack.getTypeId());
+        s.put("amount", stack.getAmount());
+        s.put("durability", stack.getDurability());
+        MaterialData data = stack.getData();
+        if (data != null)
+            s.put("data", (int)data.getData());
+        TypeMap ench = new TypeMap();
+        for (Enchantment e : stack.getEnchantments().keySet())
+            ench.put(e.getName(), stack.getEnchantments().get(e));
+        s.put("enchantments", ench);
+        return s;
+    }
+
+    public static ItemStack decodeItemStack(TypeMap s) {
+        if (s == null) return null;
+        ItemStack stack = new ItemStack(
+            s.getInt("type"),
+            s.getInt("amount"),
+            (short)s.getInt("durability"));
+        if (s.containsKey("data")) {
+            MaterialData data = stack.getData();
+            if (data != null)
+                data.setData((byte)s.getInt("data"));
+        }
+        TypeMap ench = s.getMap("enchantments");
+        if (ench != null)
+            for (String name : ench.keySet())
+                stack.addEnchantment(Enchantment.getByName(name), ench.getInt(name));
+        return stack;
+    }
     
     public static String normalizeItem(String item) {
         if (item == null) return null;
@@ -106,7 +162,7 @@ public final class Inventory {
     
     public static ItemStack filterItemStack(ItemStack stack, Map<String,String> replace, Set<String> allowed, Set<String> banned) {
         if (stack == null) return null;
-        String item = encodeItemStack(stack);
+        String item = stringifyItemStack(stack);
         String newItem;
         String parts[] = item.split(":");
         if (replace != null) {
@@ -118,7 +174,7 @@ public final class Inventory {
             newItem = item;
         
         if ((newItem != null) && (! newItem.equals("*"))) {
-            stack = decodeItem(stack, newItem);
+            stack = destringifyItem(stack, newItem);
             item = newItem;
         }
         if ((allowed != null) && (! allowed.isEmpty())) {
@@ -130,14 +186,14 @@ public final class Inventory {
         return stack;
     }
     
-    private static String encodeItemStack(ItemStack stack) {
+    private static String stringifyItemStack(ItemStack stack) {
         String item = stack.getType().toString();
         if (stack.getDurability() > 0)
             item += ":" + stack.getDurability();
         return item;
     }
 
-    private static ItemStack decodeItem(ItemStack oldItem, String item) {
+    private static ItemStack destringifyItem(ItemStack oldItem, String item) {
         String[] parts = item.split(":");
         Material material;
         try {

@@ -17,7 +17,6 @@ package org.bennedum.transporter;
 
 import java.util.HashMap;
 import java.util.Map;
-import org.bennedum.transporter.config.ConfigurationNode;
 import org.bukkit.entity.Player;
 
 /**
@@ -34,10 +33,10 @@ public final class Pins {
     
     public static void onConfigLoad(Context ctx) {
         pins.clear();
-        ConfigurationNode node = Config.getNode("pins");
-        if (node != null) {
-            for (String playerName : node.getKeys())
-                pins.put(playerName, node.getString(playerName));
+        TypeMap map = Config.getMap("pins");
+        if (map != null) {
+            for (String playerName : map.getKeys())
+                pins.put(playerName, map.getString(playerName));
         }
     }
 

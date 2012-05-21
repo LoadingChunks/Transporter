@@ -31,6 +31,7 @@ import java.util.Map;
 import org.bennedum.transporter.Global;
 import org.bennedum.transporter.Server;
 import org.bennedum.transporter.Servers;
+import org.bennedum.transporter.TypeMap;
 import org.bennedum.transporter.Utils;
 
 /**
@@ -133,7 +134,7 @@ public final class Connection {
     public void onOpened() {
         state = State.HANDSHAKE;
         // send the handshake message
-        Message message = new Message();
+        TypeMap message = new TypeMap();
         message.put("protocolVersion", PROTOCOL_VERSION);
         message.put("pluginVersion", Global.pluginVersion);
 
@@ -202,7 +203,7 @@ public final class Connection {
                     }
                     String encoded = new String(messageData, "UTF-8");
                     try {
-                        Message message = Message.decode(encoded);
+                        TypeMap message = TypeMap.decode(encoded);
                         if (message != null)
                             onMessage(message);
                     } catch (StringIndexOutOfBoundsException e) {
@@ -302,7 +303,7 @@ public final class Connection {
         Network.close(this);
     }
 
-    public void sendMessage(Message message, boolean encrypt) {
+    public void sendMessage(TypeMap message, boolean encrypt) {
         if (state == State.CLOSED) return;
         try {
             String encoded = message.encode();
@@ -355,7 +356,7 @@ public final class Connection {
         Network.wantWrite(this);
     }
 
-    public Result sendRequest(Message message, boolean encrypt) {
+    public Result sendRequest(TypeMap message, boolean encrypt) {
         int requestId = nextRequestId++;
         message.put("requestId", requestId);
         Result result = new Result();
@@ -367,7 +368,7 @@ public final class Connection {
     }
 
 
-    private void onMessage(Message message) {
+    private void onMessage(TypeMap message) {
         lastMessageReceivedTime = System.currentTimeMillis();
         if (state == State.HANDSHAKE) {
             state = State.HANDSHAKING;
@@ -431,7 +432,7 @@ public final class Connection {
                                 state = State.ESTABLISHED;
 
                                 // send handshake
-                                message = new Message();
+                                message = new TypeMap();
                                 message.put("protocolVersion", PROTOCOL_VERSION);
                                 message.put("pluginVersion", Global.pluginVersion);
                                 sendMessage(message, false);
@@ -440,7 +441,7 @@ public final class Connection {
                                 return;
                             } else {
                                 Utils.info("server '%s' is disabled", serv.getName());
-                                Message errMsg = new Message();
+                                TypeMap errMsg = new TypeMap();
                                 errMsg.put("error", "server is disabled");
                                 sendMessage(errMsg, false);
                                 close();
@@ -452,7 +453,7 @@ public final class Connection {
                 }
                 if ((server == null) || (! server.connectionMessagesSuppressed()))
                     Utils.warning("unknown key detected on connection with %s", this);
-                Message errMsg = new Message();
+                TypeMap errMsg = new TypeMap();
                 errMsg.put("error", "unknown key");
                 sendMessage(errMsg, false);
                 close();

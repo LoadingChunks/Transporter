@@ -18,7 +18,6 @@ package org.bennedum.transporter;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import org.bennedum.transporter.config.ConfigurationNode;
 import org.bukkit.DyeColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -58,16 +57,16 @@ public final class BuildableBlock {
         type = parseType(str);
     }
 
-    public BuildableBlock(ConfigurationNode node) throws BlockException {
-        type = parseType(node.getString("type"));
+    public BuildableBlock(TypeMap map) throws BlockException {
+        type = parseType(map.getString("type"));
         data = 0;
-        physics = node.getBoolean("physics", false);
+        physics = map.getBoolean("physics", false);
 
         if (type == -1) return;
 
         String str;
 
-        str = node.getString("data");
+        str = map.getString("data");
         if (str != null) {
             try {
                 data = Byte.parseByte(str);
@@ -78,7 +77,7 @@ public final class BuildableBlock {
             MaterialData md = Material.getMaterial(type).getNewData((byte)0);
             if (md != null) {
                 if (md instanceof Directional) {
-                    str = node.getString("facing");
+                    str = map.getString("facing");
                     if (str != null) {
                         try {
                             ((Directional)md).setFacingDirection(Utils.valueOf(BlockFace.class, str));
@@ -88,7 +87,7 @@ public final class BuildableBlock {
                     }
                 }
                 if (md instanceof Colorable) {
-                    str = node.getString("color");
+                    str = map.getString("color");
                     if (str != null) {
                         try {
                             ((Colorable)md).setColor(Utils.valueOf(DyeColor.class, str));
@@ -98,15 +97,15 @@ public final class BuildableBlock {
                     }
                 }
                 if (md instanceof Openable) {
-                    str = node.getString("open");
+                    str = map.getString("open");
                     if (str != null)
-                        ((Openable)md).setOpen(node.getBoolean("open"));
+                        ((Openable)md).setOpen(map.getBoolean("open"));
                 }
                 data = md.getData();
             }
         }
 
-        str = node.getString("lines");
+        str = map.getString("lines");
         if (str != null) {
             lines = str.split("\n");
             if (lines.length > 4)

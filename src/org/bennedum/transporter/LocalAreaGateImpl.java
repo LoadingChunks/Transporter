@@ -15,11 +15,7 @@
  */
 package org.bennedum.transporter;
 
-import org.bennedum.transporter.api.GateException;
 import java.util.ArrayList;
-import org.bennedum.transporter.api.SpawnSearch;
-import org.bennedum.transporter.api.SpawnDirection;
-import org.bennedum.transporter.api.GateType;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
@@ -28,9 +24,11 @@ import org.bennedum.transporter.GateMap.Bounds;
 import org.bennedum.transporter.GateMap.Point;
 import org.bennedum.transporter.GateMap.Volume;
 import org.bennedum.transporter.api.ExpandDirection;
+import org.bennedum.transporter.api.GateException;
+import org.bennedum.transporter.api.GateType;
 import org.bennedum.transporter.api.LocalAreaGate;
-import org.bennedum.transporter.config.Configuration;
-import org.bennedum.transporter.config.ConfigurationNode;
+import org.bennedum.transporter.api.SpawnDirection;
+import org.bennedum.transporter.api.SpawnSearch;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -72,7 +70,7 @@ public final class LocalAreaGateImpl extends LocalGateImpl implements LocalAreaG
     
     
     // creation from file
-    public LocalAreaGateImpl(World world, Configuration conf) throws GateException {
+    public LocalAreaGateImpl(World world, TypeMap conf) throws GateException {
         super(world, conf);
         options = new Options(this, OPTIONS, "trp.gate", this);
         
@@ -107,12 +105,12 @@ public final class LocalAreaGateImpl extends LocalGateImpl implements LocalAreaG
             throw new GateException(iae.getMessage() + " boxMaterial");
         }
         
-        List<ConfigurationNode> nodes = conf.getNodeList("boxBlocks", null);
-        if (nodes != null) {
+        List<TypeMap> maps = conf.getMapList("boxBlocks");
+        if (maps != null) {
             boxBlocks = new ArrayList<SavedBlock>();
-            for (ConfigurationNode node : nodes) {
+            for (TypeMap map : maps) {
                 try {
-                    SavedBlock block = new SavedBlock(node);
+                    SavedBlock block = new SavedBlock(map);
                     block.setWorld(world);
                     boxBlocks.add(block);
                 } catch (BlockException be) {
@@ -281,22 +279,22 @@ public final class LocalAreaGateImpl extends LocalGateImpl implements LocalAreaG
     protected void onDestinationChanged() {}
     
     @Override
-    protected void onSave(Configuration conf) {
-        conf.setProperty("p1", encodeLocation(p1));
-        conf.setProperty("p2", encodeLocation(p2));
-        conf.setProperty("spawnDirection", spawnDirection.toString());
-        conf.setProperty("spawnAir", spawnAir);
-        conf.setProperty("spawnSolid", spawnSolid);
-        conf.setProperty("spawnLiquid", spawnLiquid);
-        conf.setProperty("spawnSearch", spawnSearch.toString());
-        conf.setProperty("box", box);
-        conf.setProperty("boxMaterial", boxMaterial.toString());
+    protected void onSave(TypeMap conf) {
+        conf.set("p1", encodeLocation(p1));
+        conf.set("p2", encodeLocation(p2));
+        conf.set("spawnDirection", spawnDirection.toString());
+        conf.set("spawnAir", spawnAir);
+        conf.set("spawnSolid", spawnSolid);
+        conf.set("spawnLiquid", spawnLiquid);
+        conf.set("spawnSearch", spawnSearch.toString());
+        conf.set("box", box);
+        conf.set("boxMaterial", boxMaterial.toString());
         
         if (boxBlocks != null) {
             List<Object> node = new ArrayList<Object>();
             for (SavedBlock block : boxBlocks)
                 node.add(block.encode());
-            conf.setProperty("boxBlocks", node);
+            conf.set("boxBlocks", node);
         }
     }
 
@@ -354,7 +352,7 @@ public final class LocalAreaGateImpl extends LocalGateImpl implements LocalAreaG
         }
     }
     
-    private Location parseLocation(Configuration conf, String name) throws GateException {
+    private Location parseLocation(TypeMap conf, String name) throws GateException {
         String v = conf.getString(name);
         if (v == null)
             throw new GateException("missing");

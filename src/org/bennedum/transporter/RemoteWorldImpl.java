@@ -19,7 +19,6 @@ import org.bennedum.transporter.api.Callback;
 import org.bennedum.transporter.api.RemoteException;
 import org.bennedum.transporter.api.RemoteServer;
 import org.bennedum.transporter.api.RemoteWorld;
-import org.bennedum.transporter.net.Message;
 import org.bukkit.Difficulty;
 import org.bukkit.World.Environment;
 
@@ -50,11 +49,11 @@ public final class RemoteWorldImpl implements RemoteWorld {
 
     @Override
     public void getDifficulty(final Callback<Difficulty> cb) {
-        Message args = new Message();
+        TypeMap args = new TypeMap();
         args.put("world", name);
-        server.sendAPIRequest(new APICallback<Message>() {
+        server.sendAPIRequest(new APICallback<TypeMap>() {
             @Override
-            public void onSuccess(Message m) {
+            public void onSuccess(TypeMap m) {
                 if (cb != null) cb.onSuccess(Utils.valueOf(Difficulty.class, m.getString("result")));
             }
             @Override
@@ -66,11 +65,11 @@ public final class RemoteWorldImpl implements RemoteWorld {
     
     @Override
     public void getEnvironment(final Callback<Environment> cb) {
-        Message args = new Message();
+        TypeMap args = new TypeMap();
         args.put("world", name);
-        server.sendAPIRequest(new APICallback<Message>() {
+        server.sendAPIRequest(new APICallback<TypeMap>() {
             @Override
-            public void onSuccess(Message m) {
+            public void onSuccess(TypeMap m) {
                 if (cb != null) cb.onSuccess(Utils.valueOf(Environment.class, m.getString("result")));
             }
             @Override
@@ -82,11 +81,11 @@ public final class RemoteWorldImpl implements RemoteWorld {
     
     @Override
     public void getFullTime(final Callback<Long> cb) {
-        Message args = new Message();
+        TypeMap args = new TypeMap();
         args.put("world", name);
-        server.sendAPIRequest(new APICallback<Message>() {
+        server.sendAPIRequest(new APICallback<TypeMap>() {
             @Override
-            public void onSuccess(Message m) {
+            public void onSuccess(TypeMap m) {
                 if (cb != null) cb.onSuccess(m.getLong("result"));
             }
             @Override
@@ -98,11 +97,11 @@ public final class RemoteWorldImpl implements RemoteWorld {
 
     @Override
     public void getSeed(final Callback<Long> cb) {
-        Message args = new Message();
+        TypeMap args = new TypeMap();
         args.put("world", name);
-        server.sendAPIRequest(new APICallback<Message>() {
+        server.sendAPIRequest(new APICallback<TypeMap>() {
             @Override
-            public void onSuccess(Message m) {
+            public void onSuccess(TypeMap m) {
                 if (cb != null) cb.onSuccess(m.getLong("result"));
             }
             @Override
@@ -114,11 +113,11 @@ public final class RemoteWorldImpl implements RemoteWorld {
     
     @Override
     public void getTime(final Callback<Long> cb) {
-        Message args = new Message();
+        TypeMap args = new TypeMap();
         args.put("world", name);
-        server.sendAPIRequest(new APICallback<Message>() {
+        server.sendAPIRequest(new APICallback<TypeMap>() {
             @Override
-            public void onSuccess(Message m) {
+            public void onSuccess(TypeMap m) {
                 if (cb != null) cb.onSuccess(m.getLong("result"));
             }
             @Override

@@ -34,7 +34,7 @@ package org.bennedum.transporter.api;
  * <pre>
  * {@code
  * RemoteWorld world = remoteServer.getRemoteWorld("world");
- * world.getEnvironment(new Callback<Environment> {
+ * world.getEnvironment(new Callback<Environment>() {
  *     public void onSuccess(Environment env) {
  *         System.out.println("the remote environment is " + env.toString());
  *     }
@@ -92,6 +92,8 @@ public abstract class Callback<T> {
     
     /**
      * Called after successful completion of an asynchronous call.
+     * <p>
+     * This method is called on the main server thread.
      * 
      * @param t     the return value of the asynchronous call
      */
@@ -103,6 +105,8 @@ public abstract class Callback<T> {
      * Usually, the exception comes from the remote side of the call,
      * but it can also come from the local side, for example, when the
      * call times out.
+     * <p>
+     * This method is called on the main server thread.
      * 
      * @param e the exception
      */
