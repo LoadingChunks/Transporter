@@ -29,6 +29,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.player.PlayerBedEnterEvent;
 import org.bukkit.event.player.PlayerChatEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -254,6 +255,12 @@ public final class PlayerListenerImpl implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         ReservationImpl r = ReservationImpl.get(player);
+        
+        if (r == null) {
+            // Realm handling
+            if (Realm.onJoin(player)) return;
+        }
+        
         for (Server server : Servers.getAll())
             server.sendPlayerJoin(player, r != null);
         if (r == null) {
@@ -273,6 +280,10 @@ public final class PlayerListenerImpl implements Listener {
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
         ReservationImpl r = ReservationImpl.get(player);
+        
+        // Realm handling
+        Realm.onQuit(player);
+        
         for (Server server : Servers.getAll())
             server.sendPlayerQuit(player, r != null);
         if (r != null)
@@ -281,8 +292,13 @@ public final class PlayerListenerImpl implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL)
     public void onPlayerKick(PlayerKickEvent event) {
+        if (event.isCancelled()) return;
         Player player = event.getPlayer();
         ReservationImpl r = ReservationImpl.get(player);
+        
+        // Realm handling
+        Realm.onKick(player);
+        
         for (Server server : Servers.getAll())
             server.sendPlayerKick(player, r != null);
         if (r != null)
@@ -294,8 +310,11 @@ public final class PlayerListenerImpl implements Listener {
         Player player = (Player)event.getEntity();
         for (Server server : Servers.getAll())
             server.sendPlayerDeath(player);
+        
+        // Realm handling
+        Realm.onDeath(player, event.getDeathMessage());
+        
     }
-
     
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerChat(PlayerChatEvent event) {
@@ -303,6 +322,12 @@ public final class PlayerListenerImpl implements Listener {
         Chat.send(event.getPlayer(), event.getMessage());
     }
 
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerEnterBed(PlayerBedEnterEvent event) {
+        if (event.isCancelled()) return;
+        Realm.onSetHome(event.getPlayer(), event.getPlayer().getLocation());
+    }
+    
     private Location quantizePlayerLocation(Player player, Location location) {
         Location newQLoc = new Location(location.getWorld(), location.getBlockX(), location.getBlockY(), location.getBlockZ());
         Location qLoc = playerLocations.get(player);

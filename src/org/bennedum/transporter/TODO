@@ -3,14 +3,14 @@ Ideas:
 * Deposit accounts for the money collected when building/creating/linking/using gates.
 * Implement gate permissions when Permissions plugin supports adding a gate to a group.
 * Realms!
-    * Add a MySQL driver
     X Save player stuff to DB at periodic intervals
     * Web server to display customizable templates for player stats
-    * On join, check DB and reconnect player to last server
-    * On death, check DB for "realm home" and reconnect player
-    * On quit, save player stuff in DB
-    * Add command to set "realm home". "trp home"
-    * Player stuff to save
+    X On join, check DB and reconnect player to last server, if no last server connect to default server if defined
+    X On death, check DB for "realm home" and reconnect player
+    X On quit, save player stuff in DB
+    X On kick, save player stuff in DB
+    * Add command to set "realm home". "trp home"?
+    X Player stuff to save
         X client address
         X Name, displayName
         X Level, experience
@@ -18,11 +18,11 @@ Ideas:
         X Inventory, armor
         X air, food, fire
         X Server, world, location
-        * Realm home
+        X Realm home
         X Realm name
-        * Last join date/time
+        X Last join date/time
         X Last update date/time
-        * Death count, last cause of death
+        X Death count, last cause of death
 * Per-world inventories?
 * Add API options like allow*
 
