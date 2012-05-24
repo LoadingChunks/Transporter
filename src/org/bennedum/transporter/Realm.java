@@ -31,6 +31,7 @@ import org.bennedum.transporter.api.ReservationException;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -49,7 +50,6 @@ public final class Realm {
     private static final Options options;
 
     static {
-        OPTIONS.add("enabled");
         OPTIONS.add("name");
         OPTIONS.add("saveInterval");
         OPTIONS.add("defaultServer");
@@ -60,7 +60,6 @@ public final class Realm {
         OPTIONS.add("dbPrefix");
         OPTIONS.add("defaultServer");
 
-        RESTART_OPTIONS.add("enabled");
         RESTART_OPTIONS.add("saveInterval");
         RESTART_OPTIONS.add("dbURL");
         RESTART_OPTIONS.add("dbUsername");
@@ -104,12 +103,18 @@ public final class Realm {
             if (getDbPassword() == null)
                 throw new RealmException("dbPassword is not set");
             db = DriverManager.getConnection(getDbURL(), getDbUsername(), getRealDbPassword());
+            db.setAutoCommit(true);
+            db.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
             started = true;
             scheduleSaveAll();
             redirectedPlayers.clear();
             ctx.send("realm support started");
+            
+            for (Server server : Servers.getAll())
+                if (server.isConnected()) server.sendRefreshData();
+            
         } catch (Exception e) {
-            ctx.warn("realm support cannot be started (realm support is disabled): %s", e.getMessage());
+            ctx.warn("realm support cannot be started: %s", e.getMessage());
         }
     }
 
@@ -133,8 +138,43 @@ public final class Realm {
 
     // Player events
     
+    public static void onTeleport(Player player, Location toLocation) {
+        if (! started) return;
+        if (redirectedPlayers.contains(player.getName())) return;
+        Utils.debug("realm onTeleport '%s'", player.getName());
+        try {
+            PlayerData data = PlayerData.load(player.getName());
+            if (data == null)
+                data = new PlayerData(player);
+            else
+                data.update(player);
+            data.updateLastLocation(toLocation);
+            save(data);
+        } catch (SQLException se) {
+            Utils.severe("SQL Excepiton while processing realm player teleport: %s", se.getMessage());
+        }
+    }
+    
+    public static void savePlayer(Player player) {
+        if (! started) return;
+        redirectedPlayers.remove(player.getName());
+        Utils.debug("realm save '%s'", player.getName());
+        try {
+            PlayerData data = PlayerData.load(player.getName());
+            if (data == null)
+                data = new PlayerData(player);
+            else
+                data.update(player);
+            data.save();
+        } catch (SQLException se) {
+            Utils.severe("SQL Exception while saving realm player: %s", se.getMessage());
+        }
+    }
+    
     public static boolean onJoin(Player player) {
         if (! started) return false;
+        redirectedPlayers.remove(player.getName());
+        Utils.debug("realm onJoin '%s'", player.getName());
         try {
             PlayerData data = PlayerData.load(player.getName());
             String toServer;
@@ -144,7 +184,7 @@ public final class Realm {
             } else {
                 toServer = data.lastServer;
             }
-            if ((toServer != null) && (! toServer.equals(Global.plugin.getServer().getName()))) {
+            if ((toServer != null) && (! toServer.equals(Global.plugin.getServer().getServerName()))) {
                 if (sendPlayerToServer(player, toServer))
                     return true;
             }
@@ -176,6 +216,8 @@ public final class Realm {
     
     public static void onQuit(Player player) {
         if (! started) return;
+        if (redirectedPlayers.contains(player.getName())) return;
+        Utils.debug("realm onQuit '%s'", player.getName());
         try {
             PlayerData data = PlayerData.load(player.getName());
             if (data == null)
@@ -191,7 +233,8 @@ public final class Realm {
     
     public static void onKick(Player player) {
         if (! started) return;
-        if (redirectedPlayers.remove(player.getName())) return;
+        if (redirectedPlayers.contains(player.getName())) return;
+        Utils.debug("realm onKick '%s'", player.getName());
         
         try {
             PlayerData data = PlayerData.load(player.getName());
@@ -208,6 +251,7 @@ public final class Realm {
     
     public static void onDeath(Player player, String message) {
         if (! started) return;
+        Utils.debug("realm onDeath '%s'", player.getName());
         try {
             PlayerData data = PlayerData.load(player.getName());
             if (data == null)
@@ -234,7 +278,7 @@ public final class Realm {
                 data = new PlayerData(player);
             else
                 data.update(player);
-            data.home = Global.plugin.getServer().getName() + "|" + loc.getWorld().getName() + "|" + loc.getX() + "|" + loc.getY() + "|" + loc.getZ();
+            data.home = Global.plugin.getServer().getServerName() + "|" + loc.getWorld().getName() + "|" + loc.getX() + "|" + loc.getY() + "|" + loc.getZ();
             save(data);
         } catch (SQLException se) {
             Utils.severe("SQL Excepiton while setting realm player home: %s", se.getMessage());
@@ -293,7 +337,7 @@ public final class Realm {
             return;
         }
         
-        if (! homeServer.equals(Global.plugin.getServer().getName())) {
+        if (! homeServer.equals(Global.plugin.getServer().getServerName())) {
             Server server = Servers.get(homeServer);
             if (server == null) {
                 Utils.warning("Unknown realm home server '%s' for player '%s'", homeServer, player.getName());
@@ -368,6 +412,8 @@ public final class Realm {
         final Set<PlayerData> players = new HashSet<PlayerData>();
         for (Player player : Global.plugin.getServer().getOnlinePlayers())
             players.add(new PlayerData(player));
+        for (OfflinePlayer player : Global.plugin.getServer().getOfflinePlayers())
+            redirectedPlayers.remove(player.getName());
         Utils.worker(new Runnable() {
             @Override
             public void run() {
@@ -386,16 +432,18 @@ public final class Realm {
             }
         });
     }
-    
-    /* Begin options */
 
     public static boolean getEnabled() {
         return Config.getBooleanDirect("realm.enabled", false);
     }
 
-    public static void setEnabled(boolean b) {
+    public static void setEnabled(Context ctx, boolean b) {
         Config.setPropertyDirect("realm.enabled", b);
+        stop(ctx);
+        if (b) start(ctx);
     }
+    
+    /* Begin options */
 
     public static String getName() {
         return Config.getStringDirect("realm.name", null);
@@ -554,12 +602,16 @@ public final class Realm {
             address = rs.getString("address");
             
             Clob invClob = rs.getClob("inventory");
-            TypeMap invMap = TypeMap.decode(invClob.getSubString(0L, (int)invClob.length()));
-            inventory = invMap.getMapList("inventory");
-                    
+            if (invClob == null)
+                inventory = null;
+            else
+                inventory = (List<TypeMap>)JSON.decode(invClob.getSubString(1L, (int)invClob.length()));
+            
             Clob armorClob = rs.getClob("armor");
-            TypeMap armorMap = TypeMap.decode(armorClob.getSubString(0L, (int)armorClob.length()));
-            armor = armorMap.getMapList("armor");
+            if (armorClob == null)
+                armor = null;
+            else
+                armor = (List<TypeMap>)JSON.decode(armorClob.getSubString(1L, (int)armorClob.length()));
                     
             heldItemSlot = rs.getInt("heldItemSlot");
             health = rs.getInt("health");
@@ -573,8 +625,10 @@ public final class Realm {
             xp = rs.getFloat("xp");
             
             Clob peClob = rs.getClob("potionEffects");
-            TypeMap peMap = TypeMap.decode(peClob.getSubString(0L, (int)peClob.length()));
-            potionEffects = peMap.getMapList("potionEffects");
+            if (peClob == null)
+                potionEffects = null;
+            else
+                potionEffects = (List<TypeMap>)JSON.decode(peClob.getSubString(1L, (int)peClob.length()));
 
             lastServer = rs.getString("lastServer");
             lastWorld = rs.getString("lastWorld");
@@ -588,9 +642,12 @@ public final class Realm {
             deaths = rs.getInt("deaths");
             lastDeathMessage = rs.getString("lastDeathMessage");
             lastUpdated = getDateTime(rs, "lastUpdated");
+            
+            Utils.debug("loaded realm player '%s'", name);
         }
 
         PlayerData(Player player) {
+            name = player.getName();
             update(player);
         }
         
@@ -612,11 +669,11 @@ public final class Realm {
             xp = player.getExp();
             potionEffects = PotionEffects.encodePotionEffects(player.getActivePotionEffects());
 
-            lastServer = Global.plugin.getServer().getName();
+            lastServer = Global.plugin.getServer().getServerName();
             if (lastServer == null) lastServer = "unknown";
             Location loc = player.getLocation();
             lastWorld = loc.getWorld().getName();
-            lastLocation = loc.getX() + "," + loc.getY() + "," + loc.getZ();
+            updateLastLocation(loc);
         }
         
         void update(PlayerData data) {
@@ -640,7 +697,11 @@ public final class Realm {
             lastWorld = data.lastWorld;
             lastLocation = data.lastLocation;
         }
-        
+
+        void updateLastLocation(Location loc) {
+            lastLocation = loc.getX() + "," + loc.getY() + "," + loc.getZ();
+        }
+
         private Calendar getDateTime(ResultSet rs, String column) throws SQLException {
             Timestamp ts = rs.getTimestamp(column);
             if (ts == null) return null;
@@ -650,8 +711,12 @@ public final class Realm {
         }
 
         private void setDateTime(PreparedStatement stmt, int col, Calendar c) throws SQLException {
-            Timestamp ts = new Timestamp(c.getTimeInMillis());
-            stmt.setTimestamp(col, ts);
+            if (c == null)
+                stmt.setTimestamp(col, null);
+            else {
+                Timestamp ts = new Timestamp(c.getTimeInMillis());
+                stmt.setTimestamp(col, ts);
+            }
         }
         
         void save() throws SQLException {
@@ -720,14 +785,10 @@ public final class Realm {
                 stmt.setString(col++, displayName);
                 stmt.setString(col++, address);
                 
-                TypeMap invValue = new TypeMap();
-                invValue.set("inventory", inventory);
-                Clob invClob = new SerialClob(invValue.encode().toCharArray());
+                Clob invClob = new SerialClob(JSON.encode(inventory).toCharArray());
                 stmt.setClob(col++, invClob);
                 
-                TypeMap armorValue = new TypeMap();
-                armorValue.set("armor", armor);
-                Clob armorClob = new SerialClob(armorValue.encode().toCharArray());
+                Clob armorClob = new SerialClob(JSON.encode(armor).toCharArray());
                 stmt.setClob(col++, armorClob);
                 
                 stmt.setInt(col++, heldItemSlot);
@@ -741,9 +802,7 @@ public final class Realm {
                 stmt.setInt(col++, level);
                 stmt.setFloat(col++, xp);
                 
-                TypeMap peValue = new TypeMap();
-                peValue.set("potionEffects", potionEffects);
-                Clob peClob = new SerialClob(peValue.encode().toCharArray());
+                Clob peClob = new SerialClob(JSON.encode(potionEffects).toCharArray());
                 stmt.setClob(col++, peClob);
                 
                 stmt.setString(col++, lastServer);
@@ -762,6 +821,7 @@ public final class Realm {
                 stmt.setString(col++, name);
                 
                 stmt.execute();
+                Utils.debug("saved realm player '%s'", name);
             } finally {
                 if (stmt != null) stmt.close();
             }
@@ -775,31 +835,40 @@ public final class Realm {
             player.setFoodLevel(foodLevel);
             player.setExhaustion(exhaustion);
             player.setSaturation(saturation);
-            player.setGameMode(Utils.valueOf(GameMode.class, gameMode));
+            if (gameMode != null)
+                player.setGameMode(Utils.valueOf(GameMode.class, gameMode));
             player.setLevel(level);
             player.setExp(xp);
             player.setFireTicks(fireTicks);
             PlayerInventory inv = player.getInventory();
             ItemStack[] invArray = Inventory.decodeItemStackArray(inventory);
-            for (int slot = 0; slot < invArray.length; slot++) {
-                ItemStack stack = invArray[slot];
-                if (stack == null)
-                    inv.setItem(slot, new ItemStack(Material.AIR.getId()));
-                else
-                    inv.setItem(slot, stack);
-            }
+
+            if (invArray != null)
+                for (int slot = 0; slot < invArray.length; slot++) {
+                    ItemStack stack = invArray[slot];
+                    if (stack == null)
+                        inv.setItem(slot, new ItemStack(Material.AIR.getId()));
+                    else
+                        inv.setItem(slot, stack);
+                }
+            
             ItemStack[] armorArray = Inventory.decodeItemStackArray(armor);
-            inv.setArmorContents(armorArray);
+            if (armorArray != null)
+                inv.setArmorContents(armorArray);
             PotionEffect[] potionArray = PotionEffects.decodePotionEffects(potionEffects);
-            for (PotionEffectType pet : PotionEffectType.values()) {
-                if (pet == null) continue;
-                if (player.hasPotionEffect(pet))
-                    player.removePotionEffect(pet);
+            if (potionArray != null) {
+                for (PotionEffectType pet : PotionEffectType.values()) {
+                    if (pet == null) continue;
+                    if (player.hasPotionEffect(pet))
+                        player.removePotionEffect(pet);
+                }
+                for (PotionEffect effect : potionArray) {
+                    if (effect == null) continue;
+                    player.addPotionEffect(effect);
+                }
             }
-            for (PotionEffect effect : potionArray) {
-                if (effect == null) continue;
-                player.addPotionEffect(effect);
-            }
+            player.saveData();
+            Utils.debug("restored realm player '%s'", name);
             return true;
         }
         

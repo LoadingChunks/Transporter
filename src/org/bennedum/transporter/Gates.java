@@ -74,15 +74,16 @@ public final class Gates {
         for (File gateFile : Utils.listYAMLFiles(gatesFolder)) {
             try {
                 LocalGateImpl gate = LocalGateImpl.load(world, gateFile);
+                if (gates.containsKey(gate.getFullName())) continue;
                 try {
                     add(gate, false);
                     ctx.sendLog("loaded gate '%s' for world '%s'", gate.getName(), world.getName());
                     loadedCount++;
-                } catch (GateException ee) {
-                    ctx.warnLog("unable to load gate '%s' for world '%s': %s", gate.getName(), world.getName(), ee.getMessage());
+                } catch (GateException ge) {
+                    ctx.warnLog("unable to load gate '%s' for world '%s': %s", gate.getName(), world.getName(), ge.getMessage());
                 }
-            } catch (TransporterException ge) {
-                ctx.warnLog("'%s' contains an invalid gate file for world '%s': %s", gateFile.getPath(), world.getName(), ge.getMessage());
+            } catch (TransporterException te) {
+                ctx.warnLog("'%s' contains an invalid gate file for world '%s': %s", gateFile.getPath(), world.getName(), te.getMessage());
             } catch (Throwable t) {
                 Utils.severe(t, "there was a problem loading the gate file '%s' for world '%s':", gateFile.getPath(), world.getName());
             }

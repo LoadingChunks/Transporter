@@ -26,6 +26,7 @@ import org.bennedum.transporter.command.GlobalCommands;
 import org.bennedum.transporter.command.HelpCommand;
 import org.bennedum.transporter.command.NetworkCommand;
 import org.bennedum.transporter.command.PinCommand;
+import org.bennedum.transporter.command.RealmCommand;
 import org.bennedum.transporter.command.ReloadCommand;
 import org.bennedum.transporter.command.SaveCommand;
 import org.bennedum.transporter.command.ServerCommand;
@@ -60,6 +61,7 @@ public final class Global {
         commands.add(new ServerCommand());
         commands.add(new NetworkCommand());
         commands.add(new WorldCommand());
+        commands.add(new RealmCommand());
         commands.add(new APICommand());
 
         commands.add(new DebugCommand());

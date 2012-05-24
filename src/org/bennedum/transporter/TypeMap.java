@@ -42,6 +42,10 @@ public final class TypeMap extends HashMap<String,Object> {
         return (TypeMap)decodeObject(new StringBuilder(encoded));
     }
 
+    public static TypeMap decodeJSON(String encoded) {
+        return (TypeMap)JSON.decode(encoded);
+    }
+    
     private static String encodeObject(Object v) {
         if (v == null) return "n:0:";
         if (v instanceof String) return encodeString((String)v);
@@ -315,6 +319,10 @@ public final class TypeMap extends HashMap<String,Object> {
         return encodeMap(this);
     }
 
+    public String encodeJSON() {
+        return JSON.encode(this);
+    }
+    
     public void set(String key, Object val) {
         String[] keyParts = splitKey(key);
         if (keyParts.length == 1) {
@@ -351,6 +359,10 @@ public final class TypeMap extends HashMap<String,Object> {
         if (keyParts.length == 1)
             return child.getKeys();
         return child.getKeys(keyParts[1]);
+    }
+
+    public Object get(String key) {
+        return get(key, null);
     }
     
     public Object get(String key, Object def) {

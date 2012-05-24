@@ -15,13 +15,13 @@
  */
 package org.bennedum.transporter;
 
-import org.bennedum.transporter.api.ReservationException;
-import org.bennedum.transporter.api.TransporterException;
-import org.bennedum.transporter.api.GateException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import org.bennedum.transporter.api.GateException;
+import org.bennedum.transporter.api.ReservationException;
+import org.bennedum.transporter.api.TransporterException;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
@@ -243,10 +243,14 @@ public final class PlayerListenerImpl implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL)
     public void onPlayerTeleport(PlayerTeleportEvent event) {
+        if (event.isCancelled()) return;
         Player player = event.getPlayer();
         Location location = event.getTo();
         if ((location == null) ||
             (location.getWorld() == null)) return;
+        
+        Realm.onTeleport(player, location);
+        
         for (Server server : Servers.getAll())
             server.sendPlayerChangeWorld(player);
     }
@@ -270,6 +274,7 @@ public final class PlayerListenerImpl implements Listener {
         try {
             r.arrive();
             event.setJoinMessage(null);
+            Realm.savePlayer(player);
         } catch (ReservationException e) {
             Context ctx = new Context(player);
             ctx.warnLog("there was a problem processing your arrival: ", e.getMessage());

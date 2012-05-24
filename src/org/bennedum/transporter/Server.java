@@ -123,7 +123,7 @@ public final class Server implements OptionsListener, RemoteServer {
     }
     
     public static boolean isValidName(String name) {
-        if ((name.length() == 0) || (name.length() > 15)) return false;
+        if ((name.length() == 0) || (name.length() > 30)) return false;
         return ! (name.contains(".") || name.contains("*"));
     }
 
@@ -179,6 +179,7 @@ public final class Server implements OptionsListener, RemoteServer {
     private String remotePrivateAddress = null;
     private String remoteServer = null;
     private String remoteCluster = null;
+    private String remoteRealm = null;
 
     private boolean readyForAPI = false;
     
@@ -581,6 +582,11 @@ public final class Server implements OptionsListener, RemoteServer {
         return remoteCluster;
     }
 
+    public String getRemoteRealm() {
+        return remoteRealm;
+    }
+    
+    @Override
     public String getKickMessage(InetSocketAddress clientAddress) {
         // TODO: handle cluster setting
         // if toServer.getCluster().equals(Network.getCluster()) then send Cluster Redirect, otherwise send Client Redirect
@@ -773,6 +779,10 @@ public final class Server implements OptionsListener, RemoteServer {
     }
         
     // Remote commands
+    
+    public void sendRefreshData() {
+        receiveRefresh(null);
+    }
     
     public void sendKeepAlive() {
         if (! isConnectionConnected()) return;
@@ -1070,8 +1080,9 @@ public final class Server implements OptionsListener, RemoteServer {
         TypeMap out = createMessage("refreshData");
 
         out.put("publicAddress", normalizedPublicAddress);
-        out.put("server", Global.plugin.getServer().getName());
+        out.put("server", Global.plugin.getServer().getServerName());
         out.put("cluster", Network.getClusterName());
+        out.put("realm", Realm.isStarted() ? Realm.getName() : null);
 
         // NAT stuff
         if (Network.getSendPrivateAddress() &&
@@ -1117,6 +1128,7 @@ public final class Server implements OptionsListener, RemoteServer {
             Utils.warning("Remote server name '%s' doesn't match configured name '%s'.", remoteServer, name);
         
         remoteCluster = message.getString("cluster");
+        remoteRealm = message.getString("realm");
         try {
             expandPublicAddress(remotePublicAddress);
         } catch (IllegalArgumentException e) {

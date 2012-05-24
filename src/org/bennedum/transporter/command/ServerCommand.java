@@ -21,6 +21,7 @@ import java.util.Comparator;
 import java.util.List;
 import org.bennedum.transporter.Context;
 import org.bennedum.transporter.Permissions;
+import org.bennedum.transporter.Realm;
 import org.bennedum.transporter.Server;
 import org.bennedum.transporter.Servers;
 import org.bennedum.transporter.api.TransporterException;
@@ -109,6 +110,9 @@ public class ServerCommand extends TrpCommandProcessor {
                         ctx.send("    remotePrivateAddress: %s",
                                 (server.getRemotePrivateAddress() == null) ?
                                     "-" : server.getRemotePrivateAddress());
+                        ctx.send("    remoteRealm:          %s",
+                                (server.getRemoteRealm() == null) ?
+                                    "-" : (server.getRemoteRealm() + ((Realm.isStarted() && Realm.getName().equals(server.getRemoteRealm())) ? " (realm-mate)" : "")));
                         ctx.send("    remoteCluster:        %s",
                                 (server.getRemoteCluster() == null) ?
                                     "-" : server.getRemoteCluster());

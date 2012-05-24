@@ -25,15 +25,30 @@ Ideas:
         X Death count, last cause of death
 * Per-world inventories?
 * Add API options like allow*
+* Add more realm commands
+    * delete <player>
+    * list (lists all player names, maybe with some meta data)
 
+    
 TODO:
 
 Testing:
 * Test stairs with facing option
+* Test realm home
 
 Wiki Updates:
+* Add Realms page
+    * Reconnects players to last server
+    * Database configuration
+    * Need to set Bukkit's server name for Realm support
+    * Configured server names must match actual server names
+    * Home
+
+Changelog:
 * Honor canceled chat events.
 * Added "showGatesSavedMessages" global option to suppress messages during mass gate saves.
 * Unified configuration and network message classes.
 * Removed old client patches (pre 1.2.4).
-* Need to set Bukkit's server name for Realm support.
+* Added Realm support using a shared database. See the [[Realms]] page for details.
+
+

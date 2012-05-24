@@ -97,6 +97,8 @@ public final class Config {
         config.load();
 
         int version = config.getInt("configVersion", -9999);
+        
+        /*
         if (version == -9999) {
             // this is an old version of the config
             ctx.warn("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
@@ -119,7 +121,10 @@ public final class Config {
             ctx.warn("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
         }
 
-        else if (version < CONFIG_VERSION) {
+        else
+        */
+        
+        if (version < CONFIG_VERSION) {
             // do conversion here
 
         } else if (version > CONFIG_VERSION) {
