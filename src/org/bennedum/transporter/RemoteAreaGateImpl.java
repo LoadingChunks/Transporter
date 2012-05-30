@@ -24,8 +24,8 @@ import org.bennedum.transporter.api.RemoteAreaGate;
  */
 public final class RemoteAreaGateImpl extends RemoteGateImpl implements RemoteAreaGate {
 
-    public RemoteAreaGateImpl(Server server, String name) {
-        super(server, name);
+    public RemoteAreaGateImpl(Server server, String name, boolean hidden) {
+        super(server, name, hidden);
     }
             
     @Override

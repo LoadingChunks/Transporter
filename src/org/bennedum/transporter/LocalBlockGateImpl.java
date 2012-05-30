@@ -130,6 +130,8 @@ public final class LocalBlockGateImpl extends LocalGateImpl implements LocalBloc
         invalidLinkFormat = design.getInvalidLinkFormat();
         unknownLinkFormat = design.getUnknownLinkFormat();
         markerFormat = design.getMarkerFormat();
+        hidden = design.getHidden();
+        linkAddDistance = design.getLinkAddDistance();
 
         linkLocalCost = design.getLinkLocalCost();
         linkWorldCost = design.getLinkWorldCost();

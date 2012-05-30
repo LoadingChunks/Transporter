@@ -27,25 +27,27 @@ import org.bennedum.transporter.api.RemoteWorld;
  */
 public abstract class RemoteGateImpl extends GateImpl implements RemoteGate {
 
-    public static RemoteGateImpl create(Server server, GateType type, String name) throws GateException {
+    public static RemoteGateImpl create(Server server, GateType type, String name, boolean hidden) throws GateException {
         switch (type) {
             case BLOCK:
-                return new RemoteBlockGateImpl(server, name);
+                return new RemoteBlockGateImpl(server, name, hidden);
             case AREA:
-                return new RemoteAreaGateImpl(server, name);
+                return new RemoteAreaGateImpl(server, name, hidden);
         }
         throw new GateException("unknown gate type '%s'", type.toString());
     }
     
     protected Server server;
     protected String worldName;
-
-    protected RemoteGateImpl(Server server, String name) {
+    protected boolean hidden;
+    
+    protected RemoteGateImpl(Server server, String name, boolean hidden) {
         this.server = server;
         if (name == null) throw new IllegalArgumentException("name is required");
         String[] parts = name.split("\\.", 2);
         worldName = parts[0];
         this.name = parts[1];
+        this.hidden = hidden;
     }
     
     @Override
@@ -96,6 +98,11 @@ public abstract class RemoteGateImpl extends GateImpl implements RemoteGate {
     protected void detach(GateImpl origin) {
         if (! (origin instanceof LocalGateImpl)) return;
         server.sendGateDetach(this, (LocalGateImpl)origin);
+    }
+    
+    @Override
+    public boolean getHidden() {
+        return hidden;
     }
     
 }

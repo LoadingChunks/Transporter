@@ -374,13 +374,13 @@ public class Utils {
     }
 
     // can be called from any thread, upload will happen in a worker thread
-    public static void submitDebug(final String name, final String message) {
+    public static void submitDebug(final String id) {
         if (! isWorkerThread()) {
             debug("scheduling debug submission");
             worker(new Runnable() {
                 @Override
                 public void run() {
-                    submitDebug(name, message);
+                    submitDebug(id);
                 }
             });
             return;
@@ -429,9 +429,7 @@ public class Utils {
             // add other debug info...
             zipOut.putNextEntry(new ZipEntry("debug.txt"));
             PrintWriter writer = new PrintWriter(new OutputStreamWriter(zipOut));
-            writer.println("From: " + name);
-            if (message != null)
-                writer.println(message);
+            writer.println("Id: " + id);
             writer.println();
 
             // MC info
@@ -586,18 +584,10 @@ public class Utils {
             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out));
 
             writer.write("--" + DEBUG_BOUNDARY + "\r\n");
-            writer.write("Content-Disposition: form-data; name=\"name\"\r\n");
+            writer.write("Content-Disposition: form-data; name=\"id\"\r\n");
             writer.write("\r\n");
-            writer.write(URLEncoder.encode(name, "UTF-8"));
+            writer.write(URLEncoder.encode(id, "UTF-8"));
             writer.write("\r\n");
-
-            if (message != null) {
-                writer.write("--" + DEBUG_BOUNDARY + "\r\n");
-                writer.write("Content-Disposition: form-data; name=\"message\"\r\n");
-                writer.write("\r\n");
-                writer.write(URLEncoder.encode(message, "UTF-8"));
-                writer.write("\r\n");
-            }
 
             writer.write("--" + DEBUG_BOUNDARY + "\r\n");
             writer.write("Content-Disposition: form-data; name=\"file\"; filename=\"content.zip\"\r\n");

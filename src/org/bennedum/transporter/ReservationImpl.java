@@ -330,8 +330,9 @@ public final class ReservationImpl implements Reservation {
         fromLocation = player.getLocation();
         fromVelocity = player.getVelocity();
         fromWorldName = player.getWorld().getName();
-        Utils.debug("player location: %s", fromLocation);
-        Utils.debug("player velocity: %s", fromVelocity);
+        
+//        Utils.debug("player location: %s", fromLocation);
+//        Utils.debug("player velocity: %s", fromVelocity);
     }
 
     private void extractVehicle(Vehicle vehicle) {

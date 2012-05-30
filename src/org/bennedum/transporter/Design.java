@@ -86,6 +86,8 @@ public class Design {
     private String invalidLinkFormat;
     private String unknownLinkFormat;
     private String markerFormat;
+    protected boolean hidden;
+    protected int linkAddDistance;
 
     // Economy
     private double buildCost;
@@ -159,6 +161,8 @@ public class Design {
         invalidLinkFormat = conf.getString("invalidLinkFormat", "invalid link selected");
         unknownLinkFormat = conf.getString("unknownLinkFormat", "unknown or offline destination endpoint");
         markerFormat = conf.getString("markerFormat", "%name%");
+        hidden = conf.getBoolean("hidden", false);
+        linkAddDistance = conf.getInt("linkAddDistance", -1);
 
         String gameModeStr = conf.getString("gameMode", null);
         if (gameModeStr == null)
@@ -522,6 +526,14 @@ public class Design {
 
     public String getMarkerFormat() {
         return markerFormat;
+    }
+
+    public boolean getHidden() {
+        return hidden;
+    }
+
+    public int getLinkAddDistance() {
+        return linkAddDistance;
     }
 
     public double getBuildCost() {

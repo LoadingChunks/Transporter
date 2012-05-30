@@ -31,6 +31,7 @@ import org.bennedum.transporter.command.ReloadCommand;
 import org.bennedum.transporter.command.SaveCommand;
 import org.bennedum.transporter.command.ServerCommand;
 import org.bennedum.transporter.command.WorldCommand;
+import org.bennedum.transporter.test.TestCommand;
 
 /**
  *
@@ -63,8 +64,16 @@ public final class Global {
         commands.add(new WorldCommand());
         commands.add(new RealmCommand());
         commands.add(new APICommand());
-
         commands.add(new DebugCommand());
+        
+        if (isTesting()) {
+            System.out.println("**** Transporter testing mode is enabled! ****");
+            commands.add(new TestCommand());
+        }
     }
 
+    public static boolean isTesting() {
+        return System.getenv("TRANSPORTER_TEST") != null;
+    }
+    
 }

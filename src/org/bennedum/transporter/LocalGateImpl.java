@@ -33,6 +33,7 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.util.Vector;
@@ -117,6 +118,8 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
         BASEOPTIONS.add("receiveWorldCost");
         BASEOPTIONS.add("receiveServerCost");
         BASEOPTIONS.add("markerFormat");
+        BASEOPTIONS.add("hidden");
+        BASEOPTIONS.add("linkAddDistance");
     }
 
     protected File file;
@@ -161,6 +164,8 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
     protected String invalidLinkFormat;
     protected String unknownLinkFormat;
     protected String markerFormat;
+    protected boolean hidden;
+    protected int linkAddDistance;
 
     protected double linkLocalCost;
     protected double linkWorldCost;
@@ -311,6 +316,8 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
         invalidLinkFormat = conf.getString("invalidLinkFormat", "invalid link selected");
         unknownLinkFormat = conf.getString("unknownLinkFormat", "unknown or offline destination gate");
         markerFormat = conf.getString("markerFormat", "%name%");
+        hidden = conf.getBoolean("hidden", false);
+        linkAddDistance = conf.getInt("linkAddDistance", -1);
 
         incoming.addAll(conf.getStringList("incoming", new ArrayList<String>()));
         outgoing = conf.getString("outgoing");
@@ -368,6 +375,8 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
         setInvalidLinkFormat(null);
         setUnknownLinkFormat(null);
         setMarkerFormat(null);
+        setHidden(false);
+        setLinkAddDistance(-1);
 
         setLinkLocalCost(0);
         setLinkWorldCost(0);
@@ -660,6 +669,8 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
         conf.set("invalidLinkFormat", invalidLinkFormat);
         conf.set("unknownLinkFormat", unknownLinkFormat);
         conf.set("markerFormat", markerFormat);
+        conf.set("hidden", hidden);
+        conf.set("linkAddDistance", linkAddDistance);
         conf.set("portalOpen", portalOpen);
 
         if (! incoming.isEmpty()) conf.set("incoming", new ArrayList<String>(incoming));
@@ -714,6 +725,7 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
 
     @Override
     public void setDuration(int i) {
+        if (i <= 0) i = -1;
         duration = i;
         dirty = true;
     }
@@ -1184,6 +1196,33 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
     }
 
     @Override
+    public boolean getHidden() {
+        return hidden;
+    }
+
+    @Override
+    public void setHidden(boolean b) {
+        boolean old = hidden;
+        hidden = b;
+        dirty = dirty || (old != hidden);
+        if (old != hidden)
+            for (Server server : Servers.getAll())
+                server.sendRefreshData();
+    }
+
+    @Override
+    public int getLinkAddDistance() {
+        return linkAddDistance;
+    }
+
+    @Override
+    public void setLinkAddDistance(int i) {
+        if (i <= 0) i = -1;
+        linkAddDistance = i;
+        dirty = true;
+    }
+
+    @Override
     public double getLinkLocalCost() {
         return linkLocalCost;
     }
@@ -1358,6 +1397,15 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
         if (isLinked() && (! getMultiLink()))
             throw new GateException("gate '%s' cannot accept multiple links", getName(ctx));
 
+        if (ctx.isPlayer() && (linkAddDistance > 0)) {
+            Location location = ctx.getPlayer().getLocation();
+            if (location.getWorld() != world)
+                throw new GateException("gate '%s' is too far away", getName(ctx));
+            Vector there = new Vector(location.getX(), location.getY(), location.getZ());
+            if (there.distance(center) > linkAddDistance)
+                throw new GateException("gate '%s' is too far away", getName(ctx));
+        }
+        
         GateImpl toGate = Gates.find(ctx, toGateName);
         if (toGate == null)
             throw new GateException("gate '%s' cannot be found", toGateName);

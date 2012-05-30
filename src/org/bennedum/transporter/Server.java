@@ -805,6 +805,7 @@ public final class Server implements OptionsListener, RemoteServer {
         TypeMap message = createMessage("gateCreated");
         message.put("type", gate.getType().toString());
         message.put("name", gate.getLocalName());
+        message.put("hidden", gate.getHidden());
         sendMessage(message);
     }
     
@@ -813,6 +814,7 @@ public final class Server implements OptionsListener, RemoteServer {
         TypeMap message = createMessage("gateAdded");
         message.put("type", gate.getType().toString());
         message.put("name", gate.getLocalName());
+        message.put("hidden", gate.getHidden());
         sendMessage(message);
     }
 
@@ -1114,6 +1116,7 @@ public final class Server implements OptionsListener, RemoteServer {
             TypeMap gm = new TypeMap();
             gm.put("type", gate.getType().toString());
             gm.put("name", gate.getLocalName());
+            gm.put("hidden", gate.getHidden());
             gates.add(gm);
         }
         out.put("gates", gates);
@@ -1181,7 +1184,8 @@ public final class Server implements OptionsListener, RemoteServer {
                 String gTypeStr = gm.getString("type");
                 GateType gType = Utils.valueOf(GateType.class, gTypeStr);
                 String gName = gm.getString("name");
-                RemoteGateImpl gate = RemoteGateImpl.create(this, gType, gName);
+                boolean gHidden = gm.getBoolean("hidden");
+                RemoteGateImpl gate = RemoteGateImpl.create(this, gType, gName, gHidden);
                 remoteGates.put(gate.getLocalName(), gate);
                 try {
                     Gates.add(gate, false);
@@ -1213,7 +1217,8 @@ public final class Server implements OptionsListener, RemoteServer {
             String gTypeStr = message.getString("type");
             GateType gType = Utils.valueOf(GateType.class, gTypeStr);
             String gName = message.getString("name");
-            RemoteGateImpl gate = RemoteGateImpl.create(this, gType, gName);
+            boolean gHidden = message.getBoolean("hidden");
+            RemoteGateImpl gate = RemoteGateImpl.create(this, gType, gName, gHidden);
             remoteGates.put(gate.getLocalName(), gate);
             try {
                 Gates.add(gate, false);
@@ -1240,7 +1245,8 @@ public final class Server implements OptionsListener, RemoteServer {
             String gTypeStr = message.getString("type");
             GateType gType = Utils.valueOf(GateType.class, gTypeStr);
             String gName = message.getString("name");
-            RemoteGateImpl gate = RemoteGateImpl.create(this, gType, gName);
+            boolean gHidden = message.getBoolean("hidden");
+            RemoteGateImpl gate = RemoteGateImpl.create(this, gType, gName, gHidden);
             if (remoteGates.containsKey(gate.getLocalName())) return;
             remoteGates.put(gate.getLocalName(), gate);
             try {

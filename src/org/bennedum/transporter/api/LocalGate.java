@@ -882,6 +882,35 @@ public interface LocalGate extends Gate {
      */
     public void setReceiveServerCost(double cost);
     
+    /**
+     * Returns the value of the "linkAddDistance" option.
+     * 
+     * @return      the option value
+     */
+    public int getLinkAddDistance();
+    
+    /**
+     * Sets the value of the "linkAddDistance" option.
+     * 
+     * @param i     the option value
+     */
+    public void setLinkAddDistance(int i);
+
+    /**
+     * Returns the value of the "hidden" option.
+     * 
+     * @return      the option value
+     */
+    @Override
+    public boolean getHidden();
+
+    /**
+     * Sets the value of the "hidden" option.
+     * 
+     * @param b     the option value
+     */
+    public void setHidden(boolean b);
+    
     /* End Options */
     
 }

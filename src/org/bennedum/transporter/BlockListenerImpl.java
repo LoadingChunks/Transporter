@@ -15,13 +15,17 @@
  */
 package org.bennedum.transporter;
 
-import org.bennedum.transporter.api.TransporterException;
 import org.bennedum.transporter.api.GateException;
+import org.bennedum.transporter.api.TransporterException;
+import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.*;
+import org.bukkit.material.Bed;
+import org.bukkit.material.MaterialData;
 
 /**
  *
@@ -38,6 +42,7 @@ public class BlockListenerImpl implements Listener {
     
     @EventHandler(priority = EventPriority.NORMAL)
     public void onBlockDamage(BlockDamageEvent event) {
+        if (event.isCancelled()) return;
         LocalGateImpl gate = Gates.findGateForProtection(event.getBlock().getLocation());
         if (gate != null) {
             event.setCancelled(true);
@@ -47,12 +52,14 @@ public class BlockListenerImpl implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL)
     public void onBlockBreak(BlockBreakEvent event) {
+        if (event.isCancelled()) return;
         LocalGateImpl gate = Gates.findGateForProtection(event.getBlock().getLocation());
         if (gate != null) {
             event.setCancelled(true);
             gate.onProtect(event.getBlock().getLocation());
             return;
         }
+        
         gate = Gates.findGateForScreen(event.getBlock().getLocation());
         if (gate != null) {
             Context ctx = new Context(event.getPlayer());
@@ -66,10 +73,55 @@ public class BlockListenerImpl implements Listener {
                 gate.onProtect(event.getBlock().getLocation());
             }
         }
+        
+        if (event.getBlock().getType().equals(Material.BED_BLOCK)) {
+            Location playerBedLoc = event.getPlayer().getBedSpawnLocation();
+            if (playerBedLoc != null) {
+                // figure out the block location of the HEAD of the bed being destroyed
+                Location bedLoc;
+                Block bedBlock = event.getBlock();
+                Bed bed = (Bed)Material.getMaterial(bedBlock.getTypeId()).getNewData(bedBlock.getData());
+                if (bed.isHeadOfBed())
+                    // trivial case
+                    bedLoc = bedBlock.getLocation();
+                else {
+                    // we have the foot, find the head
+                    switch (bed.getFacing()) {
+                        case NORTH:
+                            bedLoc = bedBlock.getRelative(-1, 0, 0).getLocation();
+                            break;
+                        case SOUTH:
+                            bedLoc = bedBlock.getRelative(1, 0, 0).getLocation();
+                            break;
+                        case EAST:
+                            bedLoc = bedBlock.getRelative(0, 0, -1).getLocation();
+                            break;
+                        case WEST:
+                            bedLoc = bedBlock.getRelative(0, 0, 1).getLocation();
+                            break;
+                        default:
+                            Utils.debug("unhandled bed facing: %s", bed.getFacing());
+                            return;
+                            //break;
+                    }
+                }
+//      Utils.debug("---------------------");
+//      Utils.debug("playerLoc: %s", Utils.blockCoords(event.getPlayer().getLocation()));
+//      Utils.debug("blockLoc: %s", Utils.blockCoords(bedBlock.getLocation()));
+//      Utils.debug("bedFace: %s", bed.getFacing());
+//      Utils.debug("bedLoc: %s", Utils.blockCoords(bedLoc));
+//      Utils.debug("playerBedLoc: %s", Utils.blockCoords(playerBedLoc));
+      
+                if (bedLoc.distance(playerBedLoc) < 0.5)
+//      Utils.debug("FOUND THE BED!");
+                    Realm.onUnsetHome(event.getPlayer());
+            }
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onSignChange(SignChangeEvent event) {
+        if (event.isCancelled()) return;
         Block block = event.getBlock();
         LocalGateImpl gate = Gates.findGateForScreen(block.getLocation());
         if (gate != null) return;
@@ -114,6 +166,7 @@ public class BlockListenerImpl implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL)
     public void onBlockFromTo(BlockFromToEvent event) {
+        if (event.isCancelled()) return;
         // This prevents liquid portals from flowing out
         LocalGateImpl gate = Gates.findGateForPortal(event.getBlock().getLocation());
         if (gate != null) {

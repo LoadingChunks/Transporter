@@ -72,4 +72,11 @@ public interface Gate {
      */
     public GateType getType();
     
+    /**
+     * Returns the value of the "hidden" option.
+     * 
+     * @return      option value.
+     */
+    public boolean getHidden();
+    
 }

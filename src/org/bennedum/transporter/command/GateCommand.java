@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import org.bennedum.transporter.Context;
@@ -113,6 +114,9 @@ public class GateCommand extends TrpCommandProcessor {
             Permissions.require(ctx.getPlayer(), "trp.gate.list");
 
             List<LocalGateImpl> localGates = new ArrayList<LocalGateImpl>(Gates.getLocalGates());
+            if ((! ctx.isConsole()) && (! ctx.isOp()))
+                for (Iterator<LocalGateImpl> i = localGates.iterator(); i.hasNext(); )
+                    if (i.next().getHidden()) i.remove();
             if (localGates.isEmpty())
                 ctx.send("there are no local gates");
             else {
@@ -127,6 +131,9 @@ public class GateCommand extends TrpCommandProcessor {
                     ctx.send("  %s", gate.getLocalName());
             }
             List<RemoteGateImpl> remoteGates = new ArrayList<RemoteGateImpl>(Gates.getRemoteGates());
+            if ((! ctx.isConsole()) && (! ctx.isOp()))
+                for (Iterator<RemoteGateImpl> i = remoteGates.iterator(); i.hasNext(); )
+                    if (i.next().getHidden()) i.remove();
             if (remoteGates.isEmpty())
                 ctx.send("there are no remote gates");
             else {

@@ -2,27 +2,6 @@
 Ideas:
 * Deposit accounts for the money collected when building/creating/linking/using gates.
 * Implement gate permissions when Permissions plugin supports adding a gate to a group.
-* Realms!
-    X Save player stuff to DB at periodic intervals
-    * Web server to display customizable templates for player stats
-    X On join, check DB and reconnect player to last server, if no last server connect to default server if defined
-    X On death, check DB for "realm home" and reconnect player
-    X On quit, save player stuff in DB
-    X On kick, save player stuff in DB
-    * Add command to set "realm home". "trp home"?
-    X Player stuff to save
-        X client address
-        X Name, displayName
-        X Level, experience
-        X Potion effects
-        X Inventory, armor
-        X air, food, fire
-        X Server, world, location
-        X Realm home
-        X Realm name
-        X Last join date/time
-        X Last update date/time
-        X Death count, last cause of death
 * Per-world inventories?
 * Add API options like allow*
 * Add more realm commands
@@ -34,21 +13,50 @@ TODO:
 
 Testing:
 * Test stairs with facing option
-* Test realm home
 
 Wiki Updates:
-* Add Realms page
-    * Reconnects players to last server
-    * Database configuration
-    * Need to set Bukkit's server name for Realm support
-    * Configured server names must match actual server names
-    * Home
 
 Changelog:
-* Honor canceled chat events.
-* Added "showGatesSavedMessages" global option to suppress messages during mass gate saves.
+* Honor various canceled player and block events.
+* Added global option "showGatesSavedMessages" to suppress messages during mass gate saves.
 * Unified configuration and network message classes.
 * Removed old client patches (pre 1.2.4).
+* Added gate option "hidden" to hide a gate from gate listings.
+* Added gate option "linkAddDistance" to restrict a player's distance from a gate when adding a link.
 * Added Realm support using a shared database. See the [[Realms]] page for details.
 
+
+
+CREATE TABLE `players` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(30) NOT NULL,
+  `displayName` varchar(30) DEFAULT NULL,
+  `address` varchar(15) DEFAULT NULL,
+  `inventory` text,
+  `armor` text,
+  `heldItemSlot` int(11) DEFAULT NULL,
+  `health` int(11) DEFAULT NULL,
+  `remainingAir` int(11) DEFAULT NULL,
+  `fireTicks` int(11) DEFAULT NULL,
+  `foodLevel` int(11) DEFAULT NULL,
+  `exhaustion` float DEFAULT NULL,
+  `saturation` float DEFAULT NULL,
+  `gameMode` varchar(15) DEFAULT NULL,
+  `level` int(11) DEFAULT NULL,
+  `xp` int(11) DEFAULT NULL,
+  `potionEffects` text,
+  `home` varchar(200) DEFAULT NULL,
+  `lastServer` varchar(30) DEFAULT NULL,
+  `lastWorld` varchar(15) DEFAULT NULL,
+  `lastLocation` varchar(200) DEFAULT NULL,
+  `deaths` int(11) DEFAULT NULL,
+  `lastDeathMessage` varchar(255) DEFAULT NULL,
+  `lastDeath` timestamp NULL DEFAULT NULL,
+  `lastKick` timestamp NULL DEFAULT NULL,
+  `lastJoin` timestamp NULL DEFAULT NULL,
+  `lastQuit` timestamp NULL DEFAULT NULL,
+  `lastUpdated` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `name` (`name`)
+)
 

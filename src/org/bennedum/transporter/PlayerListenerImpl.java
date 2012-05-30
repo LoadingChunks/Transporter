@@ -36,6 +36,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerKickEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 
 /**
@@ -249,6 +250,7 @@ public final class PlayerListenerImpl implements Listener {
         if ((location == null) ||
             (location.getWorld() == null)) return;
         
+        // Realm handling
         Realm.onTeleport(player, location);
         
         for (Server server : Servers.getAll())
@@ -319,6 +321,13 @@ public final class PlayerListenerImpl implements Listener {
         // Realm handling
         Realm.onDeath(player, event.getDeathMessage());
         
+    }
+    
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerRespawn(PlayerRespawnEvent event) {
+        Player player = event.getPlayer();
+        // Realm handling
+        Realm.onRespawn(player);
     }
     
     @EventHandler(priority = EventPriority.MONITOR)

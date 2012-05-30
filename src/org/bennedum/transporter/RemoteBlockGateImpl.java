@@ -24,8 +24,8 @@ import org.bennedum.transporter.api.RemoteBlockGate;
  */
 public final class RemoteBlockGateImpl extends RemoteGateImpl implements RemoteBlockGate {
 
-    public RemoteBlockGateImpl(Server server, String name) {
-        super(server, name);
+    public RemoteBlockGateImpl(Server server, String name, boolean hidden) {
+        super(server, name, hidden);
     }
             
     @Override

@@ -22,9 +22,13 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import javax.sql.rowset.serial.SerialClob;
 import org.bennedum.transporter.api.ReservationException;
@@ -52,13 +56,13 @@ public final class Realm {
     static {
         OPTIONS.add("name");
         OPTIONS.add("saveInterval");
+        OPTIONS.add("saveSize");
         OPTIONS.add("defaultServer");
         OPTIONS.add("defaultWorld");
         OPTIONS.add("dbURL");
         OPTIONS.add("dbUsername");
         OPTIONS.add("dbPassword");
         OPTIONS.add("dbPrefix");
-        OPTIONS.add("defaultServer");
 
         RESTART_OPTIONS.add("saveInterval");
         RESTART_OPTIONS.add("dbURL");
@@ -83,8 +87,11 @@ public final class Realm {
     
     private static boolean started = false;
     private static Connection db;
-    private static int saveAllTask = 0;
+    private static int saveAllTask = -1;
+    private static int saveDirtyTask = -1;
     private static Set<String> redirectedPlayers = new HashSet<String>();
+    private static final Map<String,PlayerData> dirtyPlayers = new HashMap<String,PlayerData>();
+    private static Set<String> respawningPlayers = new HashSet<String>();
     
     public static boolean isStarted() {
         return started;
@@ -108,6 +115,9 @@ public final class Realm {
             started = true;
             scheduleSaveAll();
             redirectedPlayers.clear();
+            synchronized (dirtyPlayers) {
+                dirtyPlayers.clear();
+            }
             ctx.send("realm support started");
             
             for (Server server : Servers.getAll())
@@ -126,9 +136,14 @@ public final class Realm {
             db.close();
         } catch (SQLException se) {}
         db = null;
-        if (saveAllTask != 0)
+        if (saveAllTask != -1)
             Global.plugin.getServer().getScheduler().cancelTask(saveAllTask);
-        saveAllTask = 0;
+        saveAllTask = -1;
+        if (saveDirtyTask != -1)
+            Global.plugin.getServer().getScheduler().cancelTask(saveDirtyTask);
+        saveDirtyTask = -1;
+        saveDirtyPlayers();
+        respawningPlayers.clear();
         ctx.send("realm support stopped");
     }
 
@@ -144,14 +159,19 @@ public final class Realm {
         Utils.debug("realm onTeleport '%s'", player.getName());
         try {
             PlayerData data = PlayerData.load(player.getName());
-            if (data == null)
-                data = new PlayerData(player);
-            else
-                data.update(player);
-            data.updateLastLocation(toLocation);
-            save(data);
+            if (respawningPlayers.remove(player.getName())) {
+                if (data == null) return;
+                sendPlayerHome(player, data.home);
+            } else {
+                if (data == null)
+                    data = new PlayerData(player);
+                else
+                    data.update(player);
+                data.updateLastLocation(toLocation);
+                save(data);
+            }
         } catch (SQLException se) {
-            Utils.severe("SQL Excepiton while processing realm player teleport: %s", se.getMessage());
+            Utils.severe("SQL Exception while processing realm player teleport: %s", se.getMessage());
         }
     }
     
@@ -165,7 +185,7 @@ public final class Realm {
                 data = new PlayerData(player);
             else
                 data.update(player);
-            data.save();
+            save(data);
         } catch (SQLException se) {
             Utils.severe("SQL Exception while saving realm player: %s", se.getMessage());
         }
@@ -209,7 +229,7 @@ public final class Realm {
             save(data);
             return false;
         } catch (SQLException se) {
-            Utils.severe("SQL Excepiton while processing realm player join: %s", se.getMessage());
+            Utils.severe("SQL Exception while processing realm player join: %s", se.getMessage());
             return false;
         }
     }
@@ -227,7 +247,7 @@ public final class Realm {
             data.lastQuit = Calendar.getInstance();
             save(data);
         } catch (SQLException se) {
-            Utils.severe("SQL Excepiton while processing realm player quit: %s", se.getMessage());
+            Utils.severe("SQL Exception while processing realm player quit: %s", se.getMessage());
         }
     }
     
@@ -245,7 +265,7 @@ public final class Realm {
             data.lastKick = Calendar.getInstance();
             save(data);
         } catch (SQLException se) {
-            Utils.severe("SQL Excepiton while processing realm player kick: %s", se.getMessage());
+            Utils.severe("SQL Exception while processing realm player kick: %s", se.getMessage());
         }
     }
     
@@ -262,16 +282,20 @@ public final class Realm {
             data.deaths++;
             data.lastDeathMessage = message;
             save(data);
-            
-            sendPlayerHome(player, data.home);
-            
         } catch (SQLException se) {
-            Utils.severe("SQL Excepiton while processing realm player death: %s", se.getMessage());
+            Utils.severe("SQL Exception while processing realm player death: %s", se.getMessage());
         }
+    }
+    
+    public static void onRespawn(Player player) {
+        if (! started) return;
+        Utils.debug("realm onRespawn '%s'", player.getName());
+        respawningPlayers.add(player.getName());
     }
     
     public static void onSetHome(Player player, Location loc) {
         if (! started) return;
+        Utils.debug("realm onSetHome '%s'", player.getName());
         try {
             PlayerData data = PlayerData.load(player.getName());
             if (data == null)
@@ -281,25 +305,58 @@ public final class Realm {
             data.home = Global.plugin.getServer().getServerName() + "|" + loc.getWorld().getName() + "|" + loc.getX() + "|" + loc.getY() + "|" + loc.getZ();
             save(data);
         } catch (SQLException se) {
-            Utils.severe("SQL Excepiton while setting realm player home: %s", se.getMessage());
+            Utils.severe("SQL Exception while setting realm player home: %s", se.getMessage());
+        }
+    }
+
+    public static void onUnsetHome(Player player) {
+        if (! started) return;
+        Utils.debug("realm onUnsetHome '%s'", player.getName());
+        try {
+            PlayerData data = PlayerData.load(player.getName());
+            if (data == null)
+                data = new PlayerData(player);
+            else
+                data.update(player);
+            data.home = null;
+            save(data);
+        } catch (SQLException se) {
+            Utils.severe("SQL Exception while unsetting realm player home: %s", se.getMessage());
         }
     }
     
     // End Player events
     
-    private static void save(final PlayerData data) {
-        Utils.worker(new Runnable() {
-            @Override
-            public void run() {
+    private static void save(PlayerData data) {
+        synchronized (dirtyPlayers) {
+            dirtyPlayers.put(data.name, data);
+            if (saveDirtyTask == -1) {
+                saveDirtyTask = Utils.worker(new Runnable() {
+                    @Override
+                    public void run() {
+                        saveDirtyPlayers();
+                    }
+                });
+            }
+        }
+    }
+
+    // called from any thread
+    private static void saveDirtyPlayers() {
+        synchronized (dirtyPlayers) {
+            for (Iterator<PlayerData> i = dirtyPlayers.values().iterator(); i.hasNext(); ) {
+                PlayerData data = i.next();
                 try {
                     data.save();
                 } catch (SQLException se) {
                     Utils.severe("SQL Exception while saving realm player '%s': %s", data.name, se.getMessage());
                 }
             }
-        });
+            dirtyPlayers.clear();
+            saveDirtyTask = -1;
+        }
     }
-    
+        
     private static boolean sendPlayerToServer(Player player, String toServer) {
         Server server = Servers.get(toServer);
         if (server == null) {
@@ -320,6 +377,7 @@ public final class Realm {
     
     private static void sendPlayerHome(Player player, String home) {
         if (home == null) return;
+        Utils.debug("sending realm player '%s' home to %s", player.getName(), home);
         String[] parts = home.split("\\|");
         if (parts.length != 5) {
             Utils.warning("Invalid realm home for player '%s': %s", player.getName(), home);
@@ -354,11 +412,12 @@ public final class Realm {
             } catch (ReservationException re) {
                 Utils.warning("Reservation exception while sending player '%s' to realm home '%s': %s", player.getName(), home, re.getMessage());
             }
-            return;
+            //return;
         }
         
         // already on the right server
         
+        /*
         World world = Global.plugin.getServer().getWorld(homeWorld);
         if (world == null) {
             Utils.warning("Unknown realm home world '%s' for player '%s'", homeWorld, player.getName());
@@ -366,6 +425,7 @@ public final class Realm {
         }
         Location toLocation = new Location(world, x, y, z);
         player.teleport(toLocation);
+        */
     }
     
     private static void sendPlayerToWorld(Player player, String toWorld, String toCoords) {
@@ -397,23 +457,57 @@ public final class Realm {
         player.teleport(toLocation);
     }
     
+    private static List<String> savedPlayers = new ArrayList<String>();
+    
     private static void scheduleSaveAll() {
-        if (saveAllTask != 0)
+        if (saveAllTask != -1)
             Global.plugin.getServer().getScheduler().cancelTask(saveAllTask);
         saveAllTask = Utils.fireDelayed(new Runnable() {
             @Override
             public void run() {
-                saveAll();
+                Utils.debug("realm save all players started");
+                for (OfflinePlayer player : Global.plugin.getServer().getOfflinePlayers()) {
+                    redirectedPlayers.remove(player.getName());
+                    savedPlayers.remove(player.getName());
+                }
+                for (Player player : Global.plugin.getServer().getOnlinePlayers())
+                    if (! savedPlayers.contains(player.getName()))
+                        savedPlayers.add(player.getName());
+                if (! savedPlayers.isEmpty()) {
+                    for (int playerNum = 0; playerNum < Math.min(getSaveSize(), savedPlayers.size()); playerNum++) {
+                        String playerName = savedPlayers.remove(0);
+                        Utils.debug("saving realm player '%s'", playerName);
+                        try {
+                            Player player = Global.plugin.getServer().getPlayer(playerName);
+                            if (player != null) {
+                                PlayerData data = PlayerData.load(playerName);
+                                if (data == null)
+                                    data = new PlayerData(player);
+                                else
+                                    data.update(player);
+                                save(data);
+                            }
+                        } catch (SQLException se) {
+                            Utils.severe("SQL Exception while loading realm player '%s': %s", playerName, se.getMessage());
+                        }
+                        savedPlayers.add(playerName);
+                    }
+                }
+                saveAllTask = -1;
+                scheduleSaveAll();
+                Utils.debug("realm save all players completed");
             }
         }, getSaveInterval());
     }
     
+    /*
     private static void saveAll() {
+        
+        
         final Set<PlayerData> players = new HashSet<PlayerData>();
         for (Player player : Global.plugin.getServer().getOnlinePlayers())
             players.add(new PlayerData(player));
-        for (OfflinePlayer player : Global.plugin.getServer().getOfflinePlayers())
-            redirectedPlayers.remove(player.getName());
+        
         Utils.worker(new Runnable() {
             @Override
             public void run() {
@@ -424,15 +518,16 @@ public final class Realm {
                             data = player;
                         else
                             data.update(player);
-                        data.save();
+                        save(data);
                     }
                 } catch (SQLException se) {
-                    Utils.severe("SQL Exception while saving realm players: %s", se.getMessage());
+                    Utils.severe("SQL Exception while loading realm players: %s", se.getMessage());
                 }
             }
         });
     }
-
+*/
+    
     public static boolean getEnabled() {
         return Config.getBooleanDirect("realm.enabled", false);
     }
@@ -455,13 +550,23 @@ public final class Realm {
     }
     
     public static int getSaveInterval() {
-        return Config.getIntDirect("realm.saveInterval", 60000);
+        return Config.getIntDirect("realm.saveInterval", 20000);
     }
 
     public static void setSaveInterval(int i) {
         if (i < 1000)
             throw new IllegalArgumentException("saveInterval must be at least 1000");
         Config.setPropertyDirect("realm.saveInterval", i);
+    }
+
+    public static int getSaveSize() {
+        return Config.getIntDirect("realm.saveSize", 3);
+    }
+
+    public static void setSaveSize(int i) {
+        if (i < 1)
+            throw new IllegalArgumentException("saveSize must be at least 1");
+        Config.setPropertyDirect("realm.saveSize", i);
     }
 
     public static String getDefaultServer() {
@@ -581,6 +686,10 @@ public final class Realm {
         Calendar lastUpdated;
         
         static PlayerData load(String playerName) throws SQLException {
+            synchronized (dirtyPlayers) {
+                PlayerData data = dirtyPlayers.remove(playerName);
+                if (data != null) return data;
+            }
             PreparedStatement stmt = null;
             ResultSet rs = null;
             try {
