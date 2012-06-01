@@ -15,6 +15,7 @@
  */
 package org.bennedum.transporter;
 
+import com.x5.util.DataCapsule;
 import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -59,10 +60,15 @@ public final class Realm {
         OPTIONS.add("saveSize");
         OPTIONS.add("defaultServer");
         OPTIONS.add("defaultWorld");
+        OPTIONS.add("defaultGate");
+        OPTIONS.add("respawnGate");
         OPTIONS.add("dbURL");
         OPTIONS.add("dbUsername");
         OPTIONS.add("dbPassword");
         OPTIONS.add("dbPrefix");
+        OPTIONS.add("webServer");
+        OPTIONS.add("webServerPort");
+        OPTIONS.add("webServerWorkers");
 
         RESTART_OPTIONS.add("saveInterval");
         RESTART_OPTIONS.add("dbURL");
@@ -90,8 +96,9 @@ public final class Realm {
     private static int saveAllTask = -1;
     private static int saveDirtyTask = -1;
     private static Set<String> redirectedPlayers = new HashSet<String>();
-    private static final Map<String,PlayerData> dirtyPlayers = new HashMap<String,PlayerData>();
+    private static final Map<String,RealmPlayer> dirtyPlayers = new HashMap<String,RealmPlayer>();
     private static Set<String> respawningPlayers = new HashSet<String>();
+    private static RealmWebServer webServer = null;
     
     public static boolean isStarted() {
         return started;
@@ -119,19 +126,22 @@ public final class Realm {
                 dirtyPlayers.clear();
             }
             ctx.send("realm support started");
-            
+
             for (Server server : Servers.getAll())
                 if (server.isConnected()) server.sendRefreshData();
             
         } catch (Exception e) {
             ctx.warn("realm support cannot be started: %s", e.getMessage());
         }
+        if (getWebServer())
+            startWebServer();
     }
 
     // called from main thread
     public static void stop(Context ctx) {
         if (! started) return;
         started = false;
+        stopWebServer();
         try {
             db.close();
         } catch (SQLException se) {}
@@ -147,6 +157,17 @@ public final class Realm {
         ctx.send("realm support stopped");
     }
 
+    private static void startWebServer() {
+        if (! started) return;
+        webServer = new RealmWebServer(getWebServerPort(), getWebServerWorkers());
+        if (! webServer.start()) webServer = null;
+    }
+    
+    private static void stopWebServer() {
+        if (webServer == null) return;
+        webServer.stop();
+    }
+    
     public static void onConfigLoad(Context ctx) {}
 
     public static void onConfigSave() {}
@@ -158,18 +179,22 @@ public final class Realm {
         if (redirectedPlayers.contains(player.getName())) return;
         Utils.debug("realm onTeleport '%s'", player.getName());
         try {
-            PlayerData data = PlayerData.load(player.getName());
+            RealmPlayer data = RealmPlayer.load(player.getName(), false);
             if (respawningPlayers.remove(player.getName())) {
                 if (data == null) return;
-                sendPlayerHome(player, data.home);
+                GateImpl respawnGate = getRespawnGateImpl();
+                if (respawnGate != null)
+                    sendPlayerToGate(player, respawnGate);
+                else
+                    sendPlayerHome(player, data.home);
             } else {
                 if (data == null)
-                    data = new PlayerData(player);
+                    data = new RealmPlayer(player);
                 else
                     data.update(player);
                 data.updateLastLocation(toLocation);
-                save(data);
             }
+            save(data);
         } catch (SQLException se) {
             Utils.severe("SQL Exception while processing realm player teleport: %s", se.getMessage());
         }
@@ -180,9 +205,9 @@ public final class Realm {
         redirectedPlayers.remove(player.getName());
         Utils.debug("realm save '%s'", player.getName());
         try {
-            PlayerData data = PlayerData.load(player.getName());
+            RealmPlayer data = RealmPlayer.load(player.getName(), false);
             if (data == null)
-                data = new PlayerData(player);
+                data = new RealmPlayer(player);
             else
                 data.update(player);
             save(data);
@@ -196,36 +221,65 @@ public final class Realm {
         redirectedPlayers.remove(player.getName());
         Utils.debug("realm onJoin '%s'", player.getName());
         try {
-            PlayerData data = PlayerData.load(player.getName());
-            String toServer;
-            if ((data == null) || (data.lastServer == null)) {
+            RealmPlayer data = RealmPlayer.load(player.getName(), false);
+            if (data == null) {
                 // player is new to the realm
-                toServer = getDefaultServer();
-            } else {
-                toServer = data.lastServer;
-            }
-            if ((toServer != null) && (! toServer.equals(Global.plugin.getServer().getServerName()))) {
-                if (sendPlayerToServer(player, toServer))
-                    return true;
-            }
             
-            if (data != null)
+                GateImpl defaultGate = getDefaultGateImpl();
+                if (defaultGate != null) {
+                    if (sendPlayerToGate(player, defaultGate)) {
+                        save(data);
+                        return true;
+                    }
+                }
+                String toServer = getDefaultServer();
+                if (toServer != null) {
+                    if (! toServer.equals(Global.plugin.getServer().getServerName())) {
+                        if (sendPlayerToServer(player, toServer)) {
+                            save(data);
+                            return true;
+                        }
+                    }
+                }
+                String toWorld = getDefaultWorld();
+                if (toWorld != null) {
+                    if (! toWorld.equals(player.getWorld().getName())) {
+                        if (sendPlayerToWorld(player, toWorld, null)) {
+                            save(data);
+                            return true;
+                        }
+                    }
+                }
+                
+                data = new RealmPlayer(player);
+            } else
                 data.apply(player);
             
-            String toWorld;
-            if ((data == null) || (data.lastWorld == null)) {
-                // player is new to this server
-                toWorld = getDefaultWorld();
-            } else {
-                toWorld = data.lastWorld;
+            String toServer = data.lastServer;
+            if (toServer != null) {
+                if (! toServer.equals(Global.plugin.getServer().getServerName())) {
+                    if (sendPlayerToServer(player, toServer)) {
+                        save(data);
+                        return true;
+                    }
+                    /*
+                } else {
+                    String toWorld = data.lastWorld;
+                    if (toWorld != null) {
+                        if (! toWorld.equals(player.getWorld().getName())) {
+                            if (sendPlayerToWorld(player, toWorld, data.lastLocation)) {
+                                save(data);
+                                return true;
+                            }
+                        }
+                    }
+                    */
+                }
             }
-            if ((toWorld != null) && (! toWorld.equals(player.getWorld().getName())))
-                sendPlayerToWorld(player, toWorld, ((data == null) || (data.lastWorld == null)) ? null : data.lastLocation);
-            if (data == null)
-                data = new PlayerData(player);
-            else
-                data.update(player);
+
+            data.update(player);
             data.lastJoin = Calendar.getInstance();
+            data.dirty = true;
             save(data);
             return false;
         } catch (SQLException se) {
@@ -239,12 +293,13 @@ public final class Realm {
         if (redirectedPlayers.contains(player.getName())) return;
         Utils.debug("realm onQuit '%s'", player.getName());
         try {
-            PlayerData data = PlayerData.load(player.getName());
+            RealmPlayer data = RealmPlayer.load(player.getName(), false);
             if (data == null)
-                data = new PlayerData(player);
+                data = new RealmPlayer(player);
             else
                 data.update(player);
             data.lastQuit = Calendar.getInstance();
+            data.dirty = true;
             save(data);
         } catch (SQLException se) {
             Utils.severe("SQL Exception while processing realm player quit: %s", se.getMessage());
@@ -257,12 +312,13 @@ public final class Realm {
         Utils.debug("realm onKick '%s'", player.getName());
         
         try {
-            PlayerData data = PlayerData.load(player.getName());
+            RealmPlayer data = RealmPlayer.load(player.getName(), false);
             if (data == null)
-                data = new PlayerData(player);
+                data = new RealmPlayer(player);
             else
                 data.update(player);
             data.lastKick = Calendar.getInstance();
+            data.dirty = true;
             save(data);
         } catch (SQLException se) {
             Utils.severe("SQL Exception while processing realm player kick: %s", se.getMessage());
@@ -273,14 +329,15 @@ public final class Realm {
         if (! started) return;
         Utils.debug("realm onDeath '%s'", player.getName());
         try {
-            PlayerData data = PlayerData.load(player.getName());
+            RealmPlayer data = RealmPlayer.load(player.getName(), false);
             if (data == null)
-                data = new PlayerData(player);
+                data = new RealmPlayer(player);
             else
                 data.update(player);
             data.lastDeath = Calendar.getInstance();
             data.deaths++;
             data.lastDeathMessage = message;
+            data.dirty = true;
             save(data);
         } catch (SQLException se) {
             Utils.severe("SQL Exception while processing realm player death: %s", se.getMessage());
@@ -297,12 +354,13 @@ public final class Realm {
         if (! started) return;
         Utils.debug("realm onSetHome '%s'", player.getName());
         try {
-            PlayerData data = PlayerData.load(player.getName());
+            RealmPlayer data = RealmPlayer.load(player.getName(), false);
             if (data == null)
-                data = new PlayerData(player);
+                data = new RealmPlayer(player);
             else
                 data.update(player);
             data.home = Global.plugin.getServer().getServerName() + "|" + loc.getWorld().getName() + "|" + loc.getX() + "|" + loc.getY() + "|" + loc.getZ();
+            data.dirty = true;
             save(data);
         } catch (SQLException se) {
             Utils.severe("SQL Exception while setting realm player home: %s", se.getMessage());
@@ -313,12 +371,13 @@ public final class Realm {
         if (! started) return;
         Utils.debug("realm onUnsetHome '%s'", player.getName());
         try {
-            PlayerData data = PlayerData.load(player.getName());
+            RealmPlayer data = RealmPlayer.load(player.getName(), false);
             if (data == null)
-                data = new PlayerData(player);
+                data = new RealmPlayer(player);
             else
                 data.update(player);
             data.home = null;
+            data.dirty = true;
             save(data);
         } catch (SQLException se) {
             Utils.severe("SQL Exception while unsetting realm player home: %s", se.getMessage());
@@ -327,7 +386,39 @@ public final class Realm {
     
     // End Player events
     
-    private static void save(PlayerData data) {
+    public static Set<String> getPlayerNames() {
+        Set<String> names = new HashSet<String>();
+        if (! started) return names;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        try {
+            stmt = db.prepareStatement("select name from " + tableName("players"));
+            rs = stmt.executeQuery();
+            while (rs.next())
+                names.add(rs.getString("name"));
+        } catch (SQLException se) {
+            Utils.severe("SQL Exception while getting player names: %s", se.getMessage());
+        } finally {
+            try {
+                if (rs != null) rs.close();
+                if (stmt != null) stmt.close();
+            } catch (SQLException se) {}
+        }
+        return names;
+    }
+    
+    public static RealmPlayer getPlayer(String playerName) {
+        if (! started) return null;
+        try {
+            return RealmPlayer.load(playerName, true);
+        } catch (SQLException se) {
+            Utils.severe("SQL Exception while loading realm player: %s", se.getMessage());
+            return null;
+        }
+    }
+    
+    private static void save(RealmPlayer data) {
+        if ((data == null) || (! data.dirty)) return;
         synchronized (dirtyPlayers) {
             dirtyPlayers.put(data.name, data);
             if (saveDirtyTask == -1) {
@@ -344,8 +435,8 @@ public final class Realm {
     // called from any thread
     private static void saveDirtyPlayers() {
         synchronized (dirtyPlayers) {
-            for (Iterator<PlayerData> i = dirtyPlayers.values().iterator(); i.hasNext(); ) {
-                PlayerData data = i.next();
+            for (Iterator<RealmPlayer> i = dirtyPlayers.values().iterator(); i.hasNext(); ) {
+                RealmPlayer data = i.next();
                 try {
                     data.save();
                 } catch (SQLException se) {
@@ -356,9 +447,9 @@ public final class Realm {
             saveDirtyTask = -1;
         }
     }
-        
+    
     private static boolean sendPlayerToServer(Player player, String toServer) {
-        Server server = Servers.get(toServer);
+        Server server = Servers.find(toServer);
         if (server == null) {
             Utils.warning("Unknown realm server '%s' for player '%s'", toServer, player.getName());
             return false;
@@ -375,13 +466,24 @@ public final class Realm {
         return true;
     }
     
-    private static void sendPlayerHome(Player player, String home) {
-        if (home == null) return;
+    private static boolean sendPlayerToGate(Player player, GateImpl gate) {
+        try {
+            ReservationImpl res = new ReservationImpl(player, gate);
+            res.depart();
+            return true;
+        } catch (ReservationException re) {
+            Utils.warning("Reservation exception while sending player '%s' to gate '%s': %s", player.getName(), gate.getLocalName(), re.getMessage());
+            return false;
+        }
+    }
+    
+    private static boolean sendPlayerHome(Player player, String home) {
+        if (home == null) return false;
         Utils.debug("sending realm player '%s' home to %s", player.getName(), home);
         String[] parts = home.split("\\|");
         if (parts.length != 5) {
             Utils.warning("Invalid realm home for player '%s': %s", player.getName(), home);
-            return;
+            return false;
         }
         String homeServer = parts[0];
         String homeWorld = parts[1];
@@ -392,48 +494,39 @@ public final class Realm {
             z = Double.parseDouble(parts[4]);
         } catch (NumberFormatException nfe) {
             Utils.warning("Invalid realm home coordinates for player '%s': %s", player.getName(), home);
-            return;
+            return false;
         }
         
         if (! homeServer.equals(Global.plugin.getServer().getServerName())) {
-            Server server = Servers.get(homeServer);
+            Server server = Servers.find(homeServer);
             if (server == null) {
                 Utils.warning("Unknown realm home server '%s' for player '%s'", homeServer, player.getName());
-                return;
+                return false;
             }
             if (! server.isConnected()) {
                 Utils.warning("Offline realm home server '%s' for player '%s'", homeServer, player.getName());
-                return;
+                return false;
             }
 
             try {
                 ReservationImpl res = new ReservationImpl(player, server, homeWorld, x, y, z);
                 res.depart();
+                return true;
             } catch (ReservationException re) {
                 Utils.warning("Reservation exception while sending player '%s' to realm home '%s': %s", player.getName(), home, re.getMessage());
+                return false;
             }
-            //return;
         }
-        
         // already on the right server
-        
-        /*
-        World world = Global.plugin.getServer().getWorld(homeWorld);
-        if (world == null) {
-            Utils.warning("Unknown realm home world '%s' for player '%s'", homeWorld, player.getName());
-            return;
-        }
-        Location toLocation = new Location(world, x, y, z);
-        player.teleport(toLocation);
-        */
+        return true;
     }
     
-    private static void sendPlayerToWorld(Player player, String toWorld, String toCoords) {
+    private static boolean sendPlayerToWorld(Player player, String toWorld, String toCoords) {
         World world = Global.plugin.getServer().getWorld(toWorld);
         Location toLocation;
         if (world == null) {
             Utils.warning("Unknown realm world '%s' for player '%s'", toWorld, player.getName());
-            return;
+            return false;
         }
         if (toCoords == null)
             toLocation = world.getSpawnLocation();
@@ -441,7 +534,7 @@ public final class Realm {
             String[] coords = toCoords.split(",");
             if (coords.length != 3) {
                 Utils.warning("Invalid location coordinates '%s' for player '%s'", toCoords, player.getName());
-                return;
+                return false;
             }
             try {
                 double x = Double.parseDouble(coords[0]);
@@ -450,11 +543,11 @@ public final class Realm {
                 toLocation = new Location(world, x, y, z);
             } catch (NumberFormatException nfe) {
                 Utils.warning("Invalid location coordinates '%s' for player '%s'", toCoords, player.getName());
-                return;
+                return false;
             }
         }
         Utils.debug("teleporting player '%s' to %s", player.getName(), toLocation);
-        player.teleport(toLocation);
+        return player.teleport(toLocation);
     }
     
     private static List<String> savedPlayers = new ArrayList<String>();
@@ -480,9 +573,9 @@ public final class Realm {
                         try {
                             Player player = Global.plugin.getServer().getPlayer(playerName);
                             if (player != null) {
-                                PlayerData data = PlayerData.load(playerName);
+                                RealmPlayer data = RealmPlayer.load(playerName, false);
                                 if (data == null)
-                                    data = new PlayerData(player);
+                                    data = new RealmPlayer(player);
                                 else
                                     data.update(player);
                                 save(data);
@@ -499,34 +592,6 @@ public final class Realm {
             }
         }, getSaveInterval());
     }
-    
-    /*
-    private static void saveAll() {
-        
-        
-        final Set<PlayerData> players = new HashSet<PlayerData>();
-        for (Player player : Global.plugin.getServer().getOnlinePlayers())
-            players.add(new PlayerData(player));
-        
-        Utils.worker(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    for (PlayerData player : players) {
-                        PlayerData data = PlayerData.load(player.name);
-                        if (data == null)
-                            data = player;
-                        else
-                            data.update(player);
-                        save(data);
-                    }
-                } catch (SQLException se) {
-                    Utils.severe("SQL Exception while loading realm players: %s", se.getMessage());
-                }
-            }
-        });
-    }
-*/
     
     public static boolean getEnabled() {
         return Config.getBooleanDirect("realm.enabled", false);
@@ -575,6 +640,12 @@ public final class Realm {
 
     public static void setDefaultServer(String s) {
         if ((s != null) && (s.equals("-") || s.equals("*"))) s = null;
+        if (s != null) {
+            Server server = Servers.find(s);
+            if (server == null)
+                throw new IllegalArgumentException("unknown server");
+            s = server.getName();
+        }
         Config.setPropertyDirect("realm.defaultServer", s);
     }
 
@@ -584,9 +655,45 @@ public final class Realm {
 
     public static void setDefaultWorld(String s) {
         if ((s != null) && (s.equals("-") || s.equals("*"))) s = null;
+        if (s != null) {
+            LocalWorldImpl world = Worlds.get(s);
+            if (world == null)
+                throw new IllegalArgumentException("unknown world");
+            s = world.getName();
+        }
         Config.setPropertyDirect("realm.defaultWorld", s);
     }
 
+    public static String getDefaultGate() {
+        return Config.getStringDirect("realm.defaultGate", null);
+    }
+
+    public static void setDefaultGate(String s) {
+        if ((s != null) && (s.equals("-") || s.equals("*"))) s = null;
+        if (s != null) {
+            GateImpl gate = Gates.find(s);
+            if (gate == null)
+                throw new IllegalArgumentException("unknown or offline gate");
+            s = gate.getLocalName();
+        }
+        Config.setPropertyDirect("realm.defaultGate", s);
+    }
+    
+    public static String getRespawnGate() {
+        return Config.getStringDirect("realm.respawnGate", null);
+    }
+
+    public static void setRespawnGate(String s) {
+        if ((s != null) && (s.equals("-") || s.equals("*"))) s = null;
+        if (s != null) {
+            GateImpl gate = Gates.find(s);
+            if (gate == null)
+                throw new IllegalArgumentException("unknown or offline gate");
+            s = gate.getLocalName();
+        }
+        Config.setPropertyDirect("realm.respawnGate", s);
+    }
+    
     public static String getDbURL() {
         return Config.getStringDirect("realm.dbURL", null);
     }
@@ -632,7 +739,49 @@ public final class Realm {
         Config.setPropertyDirect("realm.dbPrefix", s);
     }
 
-
+    public static boolean getWebServer() {
+        return Config.getBooleanDirect("realm.webServer", false);
+    }
+    
+    public static void setWebServer(boolean b) {
+        boolean old = getWebServer();
+        Config.setPropertyDirect("realm.webServer", b);
+        if (old)
+            stopWebServer();
+        if (b)
+            startWebServer();
+    }
+    
+    public static int getWebServerPort() {
+        return Config.getIntDirect("realm.webServerPort", 8080);
+    }
+    
+    public static void setWebServerPort(int i) {
+        int old = getWebServerPort();
+        if (i < 1) i = 1;
+        if (i > 65535) i = 65535;
+        Config.setPropertyDirect("realm.webServerPort", i);
+        if ((i != old) && getWebServer()) {
+            stopWebServer();
+            startWebServer();
+        }
+    }
+    
+    public static int getWebServerWorkers() {
+        return Config.getIntDirect("realm.webServerWorkers", 5);
+    }
+    
+    public static void setWebServerWorkers(int i) {
+        int old = getWebServerWorkers();
+        if (i < 1) i = 1;
+        if (i > 1000) i = 1000;
+        Config.setPropertyDirect("realm.webServerWorkers", i);
+        if ((i != old) && getWebServer()) {
+            stopWebServer();
+            startWebServer();
+        }
+    }
+    
     public static void getOptions(Context ctx, String name) throws OptionsException, PermissionsException {
         options.getOptions(ctx, name);
     }
@@ -647,14 +796,29 @@ public final class Realm {
 
     /* End options */
 
+    public static GateImpl getDefaultGateImpl() {
+        String gName = getDefaultGate();
+        if (gName == null) return null;
+        GateImpl gate = Gates.get(gName);
+        return gate;
+    }
+    
+    public static GateImpl getRespawnGateImpl() {
+        String gName = getRespawnGate();
+        if (gName == null) return null;
+        GateImpl gate = Gates.get(gName);
+        return gate;
+    }
+    
     private static String tableName(String baseName) {
         String pre = getDbPrefix();
         if (pre == null) return baseName;
         return pre + baseName;
     }
     
-    private static final class PlayerData {
+    public static final class RealmPlayer implements DataCapsule {
         boolean fromDb = false;
+        boolean dirty = true;
         String name;
         String displayName;
         String address;
@@ -685,11 +849,12 @@ public final class Realm {
         String lastDeathMessage;
         Calendar lastUpdated;
         
-        static PlayerData load(String playerName) throws SQLException {
-            synchronized (dirtyPlayers) {
-                PlayerData data = dirtyPlayers.remove(playerName);
-                if (data != null) return data;
-            }
+        static RealmPlayer load(String playerName, boolean fromDB) throws SQLException {
+            if (! fromDB)
+                synchronized (dirtyPlayers) {
+                    RealmPlayer data = dirtyPlayers.remove(playerName);
+                    if (data != null) return data;
+                }
             PreparedStatement stmt = null;
             ResultSet rs = null;
             try {
@@ -697,15 +862,16 @@ public final class Realm {
                 stmt.setString(1, playerName);
                 rs = stmt.executeQuery();
                 if (! rs.next()) return null;
-                return new PlayerData(rs);
+                return new RealmPlayer(rs);
             } finally {
                 if (rs != null) rs.close();
                 if (stmt != null) stmt.close();
             }
         }
 
-        private PlayerData(ResultSet rs) throws SQLException {
+        private RealmPlayer(ResultSet rs) throws SQLException {
             fromDb = true;
+            dirty = false;
             name = rs.getString("name");
             displayName = rs.getString("displayName");
             address = rs.getString("address");
@@ -755,7 +921,7 @@ public final class Realm {
             Utils.debug("loaded realm player '%s'", name);
         }
 
-        PlayerData(Player player) {
+        RealmPlayer(Player player) {
             name = player.getName();
             update(player);
         }
@@ -785,6 +951,7 @@ public final class Realm {
             updateLastLocation(loc);
         }
         
+        /*
         void update(PlayerData data) {
             displayName = data.displayName;
             address = data.address;
@@ -806,9 +973,11 @@ public final class Realm {
             lastWorld = data.lastWorld;
             lastLocation = data.lastLocation;
         }
-
+*/
+        
         void updateLastLocation(Location loc) {
             lastLocation = loc.getX() + "," + loc.getY() + "," + loc.getZ();
+            dirty = true;
         }
 
         private Calendar getDateTime(ResultSet rs, String column) throws SQLException {
@@ -930,6 +1099,7 @@ public final class Realm {
                 stmt.setString(col++, name);
                 
                 stmt.execute();
+                dirty = false;
                 Utils.debug("saved realm player '%s'", name);
             } finally {
                 if (stmt != null) stmt.close();
@@ -980,7 +1150,66 @@ public final class Realm {
             Utils.debug("restored realm player '%s'", name);
             return true;
         }
+
+        @Override
+        public String[] getExports() {
+            return new String[] {
+                "getName",
+                "getDisplayName",
+                "getAddress",
+//        List<TypeMap> inventory;
+//        List<TypeMap> armor;
+                "getHeldItemSlot",
+                "getHealth",
+                "getRemainingAir",
+                "getFireTicks",
+                "getFoodLevel",
+                "getExhaustion",
+                "getSaturation",
+                "getGameMode",
+                "getLevel",
+                "getXp",
+//        List<TypeMap> potionEffects;
+
+                "getLastServer",
+                "getLastWorld",
+                "getLastLocation",
+                "getHome",
         
+//        Calendar lastJoin;
+//        Calendar lastQuit;
+//        Calendar lastKick;
+//        Calendar lastDeath;
+                "getDeaths",
+                "getLastDeathMessage"
+//        Calendar lastUpdated;
+            };
+        }
+
+        @Override
+        public String getExportPrefix() {
+            return "player";
+        }
+        
+        public String getName() { return name; }
+        public String getDisplayName() { return displayName; }
+        public String getAddress() { return address; }
+        public String getHeldItemSlot() { return heldItemSlot + ""; }
+        public String getHealth() { return health + ""; }
+        public String getRemainingAir() { return remainingAir + ""; }
+        public String getFireTicks() { return fireTicks + ""; }
+        public String getFoodLevel() { return foodLevel + ""; }
+        public String getExhaustion() { return exhaustion + ""; }
+        public String getSaturation() { return saturation + ""; }
+        public String getGameMode() { return gameMode; }
+        public String getLevel() { return level + ""; }
+        public String getXp() { return xp + ""; }
+        public String getLastServer() { return lastServer; }
+        public String getLastWorld() { return lastWorld; }
+        public String getLastLocation() { return lastLocation; }
+        public String getHome() { return home; }
+        public String getDeaths() { return deaths + ""; }
+        public String getLastDeathMessage() { return lastDeathMessage; }
     }
     
 }

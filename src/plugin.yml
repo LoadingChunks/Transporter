@@ -1,6 +1,6 @@
 name: Transporter
 main: org.bennedum.transporter.Transporter
-version: "8.0beta3"
+version: "8.0beta4"
 authors:
   - frdfsnlght
 website: http://dev.bukkit.org/server-mods/transporter/

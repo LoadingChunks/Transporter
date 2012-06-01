@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Transporter Realm {~realmName}</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <link href="style.css" rel="stylesheet" type="text/css"/>        
+    </head>
+    <body>
+        <div id="playerSearchForm">
+            <form method="GET">
+                <label for="name">Player name:</label>
+                <input id="name" type="text" name="name" value="{~searchName:}"/>
+                <input type="button" value="Submit" onClick="this.form.submit();"/>
+            </form>
+        </div>
+        {^if (~searchName)}
+            {^if (~player_name)}
+                <div id="player">
+                    Name: {~player_name|html}<br/>
+                    Health: {~player_health}<br/>
+                    Deaths: {~player_deaths}<br/>
+                </div>
+            {^else}
+                <div id="playerNotFound">
+                    Player "{~searchName}" not found.
+                </div>
+            {/if}
+        {/if}
+    </body>
+</html>

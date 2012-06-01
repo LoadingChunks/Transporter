@@ -16,6 +16,7 @@
 package org.bennedum.transporter;
 
 import java.io.File;
+import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.List;
 import org.bennedum.transporter.api.API;
@@ -28,6 +29,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.plugin.java.PluginClassLoader;
 
 
 /**
@@ -83,6 +85,15 @@ public class Transporter extends JavaPlugin {
         Utils.copyFilesFromJar("/resources/overviewer/manifest", overviewerFolder, true);
         Utils.copyFileFromJar("/resources/overviewer/transporterConfig.js", overviewerFolder, false);
 
+        // Add all jars in the data folder to our class loader
+        PluginClassLoader classLoader = (PluginClassLoader)getClass().getClassLoader();
+        for (String fileName : dataFolder.list()) {
+            if (fileName.toLowerCase().endsWith(".jar"))
+                try {
+                    classLoader.addURL((new File(dataFolder, fileName)).toURI().toURL());
+                } catch (MalformedURLException mue) {}
+        }
+        
         Config.load(ctx);
         Designs.load(ctx);
         Network.start(ctx);

@@ -99,6 +99,10 @@ public final class Servers {
     }
     
     public static Server get(String name) {
+        return servers.get(name);
+    }
+    
+    public static Server find(String name) {
         if (servers.containsKey(name)) return servers.get(name);
         Server server = null;
         name = name.toLowerCase();
@@ -124,7 +128,7 @@ public final class Servers {
     }
 
     public static RemoteServer getRemoteServer(String name) {
-        Server server = get(name);
+        Server server = find(name);
         if (server == null)
             throw new IllegalArgumentException("server '" + name + "' does not exist");
         return server;

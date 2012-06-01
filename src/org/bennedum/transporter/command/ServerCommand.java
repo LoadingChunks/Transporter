@@ -126,7 +126,7 @@ public class ServerCommand extends TrpCommandProcessor {
             if (args.isEmpty())
                 throw new CommandException("server name required");
             String name = args.remove(0);
-            Server server = Servers.get(name);
+            Server server = Servers.find(name);
             if (server == null)
                 throw new CommandException("unknown server '%s'", name);
             if (args.isEmpty())
@@ -143,7 +143,7 @@ public class ServerCommand extends TrpCommandProcessor {
             if (args.isEmpty())
                 throw new CommandException("server name required");
             String name = args.remove(0);
-            Server server = Servers.get(name);
+            Server server = Servers.find(name);
             if (server == null)
                 throw new CommandException("unknown server '%s'", name);
             if (args.isEmpty())
@@ -169,7 +169,7 @@ public class ServerCommand extends TrpCommandProcessor {
         if ("connect".startsWith(subCmd)) {
             if (args.isEmpty())
                 throw new CommandException("server name required");
-            Server server = Servers.get(args.get(0));
+            Server server = Servers.find(args.get(0));
             if (server == null)
                 throw new CommandException("unknown server '%s'", args.get(0));
             Permissions.require(ctx.getPlayer(), "trp.server.connect");
@@ -185,7 +185,7 @@ public class ServerCommand extends TrpCommandProcessor {
         if ("disconnect".startsWith(subCmd)) {
             if (args.isEmpty())
                 throw new CommandException("server name required");
-            Server server = Servers.get(args.get(0));
+            Server server = Servers.find(args.get(0));
             if (server == null)
                 throw new CommandException("unknown server '%s'", args.get(0));
             Permissions.require(ctx.getPlayer(), "trp.server.disconnect");
@@ -197,7 +197,7 @@ public class ServerCommand extends TrpCommandProcessor {
         if ("enable".startsWith(subCmd)) {
             if (args.isEmpty())
                 throw new CommandException("server name required");
-            Server server = Servers.get(args.get(0));
+            Server server = Servers.find(args.get(0));
             if (server == null)
                 throw new CommandException("unknown server '%s'", args.get(0));
             Permissions.require(ctx.getPlayer(), "trp.server.enable");
@@ -209,7 +209,7 @@ public class ServerCommand extends TrpCommandProcessor {
         if ("disable".startsWith(subCmd)) {
             if (args.isEmpty())
                 throw new CommandException("server name required");
-            Server server = Servers.get(args.get(0));
+            Server server = Servers.find(args.get(0));
             if (server == null)
                 throw new CommandException("unknown server '%s'", args.get(0));
             Permissions.require(ctx.getPlayer(), "trp.server.disable");
@@ -221,7 +221,7 @@ public class ServerCommand extends TrpCommandProcessor {
         if ("ping".startsWith(subCmd)) {
             if (args.isEmpty())
                 throw new CommandException("server name required");
-            Server server = Servers.get(args.get(0));
+            Server server = Servers.find(args.get(0));
             if (server == null)
                 throw new CommandException("unknown server '%s'", args.get(0));
             args.remove(0);
@@ -238,7 +238,7 @@ public class ServerCommand extends TrpCommandProcessor {
         if ("refresh".startsWith(subCmd)) {
             if (args.isEmpty())
                 throw new CommandException("server name required");
-            Server server = Servers.get(args.get(0));
+            Server server = Servers.find(args.get(0));
             if (server == null)
                 throw new CommandException("unknown server '%s'", args.get(0));
             Permissions.require(ctx.getPlayer(), "trp.server.refresh");
@@ -254,7 +254,7 @@ public class ServerCommand extends TrpCommandProcessor {
         if ("remove".startsWith(subCmd)) {
             if (args.isEmpty())
                 throw new CommandException("server name required");
-            Server server = Servers.get(args.get(0));
+            Server server = Servers.find(args.get(0));
             if (server == null)
                 throw new CommandException("unknown server '%s'", args.get(0));
             Permissions.require(ctx.getPlayer(), "trp.server.remove");

@@ -15,8 +15,6 @@
  */
 package org.bennedum.transporter;
 
-import org.bennedum.transporter.api.TransporterException;
-import org.bennedum.transporter.api.GateException;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -24,6 +22,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import org.bennedum.transporter.GateMap.Volume;
+import org.bennedum.transporter.api.GateException;
+import org.bennedum.transporter.api.TransporterException;
 import org.bennedum.transporter.api.event.LocalGateCreateEvent;
 import org.bennedum.transporter.api.event.LocalGateDestroyEvent;
 import org.bukkit.Location;

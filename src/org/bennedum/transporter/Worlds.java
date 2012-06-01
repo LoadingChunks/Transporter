@@ -92,6 +92,10 @@ public final class Worlds {
     }
 
     public static LocalWorldImpl get(String name) {
+        return worlds.get(name);
+    }
+    
+    public static LocalWorldImpl find(String name) {
         if (worlds.containsKey(name)) return worlds.get(name);
         LocalWorldImpl world = null;
         name = name.toLowerCase();

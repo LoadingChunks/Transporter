@@ -7,56 +7,20 @@ Ideas:
 * Add more realm commands
     * delete <player>
     * list (lists all player names, maybe with some meta data)
+* Realm web server with templating engine
+    * trp realm set webServerPort <port>
+    * trp realm set webServer <true|false>
 
-    
 TODO:
 
 Testing:
 * Test stairs with facing option
 
 Wiki Updates:
+* Add realm commands to Commands
+* Add new realm options to Realms
+* Describe realm new players, player respawning
 
 Changelog:
-* Honor various canceled player and block events.
-* Added global option "showGatesSavedMessages" to suppress messages during mass gate saves.
-* Unified configuration and network message classes.
-* Removed old client patches (pre 1.2.4).
-* Added gate option "hidden" to hide a gate from gate listings.
-* Added gate option "linkAddDistance" to restrict a player's distance from a gate when adding a link.
-* Added Realm support using a shared database. See the [[Realms]] page for details.
-
-
-
-CREATE TABLE `players` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `name` varchar(30) NOT NULL,
-  `displayName` varchar(30) DEFAULT NULL,
-  `address` varchar(15) DEFAULT NULL,
-  `inventory` text,
-  `armor` text,
-  `heldItemSlot` int(11) DEFAULT NULL,
-  `health` int(11) DEFAULT NULL,
-  `remainingAir` int(11) DEFAULT NULL,
-  `fireTicks` int(11) DEFAULT NULL,
-  `foodLevel` int(11) DEFAULT NULL,
-  `exhaustion` float DEFAULT NULL,
-  `saturation` float DEFAULT NULL,
-  `gameMode` varchar(15) DEFAULT NULL,
-  `level` int(11) DEFAULT NULL,
-  `xp` int(11) DEFAULT NULL,
-  `potionEffects` text,
-  `home` varchar(200) DEFAULT NULL,
-  `lastServer` varchar(30) DEFAULT NULL,
-  `lastWorld` varchar(15) DEFAULT NULL,
-  `lastLocation` varchar(200) DEFAULT NULL,
-  `deaths` int(11) DEFAULT NULL,
-  `lastDeathMessage` varchar(255) DEFAULT NULL,
-  `lastDeath` timestamp NULL DEFAULT NULL,
-  `lastKick` timestamp NULL DEFAULT NULL,
-  `lastJoin` timestamp NULL DEFAULT NULL,
-  `lastQuit` timestamp NULL DEFAULT NULL,
-  `lastUpdated` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `name` (`name`)
-)
+* Added realm options "respawnGate" and "defaultGate".
 

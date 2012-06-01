@@ -123,8 +123,11 @@ public final class APIBackend {
             CommandSender sender = null;
             if ("console".equals(senderStr))
                 sender = server.getConsoleSender();
-            else if ("player".equals(senderStr))
+            else if ("player".equals(senderStr)) {
                 sender = server.getPlayer(args.getString("name"));
+                if (sender == null)
+                    sender = server.getConsoleSender();
+            }
             out.put("result", server.dispatchCommand(sender, args.getString("commandLine")));
         } else if (method.equals("getDefaultGameMode"))
             out.put("result", server.getDefaultGameMode().toString());
