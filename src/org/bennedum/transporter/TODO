@@ -7,9 +7,6 @@ Ideas:
 * Add more realm commands
     * delete <player>
     * list (lists all player names, maybe with some meta data)
-* Realm web server with templating engine
-    * trp realm set webServerPort <port>
-    * trp realm set webServer <true|false>
 
 TODO:
 
@@ -17,10 +14,10 @@ Testing:
 * Test stairs with facing option
 
 Wiki Updates:
-* Add realm commands to Commands
-* Add new realm options to Realms
-* Describe realm new players, player respawning
+* Add FAQ: added servers but they won't connect
 
 Changelog:
 * Added realm options "respawnGate" and "defaultGate".
-
+* Added more player stats to realm support and changed realm database player table definition (see [[Realms]]).
+* Added gate option "receiveStats" (defaults to true) to control player health, remaining air, food level, exhaustion, saturation, and fire ticks.
+* Changed player kicking technique for inter-server teleports.

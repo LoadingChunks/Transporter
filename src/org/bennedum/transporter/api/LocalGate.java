@@ -643,6 +643,21 @@ public interface LocalGate extends Gate {
      * @param b      the option value
      */
     public void setRequireAllowedPotions(boolean b);
+
+    /**
+     * Returns the value of the "receiveStats" option.
+     * 
+     * @return      the option value
+     */
+    public boolean getReceiveStats();
+    
+    /**
+     * Sets the value of the "receiveStats" option.
+     * 
+     * @param b      the option value
+     */
+    public void setReceiveStats(boolean b);
+    
     
     /**
      * Returns the value of the "randomNextLink" option.

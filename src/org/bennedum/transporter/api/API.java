@@ -21,6 +21,7 @@ import org.bennedum.transporter.Config;
 import org.bennedum.transporter.GateImpl;
 import org.bennedum.transporter.Gates;
 import org.bennedum.transporter.LocalGateImpl;
+import org.bennedum.transporter.Realm;
 import org.bennedum.transporter.ReservationImpl;
 import org.bennedum.transporter.Server;
 import org.bennedum.transporter.Servers;
@@ -191,6 +192,34 @@ public final class API {
     public void teleportPlayer(Player player, RemoteLocation location) throws ReservationException {
         ReservationImpl res = new ReservationImpl(player, (Server)location.getRemoteServer(), location.getRemoteWorld().getName(), location.getX(), location.getY(), location.getZ());
         res.depart();
+    }
+
+    /**
+     * Gets the name of the realm this server belongs to.
+     * 
+     * @return the name of the realm
+     */
+    public String getRealmName() {
+        return Realm.getName();
+    }
+    
+    /**
+     * Gets the names of the players stored in the realm database.
+     * 
+     * @return a set of player names, which will be empty if realm support is not functional
+     */
+    public Set<String> getRealmPlayerNames() {
+        return Realm.getPlayerNames();
+    }
+    
+    /**
+     * Gets the specified realm player record.
+     * 
+     * @param name              the name of the realm player
+     * @return                  the realm player or null if the player doesn't exist in the realm database or realm support is not functional
+     */
+    public RealmPlayer getRealmPlayer(String name) {
+        return Realm.getPlayer(name);
     }
     
 }

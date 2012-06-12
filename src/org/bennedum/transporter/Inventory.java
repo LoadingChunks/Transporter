@@ -36,18 +36,16 @@ public final class Inventory {
     public static List<TypeMap> encodeItemStackArray(ItemStack[] isa) {
         if (isa == null) return null;
         List<TypeMap> inv = new ArrayList<TypeMap>();
-        for (int slot = 0; slot < isa.length; slot++) {
-                inv.add(encodeItemStack(isa[slot]));
-        }
+        for (int slot = 0; slot < isa.length; slot++)
+            inv.add(encodeItemStack(isa[slot]));
         return inv;
     }
 
     public static ItemStack[] decodeItemStackArray(List<TypeMap> inv) {
         if (inv == null) return null;
         ItemStack[] decoded = new ItemStack[inv.size()];
-        for (int slot = 0; slot < inv.size(); slot++) {
+        for (int slot = 0; slot < inv.size(); slot++)
             decoded[slot] = decodeItemStack(inv.get(slot));
-        }
         return decoded;
     }
 

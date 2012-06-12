@@ -122,6 +122,7 @@ public final class LocalBlockGateImpl extends LocalGateImpl implements LocalBloc
         receiveXP = design.getReceiveXP();
         receivePotions = design.getReceivePotions();
         requireAllowedPotions = design.getRequireAllowedPotions();
+        receiveStats = design.getReceiveStats();
         randomNextLink = design.getRandomNextLink();
         sendNextLink = design.getSendNextLink();
         teleportFormat = design.getTeleportFormat();

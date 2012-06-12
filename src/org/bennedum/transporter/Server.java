@@ -1643,7 +1643,8 @@ public final class Server implements OptionsListener, RemoteServer {
         Utils.worker(new Runnable() {
             @Override
             public void run() {
-                connection.sendMessage(message, true);
+                if (connection != null)
+                    connection.sendMessage(message, true);
             }
         });
     }

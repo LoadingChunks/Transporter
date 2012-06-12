@@ -101,6 +101,7 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
         BASEOPTIONS.add("receiveXP");
         BASEOPTIONS.add("receivePotions");
         BASEOPTIONS.add("requireAllowedPotions");
+        BASEOPTIONS.add("receiveStats");
         BASEOPTIONS.add("randomNextLink");
         BASEOPTIONS.add("sendNextLink");
         BASEOPTIONS.add("teleportFormat");
@@ -156,6 +157,7 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
     protected boolean receiveXP;
     protected boolean receivePotions;
     protected boolean requireAllowedPotions;
+    protected boolean receiveStats;
     protected boolean randomNextLink;
     protected boolean sendNextLink;
     protected String teleportFormat;
@@ -308,6 +310,7 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
         receiveXP = conf.getBoolean("receiveXP", false);
         receivePotions = conf.getBoolean("receivePotions", false);
         requireAllowedPotions = conf.getBoolean("requireAllowedPotions", true);
+        receiveStats = conf.getBoolean("receiveStats", true);
         randomNextLink = conf.getBoolean("randomNextLink", false);
         sendNextLink = conf.getBoolean("sendNextLink", false);
         teleportFormat = conf.getString("teleportFormat", "%GOLD%teleported to '%toGateCtx%'");
@@ -367,6 +370,7 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
         setReceiveXP(false);
         setReceivePotions(false);
         setRequireAllowedPotions(true);
+        setReceiveStats(true);
         setRandomNextLink(false);
         setSendNextLink(false);
         setTeleportFormat(null);
@@ -658,6 +662,7 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
         conf.set("receiveXP", receiveXP);
         conf.set("receivePotions", receivePotions);
         conf.set("requireAllowedPotions", requireAllowedPotions);
+        conf.set("receiveStats", receiveStats);
         conf.set("bannedPotions", new ArrayList<String>(bannedPotions));
         conf.set("allowedPotions", new ArrayList<String>(allowedPotions));
         conf.set("replacePotions", replacePotions);
@@ -1077,6 +1082,17 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
         dirty = true;
     }
     
+    @Override
+    public boolean getReceiveStats() {
+        return receiveStats;
+    }
+    
+    @Override
+    public void setReceiveStats(boolean b) {
+        receiveStats = b;
+        dirty = true;
+    }
+
     @Override
     public boolean getRandomNextLink() {
         return randomNextLink;

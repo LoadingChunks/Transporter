@@ -15,14 +15,11 @@
  */
 package org.bennedum.transporter;
 
-import com.x5.util.DataCapsule;
-import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -31,18 +28,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.sql.rowset.serial.SerialClob;
 import org.bennedum.transporter.api.ReservationException;
-import org.bukkit.GameMode;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.PlayerInventory;
-import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
 
 /**
  *
@@ -66,9 +57,6 @@ public final class Realm {
         OPTIONS.add("dbUsername");
         OPTIONS.add("dbPassword");
         OPTIONS.add("dbPrefix");
-        OPTIONS.add("webServer");
-        OPTIONS.add("webServerPort");
-        OPTIONS.add("webServerWorkers");
 
         RESTART_OPTIONS.add("saveInterval");
         RESTART_OPTIONS.add("dbURL");
@@ -96,9 +84,8 @@ public final class Realm {
     private static int saveAllTask = -1;
     private static int saveDirtyTask = -1;
     private static Set<String> redirectedPlayers = new HashSet<String>();
-    private static final Map<String,RealmPlayer> dirtyPlayers = new HashMap<String,RealmPlayer>();
+    private static final Map<String,RealmPlayerImpl> cachedPlayers = new HashMap<String,RealmPlayerImpl>();
     private static Set<String> respawningPlayers = new HashSet<String>();
-    private static RealmWebServer webServer = null;
     
     public static boolean isStarted() {
         return started;
@@ -116,14 +103,12 @@ public final class Realm {
                 throw new RealmException("dbUsername is not set");
             if (getDbPassword() == null)
                 throw new RealmException("dbPassword is not set");
-            db = DriverManager.getConnection(getDbURL(), getDbUsername(), getRealDbPassword());
-            db.setAutoCommit(true);
-            db.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
+            connect();
             started = true;
             scheduleSaveAll();
             redirectedPlayers.clear();
-            synchronized (dirtyPlayers) {
-                dirtyPlayers.clear();
+            synchronized (cachedPlayers) {
+                cachedPlayers.clear();
             }
             ctx.send("realm support started");
 
@@ -133,15 +118,12 @@ public final class Realm {
         } catch (Exception e) {
             ctx.warn("realm support cannot be started: %s", e.getMessage());
         }
-        if (getWebServer())
-            startWebServer();
     }
 
     // called from main thread
     public static void stop(Context ctx) {
         if (! started) return;
         started = false;
-        stopWebServer();
         try {
             db.close();
         } catch (SQLException se) {}
@@ -157,17 +139,6 @@ public final class Realm {
         ctx.send("realm support stopped");
     }
 
-    private static void startWebServer() {
-        if (! started) return;
-        webServer = new RealmWebServer(getWebServerPort(), getWebServerWorkers());
-        if (! webServer.start()) webServer = null;
-    }
-    
-    private static void stopWebServer() {
-        if (webServer == null) return;
-        webServer.stop();
-    }
-    
     public static void onConfigLoad(Context ctx) {}
 
     public static void onConfigSave() {}
@@ -179,17 +150,17 @@ public final class Realm {
         if (redirectedPlayers.contains(player.getName())) return;
         Utils.debug("realm onTeleport '%s'", player.getName());
         try {
-            RealmPlayer data = RealmPlayer.load(player.getName(), false);
+            RealmPlayerImpl data = loadPlayer(player.getName(), true);
             if (respawningPlayers.remove(player.getName())) {
                 if (data == null) return;
                 GateImpl respawnGate = getRespawnGateImpl();
                 if (respawnGate != null)
                     sendPlayerToGate(player, respawnGate);
                 else
-                    sendPlayerHome(player, data.home);
+                    sendPlayerHome(player, data.getHome());
             } else {
                 if (data == null)
-                    data = new RealmPlayer(player);
+                    data = new RealmPlayerImpl(player);
                 else
                     data.update(player);
                 data.updateLastLocation(toLocation);
@@ -205,9 +176,9 @@ public final class Realm {
         redirectedPlayers.remove(player.getName());
         Utils.debug("realm save '%s'", player.getName());
         try {
-            RealmPlayer data = RealmPlayer.load(player.getName(), false);
+            RealmPlayerImpl data = loadPlayer(player.getName(), true);
             if (data == null)
-                data = new RealmPlayer(player);
+                data = new RealmPlayerImpl(player);
             else
                 data.update(player);
             save(data);
@@ -221,7 +192,7 @@ public final class Realm {
         redirectedPlayers.remove(player.getName());
         Utils.debug("realm onJoin '%s'", player.getName());
         try {
-            RealmPlayer data = RealmPlayer.load(player.getName(), false);
+            RealmPlayerImpl data = loadPlayer(player.getName(), true);
             if (data == null) {
                 // player is new to the realm
             
@@ -251,11 +222,11 @@ public final class Realm {
                     }
                 }
                 
-                data = new RealmPlayer(player);
+                data = new RealmPlayerImpl(player);
             } else
                 data.apply(player);
             
-            String toServer = data.lastServer;
+            String toServer = data.getLastServer();
             if (toServer != null) {
                 if (! toServer.equals(Global.plugin.getServer().getServerName())) {
                     if (sendPlayerToServer(player, toServer)) {
@@ -278,8 +249,7 @@ public final class Realm {
             }
 
             data.update(player);
-            data.lastJoin = Calendar.getInstance();
-            data.dirty = true;
+            data.setLastJoin(Calendar.getInstance());
             save(data);
             return false;
         } catch (SQLException se) {
@@ -293,13 +263,12 @@ public final class Realm {
         if (redirectedPlayers.contains(player.getName())) return;
         Utils.debug("realm onQuit '%s'", player.getName());
         try {
-            RealmPlayer data = RealmPlayer.load(player.getName(), false);
+            RealmPlayerImpl data = loadPlayer(player.getName(), true);
             if (data == null)
-                data = new RealmPlayer(player);
+                data = new RealmPlayerImpl(player);
             else
                 data.update(player);
-            data.lastQuit = Calendar.getInstance();
-            data.dirty = true;
+            data.setLastQuit(Calendar.getInstance());
             save(data);
         } catch (SQLException se) {
             Utils.severe("SQL Exception while processing realm player quit: %s", se.getMessage());
@@ -312,13 +281,12 @@ public final class Realm {
         Utils.debug("realm onKick '%s'", player.getName());
         
         try {
-            RealmPlayer data = RealmPlayer.load(player.getName(), false);
+            RealmPlayerImpl data = loadPlayer(player.getName(), true);
             if (data == null)
-                data = new RealmPlayer(player);
+                data = new RealmPlayerImpl(player);
             else
                 data.update(player);
-            data.lastKick = Calendar.getInstance();
-            data.dirty = true;
+            data.setLastKick(Calendar.getInstance());
             save(data);
         } catch (SQLException se) {
             Utils.severe("SQL Exception while processing realm player kick: %s", se.getMessage());
@@ -329,15 +297,12 @@ public final class Realm {
         if (! started) return;
         Utils.debug("realm onDeath '%s'", player.getName());
         try {
-            RealmPlayer data = RealmPlayer.load(player.getName(), false);
+            RealmPlayerImpl data = loadPlayer(player.getName(), true);
             if (data == null)
-                data = new RealmPlayer(player);
+                data = new RealmPlayerImpl(player);
             else
                 data.update(player);
-            data.lastDeath = Calendar.getInstance();
-            data.deaths++;
-            data.lastDeathMessage = message;
-            data.dirty = true;
+            data.addDeath(message);
             save(data);
         } catch (SQLException se) {
             Utils.severe("SQL Exception while processing realm player death: %s", se.getMessage());
@@ -354,13 +319,12 @@ public final class Realm {
         if (! started) return;
         Utils.debug("realm onSetHome '%s'", player.getName());
         try {
-            RealmPlayer data = RealmPlayer.load(player.getName(), false);
+            RealmPlayerImpl data = loadPlayer(player.getName(), true);
             if (data == null)
-                data = new RealmPlayer(player);
+                data = new RealmPlayerImpl(player);
             else
                 data.update(player);
-            data.home = Global.plugin.getServer().getServerName() + "|" + loc.getWorld().getName() + "|" + loc.getX() + "|" + loc.getY() + "|" + loc.getZ();
-            data.dirty = true;
+            data.setHome(Global.plugin.getServer().getServerName() + "|" + loc.getWorld().getName() + "|" + loc.getX() + "|" + loc.getY() + "|" + loc.getZ());
             save(data);
         } catch (SQLException se) {
             Utils.severe("SQL Exception while setting realm player home: %s", se.getMessage());
@@ -371,18 +335,50 @@ public final class Realm {
         if (! started) return;
         Utils.debug("realm onUnsetHome '%s'", player.getName());
         try {
-            RealmPlayer data = RealmPlayer.load(player.getName(), false);
+            RealmPlayerImpl data = loadPlayer(player.getName(), true);
             if (data == null)
-                data = new RealmPlayer(player);
+                data = new RealmPlayerImpl(player);
             else
                 data.update(player);
-            data.home = null;
-            data.dirty = true;
+            data.setHome(null);
             save(data);
         } catch (SQLException se) {
             Utils.severe("SQL Exception while unsetting realm player home: %s", se.getMessage());
         }
     }
+    
+    public static void onPlayerKill(Player player, Player killed) {
+        if (! started) return;
+        Utils.debug("realm onPlayerKill '%s'", player.getName());
+        try {
+            RealmPlayerImpl data = loadPlayer(player.getName(), true);
+            if (data == null)
+                data = new RealmPlayerImpl(player);
+            else
+                data.update(player);
+            data.addPlayerKill(killed);
+            save(data);
+        } catch (SQLException se) {
+            Utils.severe("SQL Exception while processing realm player PVP kill: %s", se.getMessage());
+        }
+    }
+    
+    public static void onMobKill(Player player, Entity killed) {
+        if (! started) return;
+        Utils.debug("realm onMobKill '%s'", player.getName());
+        try {
+            RealmPlayerImpl data = loadPlayer(player.getName(), true);
+            if (data == null)
+                data = new RealmPlayerImpl(player);
+            else
+                data.update(player);
+            data.addMobKill(killed);
+            save(data);
+        } catch (SQLException se) {
+            Utils.severe("SQL Exception while processing realm player mob kill: %s", se.getMessage());
+        }
+    }
+    
     
     // End Player events
     
@@ -392,7 +388,8 @@ public final class Realm {
         PreparedStatement stmt = null;
         ResultSet rs = null;
         try {
-            stmt = db.prepareStatement("select name from " + tableName("players"));
+            connect();
+            stmt = db.prepareStatement("select name from " + getTableName("players"));
             rs = stmt.executeQuery();
             while (rs.next())
                 names.add(rs.getString("name"));
@@ -407,20 +404,20 @@ public final class Realm {
         return names;
     }
     
-    public static RealmPlayer getPlayer(String playerName) {
+    public static RealmPlayerImpl getPlayer(String playerName) {
         if (! started) return null;
         try {
-            return RealmPlayer.load(playerName, true);
+            return loadPlayer(playerName, false);
         } catch (SQLException se) {
             Utils.severe("SQL Exception while loading realm player: %s", se.getMessage());
             return null;
         }
     }
     
-    private static void save(RealmPlayer data) {
-        if ((data == null) || (! data.dirty)) return;
-        synchronized (dirtyPlayers) {
-            dirtyPlayers.put(data.name, data);
+    private static void save(RealmPlayerImpl data) {
+        if ((data == null) || (! data.isDirty())) return;
+        synchronized (cachedPlayers) {
+            cachedPlayers.put(data.getName(), data);
             if (saveDirtyTask == -1) {
                 saveDirtyTask = Utils.worker(new Runnable() {
                     @Override
@@ -434,16 +431,17 @@ public final class Realm {
 
     // called from any thread
     private static void saveDirtyPlayers() {
-        synchronized (dirtyPlayers) {
-            for (Iterator<RealmPlayer> i = dirtyPlayers.values().iterator(); i.hasNext(); ) {
-                RealmPlayer data = i.next();
+        synchronized (cachedPlayers) {
+            for (Iterator<RealmPlayerImpl> i = cachedPlayers.values().iterator(); i.hasNext(); ) {
+                RealmPlayerImpl data = i.next();
                 try {
-                    data.save();
+                    connect();
+                    data.save(db);
                 } catch (SQLException se) {
-                    Utils.severe("SQL Exception while saving realm player '%s': %s", data.name, se.getMessage());
+                    Utils.severe("SQL Exception while saving realm player '%s': %s", data.getName(), se.getMessage());
                 }
             }
-            dirtyPlayers.clear();
+            cachedPlayers.clear();
             saveDirtyTask = -1;
         }
     }
@@ -460,9 +458,8 @@ public final class Realm {
         }
         String kickMessage = server.getKickMessage(player.getAddress());
         if (kickMessage == null) return false;
-        Utils.debug("kicking player '%s' @%s: %s", player.getName(), player.getAddress().getAddress().getHostAddress(), kickMessage);
         redirectedPlayers.add(player.getName());
-        player.kickPlayer(kickMessage);
+        Utils.schedulePlayerKick(player, kickMessage);
         return true;
     }
     
@@ -558,7 +555,7 @@ public final class Realm {
         saveAllTask = Utils.fireDelayed(new Runnable() {
             @Override
             public void run() {
-                Utils.debug("realm save all players started");
+                //Utils.debug("realm save all players started");
                 for (OfflinePlayer player : Global.plugin.getServer().getOfflinePlayers()) {
                     redirectedPlayers.remove(player.getName());
                     savedPlayers.remove(player.getName());
@@ -573,9 +570,9 @@ public final class Realm {
                         try {
                             Player player = Global.plugin.getServer().getPlayer(playerName);
                             if (player != null) {
-                                RealmPlayer data = RealmPlayer.load(playerName, false);
+                                RealmPlayerImpl data = loadPlayer(playerName, true);
                                 if (data == null)
-                                    data = new RealmPlayer(player);
+                                    data = new RealmPlayerImpl(player);
                                 else
                                     data.update(player);
                                 save(data);
@@ -588,7 +585,7 @@ public final class Realm {
                 }
                 saveAllTask = -1;
                 scheduleSaveAll();
-                Utils.debug("realm save all players completed");
+                //Utils.debug("realm save all players completed");
             }
         }, getSaveInterval());
     }
@@ -739,49 +736,6 @@ public final class Realm {
         Config.setPropertyDirect("realm.dbPrefix", s);
     }
 
-    public static boolean getWebServer() {
-        return Config.getBooleanDirect("realm.webServer", false);
-    }
-    
-    public static void setWebServer(boolean b) {
-        boolean old = getWebServer();
-        Config.setPropertyDirect("realm.webServer", b);
-        if (old)
-            stopWebServer();
-        if (b)
-            startWebServer();
-    }
-    
-    public static int getWebServerPort() {
-        return Config.getIntDirect("realm.webServerPort", 8080);
-    }
-    
-    public static void setWebServerPort(int i) {
-        int old = getWebServerPort();
-        if (i < 1) i = 1;
-        if (i > 65535) i = 65535;
-        Config.setPropertyDirect("realm.webServerPort", i);
-        if ((i != old) && getWebServer()) {
-            stopWebServer();
-            startWebServer();
-        }
-    }
-    
-    public static int getWebServerWorkers() {
-        return Config.getIntDirect("realm.webServerWorkers", 5);
-    }
-    
-    public static void setWebServerWorkers(int i) {
-        int old = getWebServerWorkers();
-        if (i < 1) i = 1;
-        if (i > 1000) i = 1000;
-        Config.setPropertyDirect("realm.webServerWorkers", i);
-        if ((i != old) && getWebServer()) {
-            stopWebServer();
-            startWebServer();
-        }
-    }
-    
     public static void getOptions(Context ctx, String name) throws OptionsException, PermissionsException {
         options.getOptions(ctx, name);
     }
@@ -796,6 +750,41 @@ public final class Realm {
 
     /* End options */
 
+    private static void connect() throws SQLException {
+        if ((db == null) || db.isClosed()) {
+            db = DriverManager.getConnection(getDbURL(), getDbUsername(), getRealDbPassword());
+            db.setAutoCommit(true);
+            db.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
+        }
+    }
+    
+    private static RealmPlayerImpl loadPlayer(String playerName, boolean fromCache) throws SQLException {
+        if (! started) return null;
+        if (fromCache) {
+            synchronized (cachedPlayers) {
+                RealmPlayerImpl player = cachedPlayers.remove(playerName);
+                if (player != null) return player;
+            }
+        }
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        try {
+            connect();
+            stmt = Realm.db.prepareStatement("select * from " + getTableName("players") + " where name=?");
+            stmt.setString(1, playerName);
+            rs = stmt.executeQuery();
+            if (!rs.next()) return null;
+            return new RealmPlayerImpl(rs);
+        } finally {
+            if (rs != null)
+                rs.close();
+            if (stmt != null)
+                stmt.close();
+        }
+    }
+
+    
+    
     public static GateImpl getDefaultGateImpl() {
         String gName = getDefaultGate();
         if (gName == null) return null;
@@ -810,406 +799,10 @@ public final class Realm {
         return gate;
     }
     
-    private static String tableName(String baseName) {
+    public static String getTableName(String baseName) {
         String pre = getDbPrefix();
         if (pre == null) return baseName;
-        return pre + baseName;
-    }
-    
-    public static final class RealmPlayer implements DataCapsule {
-        boolean fromDb = false;
-        boolean dirty = true;
-        String name;
-        String displayName;
-        String address;
-        List<TypeMap> inventory;
-        List<TypeMap> armor;
-        int heldItemSlot;
-        int health;
-        int remainingAir;
-        int fireTicks;
-        int foodLevel;
-        float exhaustion;
-        float saturation;
-        String gameMode;
-        int level;
-        float xp;
-        List<TypeMap> potionEffects;
-
-        String lastServer;
-        String lastWorld;
-        String lastLocation;
-        String home;
-        
-        Calendar lastJoin;
-        Calendar lastQuit;
-        Calendar lastKick;
-        Calendar lastDeath;
-        int deaths = 0;
-        String lastDeathMessage;
-        Calendar lastUpdated;
-        
-        static RealmPlayer load(String playerName, boolean fromDB) throws SQLException {
-            if (! fromDB)
-                synchronized (dirtyPlayers) {
-                    RealmPlayer data = dirtyPlayers.remove(playerName);
-                    if (data != null) return data;
-                }
-            PreparedStatement stmt = null;
-            ResultSet rs = null;
-            try {
-                stmt = db.prepareStatement("select * from " + tableName("players") + " where name=?");
-                stmt.setString(1, playerName);
-                rs = stmt.executeQuery();
-                if (! rs.next()) return null;
-                return new RealmPlayer(rs);
-            } finally {
-                if (rs != null) rs.close();
-                if (stmt != null) stmt.close();
-            }
-        }
-
-        private RealmPlayer(ResultSet rs) throws SQLException {
-            fromDb = true;
-            dirty = false;
-            name = rs.getString("name");
-            displayName = rs.getString("displayName");
-            address = rs.getString("address");
-            
-            Clob invClob = rs.getClob("inventory");
-            if (invClob == null)
-                inventory = null;
-            else
-                inventory = (List<TypeMap>)JSON.decode(invClob.getSubString(1L, (int)invClob.length()));
-            
-            Clob armorClob = rs.getClob("armor");
-            if (armorClob == null)
-                armor = null;
-            else
-                armor = (List<TypeMap>)JSON.decode(armorClob.getSubString(1L, (int)armorClob.length()));
-                    
-            heldItemSlot = rs.getInt("heldItemSlot");
-            health = rs.getInt("health");
-            remainingAir = rs.getInt("remainingAir");
-            fireTicks = rs.getInt("fireTicks");
-            foodLevel = rs.getInt("foodLevel");
-            exhaustion = rs.getFloat("exhaustion");
-            saturation = rs.getFloat("saturation");
-            gameMode = rs.getString("gameMode");
-            level = rs.getInt("level");
-            xp = rs.getFloat("xp");
-            
-            Clob peClob = rs.getClob("potionEffects");
-            if (peClob == null)
-                potionEffects = null;
-            else
-                potionEffects = (List<TypeMap>)JSON.decode(peClob.getSubString(1L, (int)peClob.length()));
-
-            lastServer = rs.getString("lastServer");
-            lastWorld = rs.getString("lastWorld");
-            lastLocation = rs.getString("lastLocation");
-            home = rs.getString("home");
-            
-            lastJoin = getDateTime(rs, "lastJoin");
-            lastQuit = getDateTime(rs, "lastQuit");
-            lastKick = getDateTime(rs, "lastKick");
-            lastDeath = getDateTime(rs, "lastDeath");
-            deaths = rs.getInt("deaths");
-            lastDeathMessage = rs.getString("lastDeathMessage");
-            lastUpdated = getDateTime(rs, "lastUpdated");
-            
-            Utils.debug("loaded realm player '%s'", name);
-        }
-
-        RealmPlayer(Player player) {
-            name = player.getName();
-            update(player);
-        }
-        
-        void update(Player player) {
-            displayName = player.getDisplayName();
-            address = player.getAddress().getAddress().getHostAddress();
-            PlayerInventory inv = player.getInventory();
-            inventory = Inventory.encodeItemStackArray(inv.getContents());
-            armor = Inventory.encodeItemStackArray(inv.getArmorContents());
-            heldItemSlot = inv.getHeldItemSlot();
-            health = player.getHealth();
-            remainingAir = player.getRemainingAir();
-            fireTicks = player.getFireTicks();
-            foodLevel = player.getFoodLevel();
-            exhaustion = player.getExhaustion();
-            saturation = player.getSaturation();
-            gameMode = player.getGameMode().toString();
-            level = player.getLevel();
-            xp = player.getExp();
-            potionEffects = PotionEffects.encodePotionEffects(player.getActivePotionEffects());
-
-            lastServer = Global.plugin.getServer().getServerName();
-            if (lastServer == null) lastServer = "unknown";
-            Location loc = player.getLocation();
-            lastWorld = loc.getWorld().getName();
-            updateLastLocation(loc);
-        }
-        
-        /*
-        void update(PlayerData data) {
-            displayName = data.displayName;
-            address = data.address;
-            inventory = data.inventory;
-            armor = data.armor;
-            heldItemSlot = data.heldItemSlot;
-            health = data.health;
-            remainingAir = data.remainingAir;
-            fireTicks = data.fireTicks;
-            foodLevel = data.foodLevel;
-            exhaustion = data.exhaustion; 
-            saturation = data.saturation; 
-            gameMode = data.gameMode;
-            level = data.level;
-            xp = data.xp;
-            potionEffects = data.potionEffects;
-
-            lastServer = data.lastServer;
-            lastWorld = data.lastWorld;
-            lastLocation = data.lastLocation;
-        }
-*/
-        
-        void updateLastLocation(Location loc) {
-            lastLocation = loc.getX() + "," + loc.getY() + "," + loc.getZ();
-            dirty = true;
-        }
-
-        private Calendar getDateTime(ResultSet rs, String column) throws SQLException {
-            Timestamp ts = rs.getTimestamp(column);
-            if (ts == null) return null;
-            Calendar c = Calendar.getInstance();
-            c.setTimeInMillis(ts.getTime());
-            return c;
-        }
-
-        private void setDateTime(PreparedStatement stmt, int col, Calendar c) throws SQLException {
-            if (c == null)
-                stmt.setTimestamp(col, null);
-            else {
-                Timestamp ts = new Timestamp(c.getTimeInMillis());
-                stmt.setTimestamp(col, ts);
-            }
-        }
-        
-        void save() throws SQLException {
-            PreparedStatement stmt = null;
-            try {
-                if (fromDb)
-                    stmt = db.prepareStatement("update " + tableName("players") + " set " +
-                                "displayName=?, " +
-                                "address=?, " +
-                                "inventory=?, " +
-                                "armor=?, " +
-                                "heldItemSlot=?, " +
-                                "health=?, " +
-                                "remainingAir=?, " +
-                                "fireTicks=?, " +
-                                "foodLevel=?, " +
-                                "exhaustion=?, " +
-                                "saturation=?, " +
-                                "gameMode=?, " +
-                                "level=?, " +
-                                "xp=?, " +
-                                "potionEffects=?, " +
-                                "lastServer=?, " +
-                                "lastWorld=?, " +
-                                "lastLocation=?, " +
-                                "home=?, " +
-                                "lastJoin=?, " +
-                                "lastQuit=?, " +
-                                "lastKick=?, " +
-                                "lastDeath=?, " +
-                                "deaths=?, " +
-                                "lastDeathMessage=?, " +
-                                "lastUpdated=? " +
-                            "where name=?");
-                else
-                    stmt = db.prepareStatement("insert into " + tableName("players") + " (" +
-                                "displayName," +
-                                "address," +
-                                "inventory," +
-                                "armor," +
-                                "heldItemSlot," +
-                                "health," +
-                                "remainingAir," +
-                                "fireTicks," +
-                                "foodLevel," +
-                                "exhaustion," +
-                                "saturation," +
-                                "gameMode," +
-                                "level," +
-                                "xp," +
-                                "potionEffects," +
-                                "lastServer," +
-                                "lastWorld," +
-                                "lastLocation," +
-                                "home," +
-                                "lastJoin," +
-                                "lastQuit," +
-                                "lastKick," +
-                                "lastDeath," +
-                                "deaths," +
-                                "lastDeathMessage," +
-                                "lastUpdated," +
-                                "name" +
-                            ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-                int col = 1;
-                stmt.setString(col++, displayName);
-                stmt.setString(col++, address);
-                
-                Clob invClob = new SerialClob(JSON.encode(inventory).toCharArray());
-                stmt.setClob(col++, invClob);
-                
-                Clob armorClob = new SerialClob(JSON.encode(armor).toCharArray());
-                stmt.setClob(col++, armorClob);
-                
-                stmt.setInt(col++, heldItemSlot);
-                stmt.setInt(col++, health);
-                stmt.setInt(col++, remainingAir);
-                stmt.setInt(col++, fireTicks);
-                stmt.setInt(col++, foodLevel);
-                stmt.setFloat(col++, exhaustion);
-                stmt.setFloat(col++, saturation);
-                stmt.setString(col++, gameMode);
-                stmt.setInt(col++, level);
-                stmt.setFloat(col++, xp);
-                
-                Clob peClob = new SerialClob(JSON.encode(potionEffects).toCharArray());
-                stmt.setClob(col++, peClob);
-                
-                stmt.setString(col++, lastServer);
-                stmt.setString(col++, lastWorld);
-                stmt.setString(col++, lastLocation);
-                stmt.setString(col++, home);
-                setDateTime(stmt, col++, lastJoin);
-                setDateTime(stmt, col++, lastQuit);
-                setDateTime(stmt, col++, lastKick);
-                setDateTime(stmt, col++, lastDeath);
-                stmt.setInt(col++, deaths);
-                stmt.setString(col++, lastDeathMessage);
-                lastUpdated = Calendar.getInstance();
-                setDateTime(stmt, col++, lastUpdated);
-
-                stmt.setString(col++, name);
-                
-                stmt.execute();
-                dirty = false;
-                Utils.debug("saved realm player '%s'", name);
-            } finally {
-                if (stmt != null) stmt.close();
-            }
-        }
-        
-        
-        // call from main thread
-        boolean apply(Player player) {
-            player.setHealth(health);
-            player.setRemainingAir(remainingAir);
-            player.setFoodLevel(foodLevel);
-            player.setExhaustion(exhaustion);
-            player.setSaturation(saturation);
-            if (gameMode != null)
-                player.setGameMode(Utils.valueOf(GameMode.class, gameMode));
-            player.setLevel(level);
-            player.setExp(xp);
-            player.setFireTicks(fireTicks);
-            PlayerInventory inv = player.getInventory();
-            ItemStack[] invArray = Inventory.decodeItemStackArray(inventory);
-
-            if (invArray != null)
-                for (int slot = 0; slot < invArray.length; slot++) {
-                    ItemStack stack = invArray[slot];
-                    if (stack == null)
-                        inv.setItem(slot, new ItemStack(Material.AIR.getId()));
-                    else
-                        inv.setItem(slot, stack);
-                }
-            
-            ItemStack[] armorArray = Inventory.decodeItemStackArray(armor);
-            if (armorArray != null)
-                inv.setArmorContents(armorArray);
-            PotionEffect[] potionArray = PotionEffects.decodePotionEffects(potionEffects);
-            if (potionArray != null) {
-                for (PotionEffectType pet : PotionEffectType.values()) {
-                    if (pet == null) continue;
-                    if (player.hasPotionEffect(pet))
-                        player.removePotionEffect(pet);
-                }
-                for (PotionEffect effect : potionArray) {
-                    if (effect == null) continue;
-                    player.addPotionEffect(effect);
-                }
-            }
-            player.saveData();
-            Utils.debug("restored realm player '%s'", name);
-            return true;
-        }
-
-        @Override
-        public String[] getExports() {
-            return new String[] {
-                "getName",
-                "getDisplayName",
-                "getAddress",
-//        List<TypeMap> inventory;
-//        List<TypeMap> armor;
-                "getHeldItemSlot",
-                "getHealth",
-                "getRemainingAir",
-                "getFireTicks",
-                "getFoodLevel",
-                "getExhaustion",
-                "getSaturation",
-                "getGameMode",
-                "getLevel",
-                "getXp",
-//        List<TypeMap> potionEffects;
-
-                "getLastServer",
-                "getLastWorld",
-                "getLastLocation",
-                "getHome",
-        
-//        Calendar lastJoin;
-//        Calendar lastQuit;
-//        Calendar lastKick;
-//        Calendar lastDeath;
-                "getDeaths",
-                "getLastDeathMessage"
-//        Calendar lastUpdated;
-            };
-        }
-
-        @Override
-        public String getExportPrefix() {
-            return "player";
-        }
-        
-        public String getName() { return name; }
-        public String getDisplayName() { return displayName; }
-        public String getAddress() { return address; }
-        public String getHeldItemSlot() { return heldItemSlot + ""; }
-        public String getHealth() { return health + ""; }
-        public String getRemainingAir() { return remainingAir + ""; }
-        public String getFireTicks() { return fireTicks + ""; }
-        public String getFoodLevel() { return foodLevel + ""; }
-        public String getExhaustion() { return exhaustion + ""; }
-        public String getSaturation() { return saturation + ""; }
-        public String getGameMode() { return gameMode; }
-        public String getLevel() { return level + ""; }
-        public String getXp() { return xp + ""; }
-        public String getLastServer() { return lastServer; }
-        public String getLastWorld() { return lastWorld; }
-        public String getLastLocation() { return lastLocation; }
-        public String getHome() { return home; }
-        public String getDeaths() { return deaths + ""; }
-        public String getLastDeathMessage() { return lastDeathMessage; }
+        return '`' + pre + baseName + '`';
     }
     
 }

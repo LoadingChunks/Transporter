@@ -78,6 +78,7 @@ public class Design {
     private boolean receiveXP;
     private boolean receivePotions;
     private boolean requireAllowedPotions;
+    private boolean receiveStats;
     private boolean randomNextLink;
     private boolean sendNextLink;
     private String teleportFormat;
@@ -153,6 +154,7 @@ public class Design {
         receiveXP = conf.getBoolean("receiveXP", false);
         receivePotions = conf.getBoolean("receivePotions", false);
         requireAllowedPotions = conf.getBoolean("requireAllowedPotions", true);
+        receiveStats = conf.getBoolean("receiveStats", true);
         randomNextLink = conf.getBoolean("randomNextLink", false);
         sendNextLink = conf.getBoolean("sendNextLink", false);
         teleportFormat = conf.getString("teleportFormat", "%GOLD%teleported to '%toGateCtx%'");
@@ -494,6 +496,10 @@ public class Design {
 
     public boolean getRequireAllowedPotions() {
         return requireAllowedPotions;
+    }
+
+    public boolean getReceiveStats() {
+        return receiveStats;
     }
 
     public boolean getRandomNextLink() {

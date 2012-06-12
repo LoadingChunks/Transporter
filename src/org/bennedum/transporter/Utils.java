@@ -187,7 +187,19 @@ public class Utils {
             while ((line = r.readLine()) != null) {
                 line = line.replaceAll("^\\s+|\\s+$|\\s*#.*", "");
                 if (line.length() == 0) continue;
-                copyFileFromJar(line, dstFolder, overwriteIfOlder);
+                if (line.endsWith("/")) {
+                    // recursive copy of directory
+                    int pos = line.lastIndexOf("/", line.length() - 2);
+                    String subFolderName;
+                    if (pos == -1)
+                        subFolderName = line.substring(0, line.length() - 1);
+                    else
+                        subFolderName = line.substring(pos + 1, line.length() - 1);
+                    line += "manifest";
+                    File subFolder = new File(dstFolder, subFolderName);
+                    copyFilesFromJar(line, subFolder, overwriteIfOlder);
+                } else
+                    copyFileFromJar(line, dstFolder, overwriteIfOlder);
             }
         } catch (IOException ioe) {}
         return created;
@@ -348,6 +360,16 @@ public class Utils {
         return true;
     }
 
+    public static void schedulePlayerKick(final Player player, final String message) {
+        fire(new Runnable() {
+            @Override
+            public void run() {
+                debug("kicking player '%s' @%s: %s", player.getName(), player.getAddress().getAddress().getHostAddress(), message);
+                player.kickPlayer(message);
+            }
+        });
+    }
+    
     public static HttpURLConnection openURL(URL url) throws IOException {
         Proxy proxy = Proxy.NO_PROXY;
         String proxyHost = Config.getHttpProxyHost();

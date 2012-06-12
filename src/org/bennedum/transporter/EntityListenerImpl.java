@@ -15,10 +15,16 @@
  */
 package org.bennedum.transporter;
 
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
+import org.bukkit.event.entity.EntityDeathEvent;
 
 /**
  *
@@ -32,4 +38,22 @@ public final class EntityListenerImpl implements Listener {
             event.setCancelled(true);
     }
 
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onEntityDeath(EntityDeathEvent event) {
+        Entity deadEnt = event.getEntity();
+        if (! (deadEnt.getLastDamageCause() instanceof EntityDamageByEntityEvent)) return;
+        
+        EntityDamageByEntityEvent killEvent = (EntityDamageByEntityEvent) deadEnt.getLastDamageCause();
+        Entity killerEnt = killEvent.getDamager();
+        if (killEvent.getCause() == DamageCause.PROJECTILE)
+            killerEnt = ((Projectile)killerEnt).getShooter();
+
+        if (! (killerEnt instanceof Player)) return;
+        
+        if (deadEnt instanceof Player)
+            Realm.onPlayerKill((Player)killerEnt, (Player)deadEnt);
+        else
+            Realm.onMobKill((Player)killerEnt, deadEnt);
+    }
+    
 }

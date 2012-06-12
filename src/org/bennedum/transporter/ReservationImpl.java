@@ -597,9 +597,7 @@ public final class ReservationImpl implements Reservation {
 
             String kickMessage = toServer.getKickMessage(player.getAddress());
             if (kickMessage == null) return;
-            Utils.debug("kicking player '%s' @%s: %s", player.getName(), player.getAddress().getAddress().getHostAddress(), kickMessage);
-            player.kickPlayer(kickMessage);
-            
+            Utils.schedulePlayerKick(player, kickMessage);
         }
         if ((entity != null) && (entity != player))
             entity.remove();
@@ -951,63 +949,76 @@ public final class ReservationImpl implements Reservation {
         }
         if (player != null) {
             if (health < 0) health = 0;
-            player.setHealth(health);
             if (remainingAir < 0) remainingAir = 0;
-            player.setRemainingAir(remainingAir);
             if (foodLevel < 0) foodLevel = 0;
-            player.setFoodLevel(foodLevel);
             if (exhaustion < 0) exhaustion = 0;
-            player.setExhaustion(exhaustion);
             if (saturation < 0) saturation = 0;
-            player.setSaturation(saturation);
-            if (toGateLocal != null) {
+            if (level < 0) level = 0;
+            if (xp < 0) xp = 0;
+
+            if (toGateLocal == null) {
+                player.setHealth(health);
+                player.setRemainingAir(remainingAir);
+                player.setFoodLevel(foodLevel);
+                player.setExhaustion(exhaustion);
+                player.setSaturation(saturation);
+                player.setFireTicks(fireTicks);
+            } else {
+                if (toGateLocal.getReceiveStats()) {
+                    player.setHealth(health);
+                    player.setRemainingAir(remainingAir);
+                    player.setFoodLevel(foodLevel);
+                    player.setExhaustion(exhaustion);
+                    player.setSaturation(saturation);
+                    player.setFireTicks(fireTicks);
+                }
+                if (toGateLocal.getReceiveXP()) {
+                    player.setLevel(level);
+                    player.setExp(xp);
+                }
                 if (toGateLocal.getGameMode() != null)
                     player.setGameMode(toGateLocal.getGameMode());
                 else if (toGateLocal.getReceiveGameMode())
                     player.setGameMode(Utils.valueOf(GameMode.class, gameMode));
-                if (toGateLocal.getReceiveXP()) {
-                    if (level < 0) level = 0;
-                    if (xp < 0) xp = 0;
-                    Utils.debug("set level and experience to %s/%s for %s", level, xp, player.getName());
-                    player.setLevel(level);
-                    player.setExp(xp);
+                if (! toGateLocal.getReceiveInventory()) {
+                    inventory = null;
+                    armor = null;
+                }
+                if (! toGateLocal.getReceivePotions())
+                    potionEffects = null;
+            }
+            player.setVelocity(toVelocity);
+            if (inventory != null) {
+                PlayerInventory inv = player.getInventory();
+                for (int slot = 0; slot < inventory.length; slot++) {
+                    if (inventory[slot] == null)
+                        inv.setItem(slot, new ItemStack(Material.AIR.getId()));
+                    else
+                        inv.setItem(slot, inventory[slot]);
+                }
+                // PENDING: This doesn't work as expected. it replaces whatever's
+                // in slot 0 with whatever's in the held slot. There doesn't appear to
+                // be a way to change just the slot of the held item
+                //inv.setItemInHand(inv.getItem(heldItemSlot));
+            }
+            if (armor != null) {
+                PlayerInventory inv = player.getInventory();
+                inv.setArmorContents(armor);
+            }
+            if (potionEffects != null) {
+                for (PotionEffectType pet : PotionEffectType.values()) {
+                    if (pet == null) continue;
+                    if (player.hasPotionEffect(pet))
+                        player.removePotionEffect(pet);
+                }
+                for (PotionEffect effect : potionEffects) {
+                    if (effect == null) continue;
+                    player.addPotionEffect(effect);
                 }
             }
         }
+        
         switch (entityType) {
-            case PLAYER:
-                player.setFireTicks(fireTicks);
-                player.setVelocity(toVelocity);
-                if ((inventory != null) && ((toGateLocal == null) || toGateLocal.getReceiveInventory())) {
-                    PlayerInventory inv = player.getInventory();
-                    for (int slot = 0; slot < inventory.length; slot++) {
-                        if (inventory[slot] == null) {
-                            inv.setItem(slot, new ItemStack(Material.AIR.getId()));
-                        } else {
-                            inv.setItem(slot, inventory[slot]);
-                        }
-                    }
-                    // PENDING: This doesn't work as expected. it replaces whatever's
-                    // in slot 0 with whatever's in the held slot. There doesn't appear to
-                    // be a way to change just the slot of the held item
-                    //inv.setItemInHand(inv.getItem(heldItemSlot));
-                }
-                if ((armor != null) && ((toGateLocal == null) || toGateLocal.getReceiveInventory())) {
-                    PlayerInventory inv = player.getInventory();
-                    inv.setArmorContents(armor);
-                }
-                if ((potionEffects != null) && ((toGateLocal == null) || toGateLocal.getReceivePotions())) {
-                    for (PotionEffectType pet : PotionEffectType.values()) {
-                        if (pet == null) continue;
-                        if (player.hasPotionEffect(pet))
-                            player.removePotionEffect(pet);
-                    }
-                    for (PotionEffect effect : potionEffects) {
-                        if (effect == null) continue;
-                        player.addPotionEffect(effect);
-                    }
-                }
-                break;
             case MINECART:
                 entity.setFireTicks(fireTicks);
                 entity.setVelocity(toVelocity);

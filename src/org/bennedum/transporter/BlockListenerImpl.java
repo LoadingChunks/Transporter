@@ -25,7 +25,6 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.*;
 import org.bukkit.material.Bed;
-import org.bukkit.material.MaterialData;
 
 /**
  *

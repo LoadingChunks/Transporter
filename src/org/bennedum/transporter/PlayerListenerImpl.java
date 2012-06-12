@@ -320,7 +320,6 @@ public final class PlayerListenerImpl implements Listener {
         
         // Realm handling
         Realm.onDeath(player, event.getDeathMessage());
-        
     }
     
     @EventHandler(priority = EventPriority.MONITOR)
