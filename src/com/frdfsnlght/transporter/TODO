@@ -15,10 +15,5 @@ Testing:
 
 Wiki Updates:
 * Add FAQ: added servers but they won't connect
-* Remove debugURL config option
-* Explain Inquisitor integration
 
 Changelog:
-* Removed all player statistics collection.
-* Realm support now requires the Inquisitor plugin (also by me).
-* Add support for NBT tags on inventory. This is a BETA so it's probably broken. If you're using this plugin with IndustrialCraft, give it a try and let me know how it works.
