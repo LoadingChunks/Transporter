@@ -71,6 +71,8 @@ public class BlockListenerImpl implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onSignChange(SignChangeEvent event) {
+        if (! Config.getAllowSignCreation()) return;
+        
         Block block = event.getBlock();
         LocalGateImpl gate = Gates.findGateForScreen(block.getLocation());
         if (gate != null) return;

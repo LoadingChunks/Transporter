@@ -12,8 +12,11 @@ TODO:
 
 Testing:
 * Test stairs with facing option
+* Test allowSignCreation option
 
 Wiki Updates:
 * Add FAQ: added servers but they won't connect
+* Add global option allowSignCreation (defaults to true)
 
 Changelog:
+* Added global option "allowSignCreation".

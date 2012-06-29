@@ -15,12 +15,12 @@
  */
 package com.frdfsnlght.transporter;
 
+import com.frdfsnlght.transporter.net.Network;
 import java.io.File;
 import java.net.Proxy;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import com.frdfsnlght.transporter.net.Network;
 
 /**
  *
@@ -41,6 +41,7 @@ public final class Config {
         OPTIONS.add("allowLinkLocal");
         OPTIONS.add("allowLinkWorld");
         OPTIONS.add("allowLinkServer");
+        OPTIONS.add("allowSignCreation");
         OPTIONS.add("autoAddWorlds");
         OPTIONS.add("autoLoadWorlds");
         OPTIONS.add("gateLockExpiration");
@@ -242,6 +243,14 @@ public final class Config {
 
     public static void setAllowLinkServer(boolean b) {
         config.set("global.allowLinkServer", b);
+    }
+
+    public static boolean getAllowSignCreation() {
+        return config.getBoolean("global.allowSignCreation", true);
+    }
+
+    public static void setAllowSignCreation(boolean b) {
+        config.set("global.allowSignCreation", b);
     }
 
     public static boolean getAutoAddWorlds() {
