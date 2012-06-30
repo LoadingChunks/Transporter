@@ -41,7 +41,7 @@ public final class API {
      * @return a set of {@link RemotePlayer} objects
      */
     public Set<RemotePlayer> getRemotePlayers() {
-        Set<RemotePlayer> players = new HashSet<>();
+        Set<RemotePlayer> players = new HashSet<RemotePlayer>();
         for (Server server : Servers.getAll())
             players.addAll(server.getRemotePlayers());
         return players;

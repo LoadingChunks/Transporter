@@ -215,7 +215,7 @@ public final class TypeMap extends HashMap<String,Object> {
 
     private static List<Object> decodeList(StringBuilder b, int len) {
 //System.out.println("decode list (" + len + ")");
-        List<Object> l = new ArrayList<>();
+        List<Object> l = new ArrayList<Object>();
         for (int i = 0; i < len; i++) {
 //System.out.print(" list item " + i + ": ");
             l.add(decodeObject(b));
@@ -308,9 +308,17 @@ public final class TypeMap extends HashMap<String,Object> {
         //options.setAllowUnicode(true);
         options.setIndent(4);
         Yaml yaml = new Yaml(options);
-        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(file), "UTF-8")) {
+        OutputStreamWriter writer = null;
+        try {
+            writer = new OutputStreamWriter(new FileOutputStream(file), "UTF-8");
             yaml.dump(this, writer);
-        } catch (IOException e) {}
+        } catch (IOException e) {
+        } finally {
+            try {
+                if (writer != null) writer.close();
+            } catch (IOException e) {}
+        }
+
     }
 
     public String encode() {
@@ -347,13 +355,13 @@ public final class TypeMap extends HashMap<String,Object> {
     }
 
     public List<String> getKeys() {
-        return new ArrayList<>(keySet());
+        return new ArrayList<String>(keySet());
     }
 
     public List<String> getKeys(String key) {
         String[] keyParts = splitKey(key);
         TypeMap child = getMap(keyParts[0]);
-        if (child == null) return new ArrayList<>();
+        if (child == null) return new ArrayList<String>();
         if (keyParts.length == 1)
             return child.getKeys();
         return child.getKeys(keyParts[1]);
@@ -474,9 +482,9 @@ public final class TypeMap extends HashMap<String,Object> {
     @SuppressWarnings("unchecked")
     public List<Object> getList(String key) {
         Object o = get(key);
-        if (o == null) return new ArrayList<>();
+        if (o == null) return new ArrayList<Object>();
         if (! (o instanceof Collection)) return null;
-        return new ArrayList<>((Collection)o);
+        return new ArrayList<Object>((Collection)o);
     }
 
     public List<String> getStringList(String key) {
@@ -486,7 +494,7 @@ public final class TypeMap extends HashMap<String,Object> {
     public List<String> getStringList(String key, List<String> def) {
         Object o = get(key);
         if (o == null) return def;
-        List<String> c = new ArrayList<>();
+        List<String> c = new ArrayList<String>();
         if (o instanceof Collection) {
             for (Object obj : (Collection)o) {
                 if ((obj instanceof String) || (obj == null))
@@ -499,7 +507,7 @@ public final class TypeMap extends HashMap<String,Object> {
     public List<TypeMap> getMapList(String key) {
         Object o = get(key);
         if (o == null) return null;
-        List<TypeMap> c = new ArrayList<>();
+        List<TypeMap> c = new ArrayList<TypeMap>();
         if (o instanceof Collection) {
             for (Object obj : (Collection)o) {
                 if ((obj instanceof TypeMap) || (obj == null))

@@ -147,7 +147,7 @@ public class Transporter extends JavaPlugin {
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] rawArgs) {
         // Rebuild quoted arguments
-        List<String> args = new ArrayList<>();
+        List<String> args = new ArrayList<String>();
         boolean inQuotes = false;
         StringBuilder argBuffer = null;
         for (String arg : rawArgs) {
@@ -183,7 +183,7 @@ public class Transporter extends JavaPlugin {
         }
 
         // Find the matching commands
-        List<CommandProcessor> cps = new ArrayList<>();
+        List<CommandProcessor> cps = new ArrayList<CommandProcessor>();
         for (CommandProcessor cp : Global.commands) {
             if (! cp.matches(ctx, cmd, args)) continue;
             cps.add(cp);

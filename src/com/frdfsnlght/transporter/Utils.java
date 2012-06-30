@@ -535,7 +535,7 @@ public class Utils {
             writer.println();
 
             // local gates...
-            List<LocalGateImpl> gates = new ArrayList<>(Gates.getLocalGates());
+            List<LocalGateImpl> gates = new ArrayList<LocalGateImpl>(Gates.getLocalGates());
             Collections.sort(gates, new Comparator<LocalGateImpl>() {
                 @Override
                 public int compare(LocalGateImpl a, LocalGateImpl b) {

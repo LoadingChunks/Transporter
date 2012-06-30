@@ -45,7 +45,7 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 public final class PlayerListenerImpl implements Listener {
 
     // Logic map for player interaction
-    private static final Map<Integer,String> ACTIONS = new HashMap<>();
+    private static final Map<Integer,String> ACTIONS = new HashMap<Integer,String>();
 
     // Masks are strings composed of zeros and ones. Each character position
     // corresponds to a bit position (bit 0 is first position).
@@ -97,13 +97,13 @@ public final class PlayerListenerImpl implements Listener {
             case '1':
                 int bitValue = (bit == '0') ? 0 : (int)Math.pow(2, bitPos);
                 if (suffix.isEmpty()) {
-                    Set<Integer> masks = new HashSet<>();
+                    Set<Integer> masks = new HashSet<Integer>();
                     masks.add(prefix + bitValue);
                     return masks;
                 }
                 return expandMask(bitPos + 1, prefix + bitValue, suffix.charAt(0), suffix.substring(1));
             default:
-                Set<Integer> masks = new HashSet<>();
+                Set<Integer> masks = new HashSet<Integer>();
                 masks.addAll(expandMask(bitPos, prefix, '0', suffix));
                 masks.addAll(expandMask(bitPos, prefix, '1', suffix));
                 return masks;
@@ -144,7 +144,7 @@ public final class PlayerListenerImpl implements Listener {
     }
     */
 
-    private Map<Player,Location> playerLocations = new HashMap<>();
+    private Map<Player,Location> playerLocations = new HashMap<Player,Location>();
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onPlayerInteract(PlayerInteractEvent event) {

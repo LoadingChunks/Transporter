@@ -69,7 +69,7 @@ public final class NBT {
         if (tag instanceof NBTTagString)
             return ((NBTTagString)tag).data;
         if (tag instanceof NBTTagList) {
-            List<Object> list = new ArrayList<>();
+            List<Object> list = new ArrayList<Object>();
             try {
                 Field field = tag.getClass().getDeclaredField("list");
                 field.setAccessible(true);
@@ -78,7 +78,7 @@ public final class NBT {
                     if (object instanceof NBTBase)
                         list.add(encodeNBTValue((NBTBase)object));
                 }
-            } catch (SecurityException | NoSuchFieldException | IllegalArgumentException | IllegalAccessException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
             return list;

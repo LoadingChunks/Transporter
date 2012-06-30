@@ -55,7 +55,7 @@ public final class Chat {
     }
 
     public static void send(Player player, String message) {
-        Map<Server,Set<RemoteGateImpl>> servers = new HashMap<>();
+        Map<Server,Set<RemoteGateImpl>> servers = new HashMap<Server,Set<RemoteGateImpl>>();
 
         // add all servers that relay all chat
         for (Server server : Servers.getAll())
@@ -91,7 +91,7 @@ public final class Chat {
 
         Player[] players = Global.plugin.getServer().getOnlinePlayers();
 
-        final Set<Player> playersToReceive = new HashSet<>();
+        final Set<Player> playersToReceive = new HashSet<Player>();
         if ((toGates == null) && ((Server)player.getRemoteServer()).getReceiveChat())
             Collections.addAll(playersToReceive, players);
         else if ((toGates != null) && (! toGates.isEmpty())) {

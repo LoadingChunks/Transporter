@@ -36,7 +36,7 @@ public final class Inventory {
 
     public static List<TypeMap> encodeItemStackArray(ItemStack[] isa) {
         if (isa == null) return null;
-        List<TypeMap> inv = new ArrayList<>();
+        List<TypeMap> inv = new ArrayList<TypeMap>();
         for (int slot = 0; slot < isa.length; slot++)
             inv.add(encodeItemStack(isa[slot]));
         return inv;

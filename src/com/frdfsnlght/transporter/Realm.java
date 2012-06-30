@@ -33,7 +33,7 @@ import org.bukkit.plugin.Plugin;
  */
 public final class Realm {
 
-    private static final Set<String> OPTIONS = new HashSet<>();
+    private static final Set<String> OPTIONS = new HashSet<String>();
     private static final DecimalFormat DOUBLE_FORMAT = new DecimalFormat("#.###");
 
     private static final Options options;
@@ -58,8 +58,8 @@ public final class Realm {
     }
 
     private static boolean started = false;
-    private static Set<String> redirectedPlayers = new HashSet<>();
-    private static Set<String> respawningPlayers = new HashSet<>();
+    private static Set<String> redirectedPlayers = new HashSet<String>();
+    private static Set<String> respawningPlayers = new HashSet<String>();
     private static API inquisitor = null;
 
     public static boolean isStarted() {

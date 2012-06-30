@@ -48,10 +48,10 @@ import org.bukkit.util.Vector;
  */
 public final class ReservationImpl implements Reservation {
 
-    private static final Map<Integer,Long> gateLocks = new HashMap<>();
+    private static final Map<Integer,Long> gateLocks = new HashMap<Integer,Long>();
 
     private static long nextId = 1;
-    private static final Map<Long,ReservationImpl> reservations = new HashMap<>();
+    private static final Map<Long,ReservationImpl> reservations = new HashMap<Long,ReservationImpl>();
 
     public static ReservationImpl get(long id) {
         return reservations.get(id);

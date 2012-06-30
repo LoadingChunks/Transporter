@@ -30,7 +30,7 @@ public final class Config {
 
     private static final int CONFIG_VERSION = 2;
 
-    private static final Set<String> OPTIONS = new HashSet<>();
+    private static final Set<String> OPTIONS = new HashSet<String>();
     private static final Options options;
     private static TypeMap config = null;
 

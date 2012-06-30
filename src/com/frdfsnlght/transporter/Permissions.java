@@ -45,7 +45,7 @@ public final class Permissions {
             new File(Global.plugin.getDataFolder(), PERMISSIONS_FILE);
 
 //    private static Map<String,ListFile> listFiles = new HashMap<String,ListFile>();
-    private static Map<String,PropertiesFile> propertiesFiles = new HashMap<>();
+    private static Map<String,PropertiesFile> propertiesFiles = new HashMap<String,PropertiesFile>();
 
     private static boolean basicPermsInitted = false;
     private static net.milkbowl.vault.permission.Permission vaultPlugin = null;
