@@ -75,6 +75,8 @@ public class Utils {
     private static final String DEBUG_BOUNDARY = "*****";
     private static final int DEBUG_LOG_BYTES = 20 * 1024;
 
+    private static int maxPlayers = 0;
+
     public static void info(String msg, Object ... args) {
         if (args.length > 0)
             msg = String.format(msg, args);
@@ -670,13 +672,20 @@ public class Utils {
         return out;
     }
 
+    public static void updatePlayerCount() {
+        int count = Global.plugin.getServer().getOnlinePlayers().length;
+        if (count > maxPlayers) maxPlayers = count;
+    }
+
     public static void updatePluginCount() {
         try {
-            String urlStr = String.format("http://www.frdfsnlght.com/mc-active-plugins.php?submit=1&server=%s&plugin=%s&version=%s",
+            String urlStr = String.format("http://www.frdfsnlght.com/mc-active-plugins.php?submit=1&server=%s&plugin=%s&version=%s&players=%s",
                                       URLEncoder.encode(Global.plugin.getServer().getServerName(), "US-ASCII"),
                                       URLEncoder.encode(Global.pluginName, "US-ASCII"),
-                                      URLEncoder.encode(Global.pluginVersion, "US-ASCII")
+                                      URLEncoder.encode(Global.pluginVersion, "US-ASCII"),
+                                      maxPlayers
                 );
+            maxPlayers = 0;
             URL url = new URL(urlStr);
             HttpURLConnection http = (HttpURLConnection)url.openConnection();
             int statusCode = http.getResponseCode();

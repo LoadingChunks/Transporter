@@ -106,6 +106,7 @@ public final class ReservationImpl implements Reservation {
 
     private long localId = nextId++;
     private long remoteId = 0;
+    private boolean departing = true;
 
     private EntityType entityType = null;
     private Entity entity = null;
@@ -208,6 +209,7 @@ public final class ReservationImpl implements Reservation {
     // reception of reservation from sending server
     public ReservationImpl(TypeMap in, Server server) throws ReservationException {
         remoteId = in.getInt("id");
+        departing = false;
         try {
             entityType = Utils.valueOf(EntityType.class, in.getString("entityType"));
         } catch (IllegalArgumentException e) {
@@ -445,7 +447,14 @@ public final class ReservationImpl implements Reservation {
         return out;
     }
 
+    public boolean isDeparting() {
+        return departing;
+    }
 
+    public boolean isArriving() {
+        return ! departing;
+    }
+    
     // called to handle departure on the sending side
     public void depart() throws ReservationException {
         put(this);

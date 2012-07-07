@@ -707,6 +707,8 @@ public final class Network {
 
     // can be called from any thread
     public static void wantWrite(Connection conn) {
+        if (conn == null) return;
+        if (conn.getChannel() == null) return;
         SelectionKey selKey = conn.getChannel().keyFor(selector);
         if ((selKey == null) || (! selKey.isValid())) return;
         selKey.interestOps(selKey.interestOps() | SelectionKey.OP_WRITE);

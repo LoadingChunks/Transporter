@@ -4,19 +4,17 @@ Ideas:
 * Implement gate permissions when Permissions plugin supports adding a gate to a group.
 * Per-world inventories?
 * Add API options like allow*
-* Add more realm commands
-    * delete <player>
-    * list (lists all player names, maybe with some meta data)
 
 TODO:
 
 Testing:
 * Test stairs with facing option
 * Test allowSignCreation option
+    * Add use of reverse flag for gate linking via initial sign placement
 
 Wiki Updates:
 * Add FAQ: added servers but they won't connect
 * Add global option allowSignCreation (defaults to true)
+* Add "reverse" flag usage for gate sign placement
 
 Changelog:
-* Added global option "allowSignCreation".

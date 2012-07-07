@@ -72,21 +72,27 @@ public class BlockListenerImpl implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onSignChange(SignChangeEvent event) {
         if (! Config.getAllowSignCreation()) return;
-        
+
         Block block = event.getBlock();
         LocalGateImpl gate = Gates.findGateForScreen(block.getLocation());
         if (gate != null) return;
         Context ctx = new Context(event.getPlayer());
         String gateName = null;
         String link = null;
+        boolean reverse = false;
         for (String line : event.getLines()) {
             if ((line == null) || (line.trim().length() == 0)) continue;
             if (gateName == null)
                 gateName = line;
             else if (link == null)
                 link = line;
-            else
+            else {
+                if ("reverse".startsWith(line.toLowerCase())) {
+                    reverse = true;
+                    break;
+                }
                 link += "." + line;
+            }
         }
         if (gateName == null) return;
         try {
@@ -109,7 +115,7 @@ public class BlockListenerImpl implements Listener {
             }
 
             if (link == null) return;
-            ctx.getPlayer().performCommand("trp gate link add \"" + link + "\"");
+            ctx.getPlayer().performCommand("trp gate link add \"" + link + "\"" + (reverse ? " reverse" : ""));
         } catch (TransporterException te) {
             ctx.warn(te.getMessage());
         }

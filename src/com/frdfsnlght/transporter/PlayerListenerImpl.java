@@ -264,6 +264,15 @@ public final class PlayerListenerImpl implements Listener {
 
         if ((r == null) && Realm.onJoin(player)) return;
 
+        Utils.updatePlayerCount();
+
+        Context ctx = new Context(player);
+
+        if ((r != null) && r.isDeparting()) {
+            ctx.warnLog("You're not supposed to be here.");
+            r = null;
+        }
+
         for (Server server : Servers.getAll())
             server.sendPlayerJoin(player, r != null);
         if (r == null) {
@@ -274,7 +283,6 @@ public final class PlayerListenerImpl implements Listener {
             r.arrive();
             event.setJoinMessage(null);
         } catch (ReservationException e) {
-            Context ctx = new Context(player);
             ctx.warnLog("there was a problem processing your arrival: ", e.getMessage());
         }
     }

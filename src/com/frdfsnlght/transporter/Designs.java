@@ -15,7 +15,6 @@
  */
 package com.frdfsnlght.transporter;
 
-import com.frdfsnlght.transporter.api.TransporterException;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,14 +37,17 @@ public final class Designs {
         for (File designFile : Utils.listYAMLFiles(designsFolder)) {
             try {
                 Design design = new Design(designFile);
+                if (! design.isEnabled()) continue;
                 try {
                     add(design);
                     ctx.sendLog("loaded design '%s'", design.getName());
                 } catch (DesignException de) {
                     ctx.warnLog("unable to load design '%s': %s", design.getName(), de.getMessage());
                 }
-            } catch (TransporterException de) {
-                ctx.warnLog("'%s' contains an invalid design: %s", designFile.getPath(), de.getMessage());
+            } catch (Throwable t) {
+                ctx.warnLog("'%s' contains an invalid design: %s", designFile.getPath(), t.getMessage());
+                if (Config.getDebug())
+                    Utils.severe(t, "Trace:");
             }
         }
         if (isEmpty())
@@ -95,6 +97,7 @@ public final class Designs {
     // The location should be the location of a design's screen.
     public static DesignMatch matchScreen(Location location) {
         for (Design design : designs.values()) {
+            if (! design.isCreatable()) continue;
             DesignMatch match = design.matchScreen(location);
             if (match != null) return match;
         }

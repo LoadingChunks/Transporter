@@ -114,7 +114,7 @@ public class WorldCommand extends TrpCommandProcessor {
             try {
                 env = Utils.valueOf(World.Environment.class, environment);
             } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException(e.getMessage() + " for environment");
+                throw new CommandException("%s value for environment", e.getMessage());
             }
 
             Permissions.require(ctx.getPlayer(), "trp.world.add");

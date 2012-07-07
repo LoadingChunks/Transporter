@@ -47,8 +47,10 @@ public class Design {
     }
 
     private String name;
+    private boolean enabled;
     private int duration;
     private boolean buildable;
+    private boolean creatable;
     private boolean buildFromInventory;
     private boolean linkLocal;
     private boolean linkWorld;
@@ -124,8 +126,10 @@ public class Design {
         conf.load();
 
         name = conf.getString("name");
+        enabled = conf.getBoolean("enabled", true);
         duration = conf.getInt("duration", -1);
         buildable = conf.getBoolean("buildable", true);
+        creatable = conf.getBoolean("creatable", true);
         buildFromInventory = conf.getBoolean("buildFromInventory", false);
         linkLocal = conf.getBoolean("linkLocal", true);
         linkWorld = conf.getBoolean("linkWorld", true);
@@ -358,6 +362,10 @@ public class Design {
         return name;
     }
 
+    public boolean isEnabled() {
+        return enabled;
+    }
+
     public int getDuration() {
         return duration;
     }
@@ -370,6 +378,10 @@ public class Design {
         return buildable;
     }
 
+    public boolean isCreatable() {
+        return creatable;
+    }
+    
     public boolean mustBuildFromInventory() {
         return buildFromInventory;
     }
