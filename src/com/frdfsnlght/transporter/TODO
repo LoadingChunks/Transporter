@@ -6,6 +6,8 @@ Ideas:
 * Add API options like allow*
 
 TODO:
+* Add server gates that only accept arrivals and no outbound links. Lets server place player.
+* Add world gates that only accept arrivals and no outbound links. Lets server place player in the world?
 
 Testing:
 * Test stairs with facing option

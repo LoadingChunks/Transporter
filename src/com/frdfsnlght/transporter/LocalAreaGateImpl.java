@@ -158,9 +158,9 @@ public final class LocalAreaGateImpl extends LocalGateImpl implements LocalAreaG
         Bounds bounds = new Bounds(p1, p2);
         for (int tries = 0; tries < 1000; tries++) {
             // find location of feet
-            int x = bounds.min.x + random.nextInt(bounds.max.x - bounds.min.x);
-            int y = bounds.min.y + random.nextInt(bounds.max.y - bounds.min.y);
-            int z = bounds.min.z + random.nextInt(bounds.max.z - bounds.min.z);
+            int x = bounds.min.x + ((bounds.sizeX() > 0) ? random.nextInt(bounds.sizeX()) : 0);
+            int y = bounds.min.y + ((bounds.sizeY() > 0) ? random.nextInt(bounds.sizeY()) : 0);
+            int z = bounds.min.z + ((bounds.sizeZ() > 0) ? random.nextInt(bounds.sizeZ()) : 0);
             // adjust down to make room for head
             if (y > bounds.max.y) y--;
             else if (y < bounds.min.y) y++;
