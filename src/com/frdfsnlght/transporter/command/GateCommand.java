@@ -15,13 +15,6 @@
  */
 package com.frdfsnlght.transporter.command;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 import com.frdfsnlght.transporter.Context;
 import com.frdfsnlght.transporter.Economy;
 import com.frdfsnlght.transporter.GateImpl;
@@ -36,6 +29,13 @@ import com.frdfsnlght.transporter.Utils;
 import com.frdfsnlght.transporter.api.ExpandDirection;
 import com.frdfsnlght.transporter.api.GateType;
 import com.frdfsnlght.transporter.api.TransporterException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;

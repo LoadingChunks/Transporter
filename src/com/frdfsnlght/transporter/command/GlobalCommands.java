@@ -15,10 +15,6 @@
  */
 package com.frdfsnlght.transporter.command;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
 import com.frdfsnlght.transporter.Chat;
 import com.frdfsnlght.transporter.Config;
 import com.frdfsnlght.transporter.Context;
@@ -33,6 +29,10 @@ import com.frdfsnlght.transporter.Server;
 import com.frdfsnlght.transporter.api.ReservationException;
 import com.frdfsnlght.transporter.api.TransporterException;
 import com.frdfsnlght.transporter.api.event.LocalPlayerPMEvent;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import org.bukkit.command.Command;
 import org.bukkit.entity.Player;
 

@@ -15,10 +15,6 @@
  */
 package com.frdfsnlght.transporter.command;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
 import com.frdfsnlght.transporter.Config;
 import com.frdfsnlght.transporter.Context;
 import com.frdfsnlght.transporter.Design;
@@ -32,6 +28,10 @@ import com.frdfsnlght.transporter.LocalGateImpl;
 import com.frdfsnlght.transporter.Permissions;
 import com.frdfsnlght.transporter.Utils;
 import com.frdfsnlght.transporter.api.TransporterException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.entity.Player;

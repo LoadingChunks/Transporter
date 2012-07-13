@@ -15,9 +15,9 @@
  */
 package com.frdfsnlght.transporter.command;
 
-import java.util.List;
 import com.frdfsnlght.transporter.Context;
 import com.frdfsnlght.transporter.api.TransporterException;
+import java.util.List;
 import org.bukkit.command.Command;
 
 /**
