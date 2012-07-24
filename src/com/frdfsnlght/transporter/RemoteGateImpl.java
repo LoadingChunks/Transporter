@@ -33,6 +33,8 @@ public abstract class RemoteGateImpl extends GateImpl implements RemoteGate {
                 return new RemoteBlockGateImpl(server, name, hidden);
             case AREA:
                 return new RemoteAreaGateImpl(server, name, hidden);
+            case SERVER:
+                return new RemoteServerGateImpl(server, name, hidden);
         }
         throw new GateException("unknown gate type '%s'", type.toString());
     }

@@ -16,23 +16,10 @@
 package com.frdfsnlght.transporter.api;
 
 /**
- * Represents the type of gate.
+ * Represents an AREA gate on a remote server.
  *
  * @author frdfsnlght <frdfsnlght@gmail.com>
  */
-public enum GateType {
-
-    /**
-     * The type corresponding to block gates.
-     */
-    BLOCK,
-    /**
-     * The type corresponding to area gates.
-     */
-    AREA,
-    /**
-     * The type corresponding to server gates.
-     */
-    SERVER;
+public interface RemoteServerGate extends RemoteGate {
 
 }

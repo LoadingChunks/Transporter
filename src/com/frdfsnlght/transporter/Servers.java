@@ -15,11 +15,11 @@
  */
 package com.frdfsnlght.transporter;
 
+import com.frdfsnlght.transporter.api.RemoteServer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import com.frdfsnlght.transporter.api.RemoteServer;
 
 /**
  *
@@ -109,6 +109,17 @@ public final class Servers {
         for (String key : servers.keySet()) {
             if (key.toLowerCase().startsWith(name)) {
                 if (server == null) server = servers.get(key);
+                else return null;
+            }
+        }
+        return server;
+    }
+
+    public static Server findByRemoteName(String name) {
+        Server server = null;
+        for (Server s : servers.values()) {
+            if (s.getRemoteServer().equals(name)) {
+                if (server == null) server = s;
                 else return null;
             }
         }

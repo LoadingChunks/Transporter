@@ -13,26 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.frdfsnlght.transporter.api;
+package com.frdfsnlght.transporter;
+
+import com.frdfsnlght.transporter.api.GateType;
+import com.frdfsnlght.transporter.api.RemoteServerGate;
 
 /**
- * Represents the type of gate.
  *
  * @author frdfsnlght <frdfsnlght@gmail.com>
  */
-public enum GateType {
+public final class RemoteServerGateImpl extends RemoteGateImpl implements RemoteServerGate {
 
-    /**
-     * The type corresponding to block gates.
-     */
-    BLOCK,
-    /**
-     * The type corresponding to area gates.
-     */
-    AREA,
-    /**
-     * The type corresponding to server gates.
-     */
-    SERVER;
+    public RemoteServerGateImpl(Server server, String name, boolean hidden) {
+        super(server, name, hidden);
+    }
+
+    @Override
+    public GateType getType() { return GateType.SERVER; }
+
+    @Override
+    public String toString() {
+        return "RemoteServerGate[" + getFullName() + "]";
+    }
+
 
 }

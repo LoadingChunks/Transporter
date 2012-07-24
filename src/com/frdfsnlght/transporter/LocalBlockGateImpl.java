@@ -15,6 +15,11 @@
  */
 package com.frdfsnlght.transporter;
 
+import com.frdfsnlght.transporter.GateMap.Point;
+import com.frdfsnlght.transporter.GateMap.Volume;
+import com.frdfsnlght.transporter.api.GateException;
+import com.frdfsnlght.transporter.api.GateType;
+import com.frdfsnlght.transporter.api.LocalBlockGate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -22,11 +27,6 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.regex.Pattern;
-import com.frdfsnlght.transporter.GateMap.Point;
-import com.frdfsnlght.transporter.GateMap.Volume;
-import com.frdfsnlght.transporter.api.GateException;
-import com.frdfsnlght.transporter.api.GateType;
-import com.frdfsnlght.transporter.api.LocalBlockGate;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -103,6 +103,7 @@ public final class LocalBlockGateImpl extends LocalGateImpl implements LocalBloc
         options = new Options(this, OPTIONS, "trp.gate", this);
 
         designName = design.getName();
+        duration = design.getDuration();
         restoreOnClose = design.getRestoreOnClose();
 
         requirePin = design.getRequirePin();

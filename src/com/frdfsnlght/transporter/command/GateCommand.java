@@ -95,7 +95,7 @@ public class GateCommand extends TrpCommandProcessor {
         cmds.add(getPrefix(ctx) + GROUP + "resize <num>[,<direction>] [<gate>]");
         if (ctx.isPlayer()) {
             cmds.add(getPrefix(ctx) + GROUP + "corner 1|2 [pick] [<gate>]");
-            cmds.add(getPrefix(ctx) + GROUP + "create <designname>|area <gatename> [<to> [rev]]");
+            cmds.add(getPrefix(ctx) + GROUP + "create <designname>|area|server <gatename> [<to> [rev]]");
         }
 
         cmds.add(getPrefix(ctx) + GROUP + "get <option>|* [<gate>]");

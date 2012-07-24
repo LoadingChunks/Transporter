@@ -6,17 +6,22 @@ Ideas:
 * Add API options like allow*
 
 TODO:
-* Add server gates that only accept arrivals and no outbound links. Lets server place player.
 * Add world gates that only accept arrivals and no outbound links. Lets server place player in the world?
+* Remove requirement of server name matching configured servers by sending bukkit server name to remote host and providing a way to lookup a server based on that name.
+* Better handling of unconnected server during realm join and respawn; option to kick, option to restore
 
 Testing:
 * Test stairs with facing option
-* Test allowSignCreation option
-    * Add use of reverse flag for gate linking via initial sign placement
 
 Wiki Updates:
 * Add FAQ: added servers but they won't connect
-* Add global option allowSignCreation (defaults to true)
-* Add "reverse" flag usage for gate sign placement
+* Document new realm options, server naming requirements
+* Document server gates
 
 Changelog:
+* Fixed bug: gate duration was not being copied from design file.
+* Fixed bug: gate's not properly "opening" when attached from other gate.
+* Added new gate type, "server". See [[Gates]] for more information.
+* Removed realm requirement that configured server name matches remote server name, but remote name must be unique within connected servers! See [[Realms]] for more information.
+* Add realm options "serverOfflineFormat", "restoreWhenServerOffline", "restoreWhenServerOfflineFormat", "kickWhenServerOffline", "kickWhenServerOfflineFormat". See [[Realms]] for more information.
+

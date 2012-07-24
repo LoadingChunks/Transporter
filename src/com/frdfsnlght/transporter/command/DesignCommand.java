@@ -15,6 +15,7 @@
  */
 package com.frdfsnlght.transporter.command;
 
+import com.frdfsnlght.inquisitor.Global;
 import com.frdfsnlght.transporter.Config;
 import com.frdfsnlght.transporter.Context;
 import com.frdfsnlght.transporter.Design;
@@ -25,6 +26,7 @@ import com.frdfsnlght.transporter.Gates;
 import com.frdfsnlght.transporter.Inventory;
 import com.frdfsnlght.transporter.LocalAreaGateImpl;
 import com.frdfsnlght.transporter.LocalGateImpl;
+import com.frdfsnlght.transporter.LocalServerGateImpl;
 import com.frdfsnlght.transporter.Permissions;
 import com.frdfsnlght.transporter.Utils;
 import com.frdfsnlght.transporter.api.TransporterException;
@@ -56,7 +58,7 @@ public class DesignCommand extends TrpCommandProcessor {
         cmds.add(getPrefix(ctx) + GROUP + "list");
         if (ctx.isPlayer()) {
             cmds.add(getPrefix(ctx) + GROUP + "build <designname>|undo");
-            cmds.add(getPrefix(ctx) + GROUP + "create <designname>|area <gatename> [<to> [rev]]");
+            cmds.add(getPrefix(ctx) + GROUP + "create <designname>|area|server <gatename> [<to> [rev]]");
         }
         return cmds;
     }
@@ -146,7 +148,7 @@ public class DesignCommand extends TrpCommandProcessor {
                 throw new CommandException("building gates is not permitted");
 
             if (args.isEmpty())
-                throw new CommandException("design name or 'area' required");
+                throw new CommandException("design name, 'area', or 'server' required");
             String designName = args.remove(0);
             if (args.isEmpty())
                 throw new CommandException("gate name required");
@@ -162,6 +164,12 @@ public class DesignCommand extends TrpCommandProcessor {
             if ("area".startsWith(designName)) {
                 Permissions.require(ctx.getPlayer(), "trp.create.area");
                 LocalGateImpl gate = new LocalAreaGateImpl(ctx.getPlayer().getWorld(), gateName, ctx.getPlayer().getName(), Utils.yawToDirection(ctx.getPlayer().getLocation().getYaw()), ctx.getPlayer().getLocation());
+                Gates.add(gate, true);
+                ctx.sendLog("created gate '%s'", gate.getName());
+                Gates.setSelectedGate(ctx.getPlayer(), gate);
+            } else if ("server".startsWith(designName)) {
+                Permissions.require(ctx.getPlayer(), "trp.create.server");
+                LocalGateImpl gate = new LocalServerGateImpl(Global.plugin.getServer().getWorlds().get(0), gateName, ctx.getPlayer().getName());
                 Gates.add(gate, true);
                 ctx.sendLog("created gate '%s'", gate.getName());
                 Gates.setSelectedGate(ctx.getPlayer(), gate);

@@ -15,6 +15,11 @@
  */
 package com.frdfsnlght.transporter;
 
+import com.frdfsnlght.transporter.api.GateException;
+import com.frdfsnlght.transporter.api.GateType;
+import com.frdfsnlght.transporter.api.LocalGate;
+import com.frdfsnlght.transporter.api.TransporterException;
+import com.frdfsnlght.transporter.command.CommandException;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -23,17 +28,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import com.frdfsnlght.transporter.api.GateException;
-import com.frdfsnlght.transporter.api.GateType;
-import com.frdfsnlght.transporter.api.LocalGate;
-import com.frdfsnlght.transporter.api.TransporterException;
-import com.frdfsnlght.transporter.command.CommandException;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.util.Vector;
@@ -66,6 +65,8 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
                 return new LocalBlockGateImpl(world, conf);
             case AREA:
                 return new LocalAreaGateImpl(world, conf);
+            case SERVER:
+                return new LocalServerGateImpl(world, conf);
         }
         throw new GateException("unknown gate type '%s'", type.toString());
     }
@@ -451,6 +452,11 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
             incoming.add(originName);
             dirty = true;
         }
+
+        // 2 new
+        portalOpen = true;
+        portalOpenTime = System.currentTimeMillis();
+
         onOpen();
 
         // try to attach to our destination
@@ -465,6 +471,17 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
             GateImpl gate = Gates.get(outgoing);
             if (gate != null)
                 gate.attach(this);
+        }
+
+        // new
+        if (duration > 0) {
+            final LocalGateImpl myself = this;
+            Utils.fireDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    myself.closeIfAllowed();
+                }
+            }, duration + 100);
         }
     }
 
@@ -1907,14 +1924,26 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
     }
 
     private boolean canClose() {
+//Utils.debug("duration < 1: %s", duration < 1);
+//Utils.debug("! hasValidDestination: %s", ! hasValidDestination());
+//Utils.debug("incoming.isEmpty(): %s", incoming.isEmpty());
+
         if (duration < 1)
             return (! hasValidDestination()) && incoming.isEmpty();
 
         // temporary gate
         boolean expired = ((System.currentTimeMillis() - portalOpenTime) + 50) > duration;
+//Utils.debug("expired: %s", expired);
+//Utils.debug("outgoing != null: %s", outgoing != null);
+//Utils.debug("hasValidDestination: %s", hasValidDestination());
+//Utils.debug("incoming.contains(outgoing): %s", incoming.contains(outgoing));
+//Utils.debug("incoming.size() == 1: %s", incoming.size() == 1);
 
         // handle mutually paired gates
         if ((outgoing != null) && hasValidDestination() && incoming.contains(outgoing) && (incoming.size() == 1)) return expired;
+
+//Utils.debug("incoming.isEmpty(): %s", incoming.isEmpty());
+//Utils.debug("outgoing == null: %s", outgoing == null);
 
         if (incoming.isEmpty())
             return (outgoing == null) || expired;

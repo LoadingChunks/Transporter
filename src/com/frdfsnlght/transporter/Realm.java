@@ -18,9 +18,9 @@ package com.frdfsnlght.transporter;
 import com.frdfsnlght.inquisitor.Inquisitor;
 import com.frdfsnlght.inquisitor.api.API;
 import com.frdfsnlght.transporter.api.ReservationException;
-import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -34,7 +34,6 @@ import org.bukkit.plugin.Plugin;
 public final class Realm {
 
     private static final Set<String> OPTIONS = new HashSet<String>();
-    private static final DecimalFormat DOUBLE_FORMAT = new DecimalFormat("#.###");
 
     private static final Options options;
 
@@ -44,6 +43,11 @@ public final class Realm {
         OPTIONS.add("defaultWorld");
         OPTIONS.add("defaultGate");
         OPTIONS.add("respawnGate");
+        OPTIONS.add("serverOfflineFormat");
+        OPTIONS.add("restoreWhenServerOffline");
+        OPTIONS.add("restoreWhenServerOfflineFormat");
+        OPTIONS.add("kickWhenServerOffline");
+        OPTIONS.add("kickWhenServerOfflineFormat");
 
         options = new Options(Realm.class, OPTIONS, "trp.realm", new OptionsListener() {
             @Override
@@ -182,14 +186,52 @@ public final class Realm {
         return true;
     }
 
+    // toServer is either the name of a configured server, or the name of a connected remote server
     private static boolean sendPlayerToServer(Player player, String toServer) {
-        Server server = Servers.find(toServer);
+        Server server = Servers.findByRemoteName(toServer);
         if (server == null) {
-            Utils.warning("Unknown realm server '%s' for player '%s'", toServer, player.getName());
-            return false;
+            server = Servers.find(toServer);
+            /*
+            if (server == null) {
+                Utils.warning("Unknown realm server '%s' for player '%s'", toServer, player.getName());
+                return false;
+            }
+            */
         }
-        if (! server.isConnected()) {
-            Utils.warning("Offline realm server '%s' for player '%s'", toServer, player.getName());
+        if ((server == null) || (! server.isConnected())) {
+            Utils.warning("Unknown or offline realm server '%s' for player '%s'", toServer, player.getName());
+
+            if (getRestoreWhenServerOffline()) {
+                Map<String,Object> playerData = inquisitor.getPlayerStats(player.getName());
+                if (playerData == null)
+                    Utils.warning("Realm player stats for '%s' not found", player.getName());
+                else {
+                    TypeMap data = new TypeMap(playerData);
+                    Players.restore(player, data);
+                    Utils.debug("restored '%s' from realm data", player.getName());
+                    String msg = getRestoreWhenServerOfflineFormat();
+                    if (msg != null)
+                        msg = msg.replace("%server%", toServer);
+                     Chat.colorize(msg);
+                     if ((msg != null) && (! msg.isEmpty()))
+                        player.sendMessage(msg);
+                    return false;
+                }
+            }
+            if (getKickWhenServerOffline()) {
+                String msg = getKickWhenServerOfflineFormat();
+                msg = msg.replace("%server%", toServer);
+                player.kickPlayer(msg);
+                return true;
+            }
+
+            String msg = getServerOfflineFormat();
+            if (msg != null)
+                 msg = msg.replace("%server%", toServer);
+            Chat.colorize(msg);
+            if ((msg != null) && (! msg.isEmpty()))
+                player.sendMessage(msg);
+
             return false;
         }
         String kickMessage = server.getKickMessage(player.getAddress());
@@ -215,13 +257,29 @@ public final class Realm {
     private static void sendPlayerToBed(Player player, String serverName, String worldName, double[] coords) {
         if (serverName.equals(Global.plugin.getServer().getServerName())) return;
         Utils.debug("sending realm player '%s' to respawn at %s/%s/%s", player.getName(), serverName, worldName, Arrays.toString(coords));
-        Server server = Servers.find(serverName);
+        Server server = Servers.findByRemoteName(serverName);
+        /*
         if (server == null) {
             Utils.warning("Unknown realm home server '%s' for player '%s'", serverName, player.getName());
             return;
         }
+        */
         if (! server.isConnected()) {
-            Utils.warning("Offline realm home server '%s' for player '%s'", serverName, player.getName());
+            Utils.warning("Unknown or offline realm home server '%s' for player '%s'", serverName, player.getName());
+
+            if (getKickWhenServerOffline()) {
+                String msg = getKickWhenServerOfflineFormat();
+                msg = msg.replace("%server%", serverName);
+                player.kickPlayer(msg);
+                return;
+            }
+
+            String msg = getServerOfflineFormat();
+            if (msg != null)
+                msg = msg.replace("%server%", serverName);
+            Chat.colorize(msg);
+            if ((msg != null) && (! msg.isEmpty()))
+                player.sendMessage(msg);
             return;
         }
         try {
@@ -324,6 +382,57 @@ public final class Realm {
         Config.setPropertyDirect("realm.respawnGate", s);
     }
 
+    public static String getServerOfflineFormat() {
+        return Config.getStringDirect("realm.serverOfflineFormat", "You're not where you belong because server '%server%' is offline.");
+    }
+
+    public static void setServerOfflineFormat(String s) {
+        if (s != null) {
+            if (s.equals("-")) s = "";
+            else if (s.equals("*")) s = null;
+        }
+        Config.setPropertyDirect("realm.serverOfflineFormat", s);
+    }
+
+    public static boolean getRestoreWhenServerOffline() {
+        return Config.getBooleanDirect("realm.restoreWhenServerOffline", true);
+    }
+
+    public static void setRestoreWhenServerOffline(boolean b) {
+        Config.setPropertyDirect("realm.restoreWhenServerOffline", b);
+    }
+
+    public static String getRestoreWhenServerOfflineFormat() {
+        return Config.getStringDirect("realm.restoreWhenServerOfflineFormat", "You're not where you belong because server '%server%' is offline.");
+    }
+
+    public static void setRestoreWhenServerOfflineFormat(String s) {
+        if (s != null) {
+            if (s.equals("-")) s = "";
+            else if (s.equals("*")) s = null;
+        }
+        Config.setPropertyDirect("realm.restoreWhenServerOfflineFormat", s);
+    }
+
+    public static boolean getKickWhenServerOffline() {
+        return Config.getBooleanDirect("realm.kickWhenServerOffline", true);
+    }
+
+    public static void setKickWhenServerOffline(boolean b) {
+        Config.setPropertyDirect("realm.kickWhenServerOffline", b);
+    }
+
+    public static String getKickWhenServerOfflineFormat() {
+        return Config.getStringDirect("realm.kickWhenServerOfflineFormat", "Server '%server%' is offline.");
+    }
+
+    public static void setKickWhenServerOfflineFormat(String s) {
+        if (s != null) {
+            if (s.equals("*"))
+                s = null;
+        }
+        Config.setPropertyDirect("realm.kickWhenServerOfflineFormat", s);
+    }
 
     public static void getOptions(Context ctx, String name) throws OptionsException, PermissionsException {
         options.getOptions(ctx, name);

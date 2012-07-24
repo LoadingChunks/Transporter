@@ -15,20 +15,6 @@
  */
 package com.frdfsnlght.transporter;
 
-import java.lang.reflect.Method;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
 import com.frdfsnlght.transporter.api.Callback;
 import com.frdfsnlght.transporter.api.GateException;
 import com.frdfsnlght.transporter.api.GateType;
@@ -50,6 +36,20 @@ import com.frdfsnlght.transporter.api.event.RemoteServerConnectEvent;
 import com.frdfsnlght.transporter.api.event.RemoteServerDisconnectEvent;
 import com.frdfsnlght.transporter.net.Connection;
 import com.frdfsnlght.transporter.net.Network;
+import java.lang.reflect.Method;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import org.bukkit.GameMode;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
@@ -1134,8 +1134,8 @@ public final class Server implements OptionsListener, RemoteServer {
     private void receiveRefreshData(TypeMap message) throws ServerException {
         remotePublicAddress = message.getString("publicAddress");
         remoteServer = message.getString("server");
-        if ((remoteServer != null) && (! remoteServer.equals(name)))
-            Utils.warning("Remote server name '%s' doesn't match configured name '%s'.", remoteServer, name);
+//        if ((remoteServer != null) && (! remoteServer.equals(name)))
+//            Utils.warning("Remote server name '%s' doesn't match configured name '%s'.", remoteServer, name);
 
         remoteCluster = message.getString("cluster");
         remoteRealm = message.getString("realm");

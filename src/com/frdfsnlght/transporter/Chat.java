@@ -39,6 +39,7 @@ public final class Chat {
     private static Pattern colorPattern = Pattern.compile("%(\\w+)%");
 
     public static String colorize(String msg) {
+        if (msg == null) return null;
         Matcher matcher = colorPattern.matcher(msg);
         StringBuffer b = new StringBuffer();
         while (matcher.find()) {

@@ -168,6 +168,7 @@ public final class Inventory {
     public static ItemStack filterItemStack(ItemStack stack, Map<String,String> replace, Set<String> allowed, Set<String> banned) {
         if (stack == null) return null;
         String item = stringifyItemStack(stack);
+        if (item == null) return null;
         String newItem;
         String parts[] = item.split(":");
         if (replace != null) {
@@ -192,6 +193,7 @@ public final class Inventory {
     }
 
     private static String stringifyItemStack(ItemStack stack) {
+        if ((stack == null) || (stack.getType() == null)) return null;
         String item = stack.getType().toString();
         if (stack.getDurability() > 0)
             item += ":" + stack.getDurability();

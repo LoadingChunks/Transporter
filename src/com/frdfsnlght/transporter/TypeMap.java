@@ -25,7 +25,9 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,7 +38,7 @@ import org.yaml.snakeyaml.Yaml;
  *
  * @author frdfsnlght <frdfsnlght@gmail.com>
  */
-public final class TypeMap extends HashMap<String,Object> {
+public final class TypeMap extends HashMap<String,Object> implements Cloneable {
 
     public static TypeMap decode(String encoded) {
         return (TypeMap)decodeObject(new StringBuilder(encoded));
@@ -270,9 +272,43 @@ public final class TypeMap extends HashMap<String,Object> {
         return val;
     }
 
+    @SuppressWarnings("unchecked")
+    private static Object cloneValue(Object val) {
+        if (val == null) return null;
+        if (val instanceof TypeMap) {
+            TypeMap map = new TypeMap();
+            for (String k : ((TypeMap)val).keySet())
+                map.put(k, cloneValue(((TypeMap)val).get(k)));
+            return val;
+        }
+        if (val instanceof Map) {
+            TypeMap child = new TypeMap();
+            for (Object k : ((Map)val).keySet())
+                child.put(k.toString(), cloneValue(((Map)val).get(k)));
+            return child;
+        }
+        if (val instanceof List) {
+            for (int i = 0; i < ((List)val).size(); i++)
+                ((List)val).set(i, cloneValue(((List)val).get(i)));
+            return val;
+        }
+        if (val instanceof Collection) {
+            Object[] vals = ((Collection)val).toArray();
+            ((Collection)val).clear();
+            for (Object v : vals)
+                ((Collection)val).add(cloneValue(v));
+            return val;
+        }
+        return val;
+    }
+
     private File file = null;
 
     public TypeMap() {}
+
+    public TypeMap(Map map) {
+        putAll(map);
+    }
 
     public TypeMap(File file) {
         this.file = file;
@@ -280,6 +316,19 @@ public final class TypeMap extends HashMap<String,Object> {
 
     public File getFile() {
         return file;
+    }
+
+    @Override
+    public TypeMap clone() {
+        return new TypeMap(this);
+    }
+
+    @Override
+    public void putAll(Map map) {
+        for (Object key : map.keySet()) {
+            Object value = cloneValue(map.get(key));
+            put(key.toString(), value);
+        }
     }
 
     public void load() {
@@ -318,7 +367,6 @@ public final class TypeMap extends HashMap<String,Object> {
                 if (writer != null) writer.close();
             } catch (IOException e) {}
         }
-
     }
 
     public String encode() {
@@ -441,6 +489,22 @@ public final class TypeMap extends HashMap<String,Object> {
         if (o == null) return def;
         try {
             return Long.parseLong(o.toString());
+        } catch (IllegalArgumentException e) {
+            return def;
+        }
+    }
+
+    public Date getDate(String key) {
+        return getDate(key, null);
+    }
+
+    public Date getDate(String key, Date def) {
+        Object o = get(key);
+        if (o == null) return def;
+        if (o instanceof Date) return (Date)o;
+        if (o instanceof Calendar) return new Date(((Calendar)o).getTimeInMillis());
+        try {
+            return new Date(Long.parseLong(o.toString()));
         } catch (IllegalArgumentException e) {
             return def;
         }

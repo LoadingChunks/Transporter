@@ -15,15 +15,15 @@
  */
 package com.frdfsnlght.transporter;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 import com.frdfsnlght.transporter.api.Gate;
 import com.frdfsnlght.transporter.api.GateException;
 import com.frdfsnlght.transporter.api.Reservation;
 import com.frdfsnlght.transporter.api.ReservationException;
 import com.frdfsnlght.transporter.api.event.EntityArriveEvent;
 import com.frdfsnlght.transporter.api.event.EntityDepartEvent;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -454,7 +454,7 @@ public final class ReservationImpl implements Reservation {
     public boolean isArriving() {
         return ! departing;
     }
-    
+
     // called to handle departure on the sending side
     public void depart() throws ReservationException {
         put(this);
@@ -575,10 +575,11 @@ public final class ReservationImpl implements Reservation {
             addGateLock(player);
         if ((player != null) && (playerPin != null))
             Pins.add(player, playerPin);
-        if (! entity.teleport(toLocation)) {
-            rollbackTraveler();
-            throw new ReservationException("teleport %s to %s failed", getTraveler(), getDestination());
-        }
+        if (toLocation != null)
+            if (! entity.teleport(toLocation)) {
+                rollbackTraveler();
+                throw new ReservationException("teleport %s to %s failed", getTraveler(), getDestination());
+            }
         commitTraveler();
 
         Utils.debug("%s arrived at %s", getTraveler(), getDestination());
@@ -869,30 +870,32 @@ public final class ReservationImpl implements Reservation {
             toLocation.setPitch(fromLocation.getPitch());
             toVelocity = fromVelocity.clone();
         }
-        Utils.prepareChunk(toLocation);
+        if (toLocation != null) {
+            Utils.prepareChunk(toLocation);
 
-        // tweak velocity so we don't get buried in a block
-        Location nextLocation = toLocation.clone().add(toVelocity.getX(), toVelocity.getY(), toVelocity.getZ());
-        Utils.prepareChunk(nextLocation);
-        switch (nextLocation.getBlock().getType()) {
-            // there are probably others
-            case AIR:
-            case WATER:
-            case STATIONARY_WATER:
-            case LAVA:
-            case STATIONARY_LAVA:
-            case WEB:
-            case TORCH:
-            case REDSTONE_TORCH_OFF:
-            case REDSTONE_TORCH_ON:
-            case SIGN_POST:
-            case RAILS:
-                break;
-            default:
-                // should we try to zero just each ordinate and test again?
-                Utils.debug("zeroing velocity to avoid block");
-                toVelocity.zero();
-                break;
+            // tweak velocity so we don't get buried in a block
+            Location nextLocation = toLocation.clone().add(toVelocity.getX(), toVelocity.getY(), toVelocity.getZ());
+            Utils.prepareChunk(nextLocation);
+            switch (nextLocation.getBlock().getType()) {
+                // there are probably others
+                case AIR:
+                case WATER:
+                case STATIONARY_WATER:
+                case LAVA:
+                case STATIONARY_LAVA:
+                case WEB:
+                case TORCH:
+                case REDSTONE_TORCH_OFF:
+                case REDSTONE_TORCH_ON:
+                case SIGN_POST:
+                case RAILS:
+                    break;
+                default:
+                    // should we try to zero just each ordinate and test again?
+                    Utils.debug("zeroing velocity to avoid block");
+                    toVelocity.zero();
+                    break;
+            }
         }
 
         Utils.debug("destination location: %s", toLocation);
@@ -929,27 +932,37 @@ public final class ReservationImpl implements Reservation {
             }
         }
 
+        World theWorld;
+        Location theLocation;
+        if (toLocation == null) {
+            theWorld = Global.plugin.getServer().getWorlds().get(0);
+            theLocation = theWorld.getSpawnLocation();
+        } else {
+            theWorld = toLocation.getWorld();
+            theLocation = toLocation;
+        }
+
         if (entity == null) {
             switch (entityType) {
                 case PLAYER:
                     entity = player;
                     break;
                 case MINECART:
-                    entity = toLocation.getWorld().spawn(toLocation, Minecart.class);
+                    entity = theWorld.spawn(theLocation, Minecart.class);
                     createdEntity = true;
                     if (player != null)
                         ((Minecart)entity).setPassenger(player);
                     break;
                 case POWERED_MINECART:
-                    entity = toLocation.getWorld().spawn(toLocation, PoweredMinecart.class);
+                    entity = theWorld.spawn(theLocation, PoweredMinecart.class);
                     createdEntity = true;
                     break;
                 case STORAGE_MINECART:
-                    entity = toLocation.getWorld().spawn(toLocation, StorageMinecart.class);
+                    entity = theWorld.spawn(theLocation, StorageMinecart.class);
                     createdEntity = true;
                     break;
                 case BOAT:
-                    entity = toLocation.getWorld().spawn(toLocation, Boat.class);
+                    entity = theWorld.spawn(theLocation, Boat.class);
                     createdEntity = true;
                     break;
                 default:

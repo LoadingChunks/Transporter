@@ -15,10 +15,16 @@
  */
 package com.frdfsnlght.transporter;
 
+import com.frdfsnlght.transporter.api.RemotePlayer;
 import java.util.HashMap;
 import java.util.Map;
-import com.frdfsnlght.transporter.api.RemotePlayer;
+import org.bukkit.GameMode;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 /**
  *
@@ -52,6 +58,44 @@ public final class Players {
                 player = players.get(pname);
             }
         return player;
+    }
+
+    public static void restore(Player player, TypeMap data) {
+        player.setHealth(data.getInt("health", 20));
+        player.setRemainingAir(data.getInt("remainingAir", 300));
+        player.setFoodLevel(data.getInt("foodLevel", 20));
+        player.setExhaustion(data.getFloat("exhaustion", 0));
+        player.setSaturation(data.getFloat("saturation", 0));
+        player.setFireTicks(data.getInt("fireTicks", 0));
+        player.setLevel(data.getInt("level", 0));
+        player.setExp(data.getFloat("exp", 0));
+        ItemStack[] inventory = Inventory.decodeItemStackArray(data.getMapList("inventory"));
+        if (inventory != null) {
+            PlayerInventory inv = player.getInventory();
+            for (int slot = 0; slot < inventory.length; slot++) {
+                if (inventory[slot] == null)
+                    inv.setItem(slot, new ItemStack(Material.AIR.getId()));
+                else
+                    inv.setItem(slot, inventory[slot]);
+            }
+        }
+        ItemStack[] armor = Inventory.decodeItemStackArray(data.getMapList("armor"));
+        if (armor != null) {
+            PlayerInventory inv = player.getInventory();
+            inv.setArmorContents(armor);
+        }
+        PotionEffect[] potionEffects = PotionEffects.decodePotionEffects(data.getMapList("potionEffects"));
+        if (potionEffects != null) {
+            for (PotionEffectType pet : PotionEffectType.values()) {
+                if (pet == null) continue;
+                if (player.hasPotionEffect(pet))
+                    player.removePotionEffect(pet);
+            }
+            for (PotionEffect effect : potionEffects) {
+                if (effect == null) continue;
+                player.addPotionEffect(effect);
+            }
+        }
     }
 
 }
