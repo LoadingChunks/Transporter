@@ -16,6 +16,8 @@
 package com.frdfsnlght.transporter;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -36,12 +38,34 @@ import net.minecraft.server.NBTTagString;
  */
 public final class NBT {
 
+    private static Method NBTTCCollection = null;
+
+    static {
+        for (String methodName : new String[] { "c", "d" }) {
+            try {
+                NBTTCCollection = NBTTagCompound.class.getMethod(methodName, (Class<?>)null);
+                if (NBTTCCollection.getReturnType() == Collection.class) break;
+                NBTTCCollection = null;
+            } catch (NoSuchMethodException e) {}
+        }
+    }
+
     public static TypeMap encodeNBT(NBTTagCompound tag) {
         if (tag == null) return null;
 
         TypeMap map = new TypeMap();
 
-        for (Object object : tag.d()) {
+        if (NBTTCCollection == null)
+            throw new UnsupportedOperationException("Unable to find collection method in NBTTagCompound!!!");
+
+        Collection col = null;
+        try {
+            col = (Collection)NBTTCCollection.invoke(tag, (Object)null);
+        } catch (IllegalAccessException e) {
+        } catch (InvocationTargetException e) {}
+
+        // Next line
+        for (Object object : col) {
             if (object instanceof NBTBase) {
                 if (object instanceof NBTTagCompound) {
                     map.set(((NBTTagCompound)object).getName(), encodeNBT((NBTTagCompound)object));

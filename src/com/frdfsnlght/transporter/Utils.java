@@ -49,6 +49,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import org.bukkit.ChatColor;
@@ -704,6 +706,101 @@ public class Utils {
                 updatePluginCount();
             }
         }, 86400 * 1000);
+    }
+
+    public static void checkVersion() {
+        try {
+            String urlStr = Global.plugin.getDescription().getWebsite() + "pages/version";
+            URL url = new URL(urlStr);
+            HttpURLConnection http = (HttpURLConnection)url.openConnection();
+            http.setInstanceFollowRedirects(true);
+            int statusCode = http.getResponseCode();
+            if (statusCode != 200) {
+                debug("got status %s during plugin version check");
+                http.disconnect();
+                return;
+            }
+            InputStreamReader isr = new InputStreamReader(http.getInputStream());
+            BufferedReader br = new BufferedReader(isr);
+            String content;
+            StringBuilder sb = new StringBuilder();
+            while ((content = br.readLine()) != null)
+                sb.append(content);
+            br.close();
+
+            int myVersion = versionToInt(Global.pluginVersion);
+            boolean iAmBeta = isBetaVersion(Global.pluginVersion);
+
+            Pattern pattern = Pattern.compile("RELEASE:(.+):RELEASE");
+            Matcher matcher = pattern.matcher(sb);
+            if (! matcher.find()) {
+                debug("couldn't find release version string!");
+                return;
+            }
+            String releaseVersionStr = matcher.group(1);
+            int releaseVersion = versionToInt(releaseVersionStr);
+
+            pattern = Pattern.compile("BETA:(.+):BETA");
+            matcher = pattern.matcher(sb);
+            String betaVersionStr = matcher.find() ? matcher.group(1) : null;
+            int betaVersion = versionToInt(releaseVersionStr);
+
+            if (releaseVersionStr.equals(Global.pluginVersion)) {
+                debug("plugin is current");
+                return;
+            }
+
+            String upgradeVersion;
+
+            if (iAmBeta) {
+                if (releaseVersion > myVersion)
+                    upgradeVersion = releaseVersionStr;
+                else if (betaVersion > myVersion)
+                    upgradeVersion = betaVersionStr;
+                else {
+                    debug("beta version is current");
+                    return;
+                }
+            } else {
+                if (releaseVersion > myVersion)
+                    upgradeVersion = releaseVersionStr;
+                else {
+                    debug("release version is current");
+                    return;
+                }
+            }
+            info("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+            info("!! This is an outdated version of %s.", Global.pluginName);
+            info("!! Please upgrade to %s.", upgradeVersion);
+            info("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+        } catch (UnsupportedEncodingException uee) {
+        } catch (MalformedURLException mue) {
+        } catch (IOException ioe) {
+        }
+    }
+
+    private static boolean isBetaVersion(String version) {
+        return version.contains("beta");
+    }
+
+    private static int versionToInt(String version) {
+        if (version == null) return 0;
+        Matcher matcher = Pattern.compile("v?(\\d+)\\.(\\d+)(?:beta)?(\\d+)?").matcher(version);
+        if (! matcher.find()) return 0;
+
+        int major = Integer.parseInt(matcher.group(1));
+        int minor = Integer.parseInt(matcher.group(2));
+        int beta = (matcher.group(3) != null) ? Integer.parseInt(matcher.group(3)) : 0;
+
+        if (beta > 0) {
+            minor--;
+            if (minor < 0) {
+                minor = 99;
+                major--;
+            }
+        }
+        int v = (major * 10000) + (minor * 100) + beta;
+        return v;
     }
 
 }

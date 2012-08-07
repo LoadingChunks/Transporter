@@ -53,6 +53,7 @@ public class ServerCommand extends TrpCommandProcessor {
         cmds.add(getPrefix(ctx) + GROUP + "ping <server>");
         cmds.add(getPrefix(ctx) + GROUP + "refresh <server>");
         cmds.add(getPrefix(ctx) + GROUP + "remove <server>");
+        cmds.add(getPrefix(ctx) + GROUP + "exec <server> <cmd> [<args>]");
         cmds.add(getPrefix(ctx) + GROUP + "get <server> <option>|*");
         cmds.add(getPrefix(ctx) + GROUP + "set <server> <option> <value>");
         return cmds;
@@ -260,6 +261,30 @@ public class ServerCommand extends TrpCommandProcessor {
             Permissions.require(ctx.getPlayer(), "trp.server.remove");
             Servers.remove(server);
             ctx.sendLog("removed server '%s'", server.getName());
+            return;
+        }
+
+        if ("exec".startsWith(subCmd)) {
+            if (args.isEmpty())
+                throw new CommandException("server name required");
+            String serverName = args.remove(0);
+            Server server = Servers.find(serverName);
+            if (server == null)
+                throw new CommandException("unknown server '%s'", serverName);
+            if (args.isEmpty())
+                throw new CommandException("remote command required");
+            String remoteCmd = args.get(0);
+            Permissions.require(ctx.getPlayer(), "trp.server.exec." + remoteCmd);
+            StringBuilder remoteArgs = new StringBuilder();
+            for (String arg : args) {
+                boolean quote = arg.contains(" ");
+                remoteArgs.append(' ');
+                if (quote) remoteArgs.append('"');
+                remoteArgs.append(arg);
+                if (quote) remoteArgs.append('"');
+            }
+            server.dispatchCommand(null, ctx.getSender(), remoteCmd + remoteArgs.toString());
+            ctx.sendLog("sent remote command to server '%s'", server.getName());
             return;
         }
 

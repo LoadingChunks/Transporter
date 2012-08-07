@@ -78,6 +78,8 @@ public final class Server implements OptionsListener, RemoteServer {
         OPTIONS.add("privateAddress");
         OPTIONS.add("sendChat");
         OPTIONS.add("receiveChat");
+        OPTIONS.add("sendChatFilter");
+        OPTIONS.add("receiveChatFilter");
         OPTIONS.add("announcePlayers");
 
         MESSAGE_HANDLERS.put("nop", null);
@@ -165,6 +167,10 @@ public final class Server implements OptionsListener, RemoteServer {
     // Should all chat messages received from the remote server be echoed to local users?
     private boolean receiveChat = false;
 
+    // Regular expressions that must match chat messages in order to send or receive
+    private String sendChatFilter = null;
+    private String receiveChatFilter = null;
+
     // Should all player join/quit/kick messages from the remote server be echoed to local users?
     private boolean announcePlayers = false;
 
@@ -215,6 +221,8 @@ public final class Server implements OptionsListener, RemoteServer {
             setPrivateAddress(map.getString("privateAddress", "*"));
             setSendChat(map.getBoolean("sendChat", false));
             setReceiveChat(map.getBoolean("receiveChat", false));
+            setSendChatFilter(map.getString("sendChatFilter"));
+            setReceiveChatFilter(map.getString("receiveChatFilter"));
             setAnnouncePlayers(map.getBoolean("announcePlayers", false));
         } catch (IllegalArgumentException e) {
             throw new ServerException(e.getMessage());
@@ -457,6 +465,25 @@ public final class Server implements OptionsListener, RemoteServer {
     }
 
     @Override
+    public String getSendChatFilter() {
+        return sendChatFilter;
+    }
+
+    @Override
+    public void setSendChatFilter(String s) {
+        if (s != null) {
+            if (s.isEmpty() || s.equals("-")) s = null;
+            else
+                try {
+                    Pattern.compile(s);
+                } catch (PatternSyntaxException e) {
+                    throw new IllegalArgumentException("invalid regular expression");
+                }
+        }
+        sendChatFilter = s;
+    }
+
+    @Override
     public boolean getReceiveChat() {
         return receiveChat;
     }
@@ -464,6 +491,25 @@ public final class Server implements OptionsListener, RemoteServer {
     @Override
     public void setReceiveChat(boolean b) {
         receiveChat = b;
+    }
+
+    @Override
+    public String getReceiveChatFilter() {
+        return receiveChatFilter;
+    }
+
+    @Override
+    public void setReceiveChatFilter(String s) {
+        if (s != null) {
+            if (s.isEmpty() || s.equals("-")) s = null;
+            else
+                try {
+                    Pattern.compile(s);
+                } catch (PatternSyntaxException e) {
+                    throw new IllegalArgumentException("invalid regular expression");
+                }
+        }
+        receiveChatFilter = s;
     }
 
     @Override
@@ -624,6 +670,8 @@ public final class Server implements OptionsListener, RemoteServer {
         node.put("privateAddress", privateAddress);
         node.put("sendChat", sendChat);
         node.put("receiveChat", receiveChat);
+        node.put("sendChatFilter", sendChatFilter);
+        node.put("receiveChatFilter", receiveChatFilter);
         node.put("announcePlayers", announcePlayers);
         return node;
     }
@@ -783,6 +831,18 @@ public final class Server implements OptionsListener, RemoteServer {
                 receiveMessage(message, command);
             }
         });
+    }
+
+    public boolean canSendChat(String message) {
+        if ((! sendChat) || (message == null)) return false;
+        if (sendChatFilter == null) return true;
+        return message.matches(sendChatFilter);
+    }
+
+    public boolean canReceiveChat(String message) {
+        if ((! receiveChat) || (message == null)) return false;
+        if (receiveChatFilter == null) return true;
+        return message.matches(receiveChatFilter);
     }
 
     // Remote commands

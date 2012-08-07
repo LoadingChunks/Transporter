@@ -221,7 +221,7 @@ public final class Realm {
             if (getKickWhenServerOffline()) {
                 String msg = getKickWhenServerOfflineFormat();
                 msg = msg.replace("%server%", toServer);
-                player.kickPlayer(msg);
+                Utils.schedulePlayerKick(player, msg);
                 return true;
             }
 

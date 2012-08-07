@@ -15,15 +15,15 @@
  */
 package com.frdfsnlght.transporter;
 
-import java.io.File;
-import java.net.MalformedURLException;
-import java.util.ArrayList;
-import java.util.List;
 import com.frdfsnlght.transporter.api.API;
 import com.frdfsnlght.transporter.api.TransporterException;
 import com.frdfsnlght.transporter.command.CommandException;
 import com.frdfsnlght.transporter.command.CommandProcessor;
 import com.frdfsnlght.transporter.net.Network;
+import java.io.File;
+import java.net.MalformedURLException;
+import java.util.ArrayList;
+import java.util.List;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.PluginDescriptionFile;
@@ -38,12 +38,12 @@ import org.bukkit.plugin.java.PluginClassLoader;
  */
 public class Transporter extends JavaPlugin {
 
-    private ServerListenerImpl serverListener = new ServerListenerImpl();
-    private BlockListenerImpl blockListener = new BlockListenerImpl();
-    private PlayerListenerImpl playerListener = new PlayerListenerImpl();
-    private VehicleListenerImpl vehicleListener = new VehicleListenerImpl();
-    private WorldListenerImpl worldListener = new WorldListenerImpl();
-    private EntityListenerImpl entityListener = new EntityListenerImpl();
+    private ServerListenerImpl serverListener;
+    private BlockListenerImpl blockListener;
+    private PlayerListenerImpl playerListener;
+    private VehicleListenerImpl vehicleListener;
+    private WorldListenerImpl worldListener;
+    private EntityListenerImpl entityListener;
 
     private API api = null;
 
@@ -56,6 +56,13 @@ public class Transporter extends JavaPlugin {
         Global.pluginName = pdf.getName();
         Global.pluginVersion = pdf.getVersion();
         Global.started = false;
+
+        serverListener = new ServerListenerImpl();
+        blockListener = new BlockListenerImpl();
+        playerListener = new PlayerListenerImpl();
+        vehicleListener = new VehicleListenerImpl();
+        worldListener = new WorldListenerImpl();
+        entityListener = new EntityListenerImpl();
 
         final Context ctx = new Context();
 
@@ -95,6 +102,9 @@ public class Transporter extends JavaPlugin {
         }
 
         Config.load(ctx);
+
+        Utils.checkVersion();
+
         Designs.load(ctx);
         Network.start(ctx);
         Realm.start(ctx);

@@ -219,6 +219,20 @@ public interface RemoteServer {
     public void setSendChat(boolean b);
 
     /**
+     * Returns the value of the "sendChatFilter" option.
+     *
+     * @return the option value
+     */
+    public String getSendChatFilter();
+
+    /**
+     * Sets the "sendChatFilter" option.
+     *
+     * @param s the option value
+     */
+    public void setSendChatFilter(String s);
+
+    /**
      * Returns the value of the "receiveChat" option.
      *
      * @return the option value
@@ -231,6 +245,20 @@ public interface RemoteServer {
      * @param b the option value
      */
     public void setReceiveChat(boolean b);
+
+    /**
+     * Returns the value of the "receiveChatFilter" option.
+     *
+     * @return the option value
+     */
+    public String getReceiveChatFilter();
+
+    /**
+     * Sets the "receiveChatFilter" option.
+     *
+     * @param s the option value
+     */
+    public void setReceiveChatFilter(String s);
 
     /**
      * Returns the value of the "announcePlayers" option.

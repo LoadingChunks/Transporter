@@ -15,20 +15,23 @@
  */
 package com.frdfsnlght.transporter;
 
+import com.frdfsnlght.transporter.api.GateException;
+import com.frdfsnlght.transporter.api.ReservationException;
+import com.frdfsnlght.transporter.api.TransporterException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import com.frdfsnlght.transporter.api.GateException;
-import com.frdfsnlght.transporter.api.ReservationException;
-import com.frdfsnlght.transporter.api.TransporterException;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Event;
+import org.bukkit.event.EventException;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerChatEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -37,6 +40,8 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.plugin.EventExecutor;
+import org.bukkit.plugin.RegisteredListener;
 
 /**
  *
@@ -144,7 +149,43 @@ public final class PlayerListenerImpl implements Listener {
     }
     */
 
-    private Map<Player,Location> playerLocations = new HashMap<Player,Location>();
+
+    public PlayerListenerImpl() {
+
+        // This funkyness allows the code to work for both 1.2.5 and 1.3.1 releases of Bukkit
+        // TODO: once Bukkit has a 1.3.1 RB, all this can be removed along with the synchronous player chat handler.
+        try {
+            Class.forName("import org.bukkit.event.player.AsyncPlayerChatEvent");
+            AsyncPlayerChatEvent.getHandlerList().register(new RegisteredListener(
+                    this,
+                    new EventExecutor() {
+                        @Override
+                        public void execute(Listener listener, Event event) throws EventException {
+                            onPlayerChatAsync((AsyncPlayerChatEvent)event);
+                        }
+                    },
+                    EventPriority.MONITOR,
+                    Global.plugin,
+                    true)
+                    );
+        } catch (ClassNotFoundException e) {
+            PlayerChatEvent.getHandlerList().register(new RegisteredListener(
+                    this,
+                    new EventExecutor() {
+                        @Override
+                        public void execute(Listener listener, Event event) throws EventException {
+                            onPlayerChatSync((PlayerChatEvent)event);
+                        }
+                    },
+                    EventPriority.MONITOR,
+                    Global.plugin,
+                    true)
+                    );
+        }
+    }
+
+
+    //private Map<Player,Location> playerLocations = new HashMap<Player,Location>();
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onPlayerInteract(PlayerInteractEvent event) {
@@ -322,18 +363,26 @@ public final class PlayerListenerImpl implements Listener {
         Realm.onRespawn(player);
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onPlayerChat(PlayerChatEvent event) {
+    // TODO: uncomment this when Bukkit goes to a 1.3.1 RB
+//    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPlayerChatAsync(final AsyncPlayerChatEvent event) {
+        if (event.isAsynchronous())
+            Utils.fire(new Runnable() {
+                @Override
+                public void run() {
+                    Chat.send(event.getPlayer(), event.getMessage());
+                }
+            });
+        else
+            Chat.send(event.getPlayer(), event.getMessage());
+    }
+
+    // TODO: remove this when Bukkit goes to a 1.3.1 RB
+    public void onPlayerChatSync(PlayerChatEvent event) {
         Chat.send(event.getPlayer(), event.getMessage());
     }
 
     /*
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onPlayerEnterBed(PlayerBedEnterEvent event) {
-//        Realm.onSetHome(event.getPlayer(), event.getPlayer().getLocation());
-    }
-*/
-
     private Location quantizePlayerLocation(Player player, Location location) {
         Location newQLoc = new Location(location.getWorld(), location.getBlockX(), location.getBlockY(), location.getBlockZ());
         Location qLoc = playerLocations.get(player);
@@ -341,5 +390,6 @@ public final class PlayerListenerImpl implements Listener {
         playerLocations.put(player, newQLoc);
         return newQLoc;
     }
+*/
 
 }

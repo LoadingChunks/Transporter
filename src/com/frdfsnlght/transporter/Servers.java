@@ -118,6 +118,7 @@ public final class Servers {
     public static Server findByRemoteName(String name) {
         Server server = null;
         for (Server s : servers.values()) {
+            if (! s.isConnected()) continue;
             if (s.getRemoteServer().equals(name)) {
                 if (server == null) server = s;
                 else return null;

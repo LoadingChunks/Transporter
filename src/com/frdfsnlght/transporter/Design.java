@@ -15,6 +15,8 @@
  */
 package com.frdfsnlght.transporter;
 
+import com.frdfsnlght.transporter.api.GateException;
+import com.frdfsnlght.transporter.api.TransporterException;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -26,8 +28,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-import com.frdfsnlght.transporter.api.GateException;
-import com.frdfsnlght.transporter.api.TransporterException;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -68,8 +68,10 @@ public class Design {
     private int invalidPinDamage;
     private boolean protect;
     private boolean sendChat;
+    private String sendChatFilter;
     private int sendChatDistance;
     private boolean receiveChat;
+    private String receiveChatFilter;
     private int receiveChatDistance;
     private boolean requireAllowedItems;
     private boolean receiveInventory;
@@ -147,8 +149,10 @@ public class Design {
         invalidPinDamage = conf.getInt("invalidPinDamage", 0);
         protect = conf.getBoolean("protect", false);
         sendChat = conf.getBoolean("sendChat", false);
+        sendChatFilter = conf.getString("sendChatFilter");
         sendChatDistance = conf.getInt("sendChatDistance", 1000);
         receiveChat = conf.getBoolean("receiveChat", false);
+        receiveChatFilter = conf.getString("receiveChatFilter");
         receiveChatDistance = conf.getInt("receiveChatDistance", 1000);
         requireAllowedItems = conf.getBoolean("requireAllowedItems", true);
         receiveInventory = conf.getBoolean("receiveInventory", true);
@@ -381,7 +385,7 @@ public class Design {
     public boolean isCreatable() {
         return creatable;
     }
-    
+
     public boolean mustBuildFromInventory() {
         return buildFromInventory;
     }
@@ -450,12 +454,20 @@ public class Design {
         return sendChat;
     }
 
+    public String getSendChatFilter() {
+        return sendChatFilter;
+    }
+
     public int getSendChatDistance() {
         return sendChatDistance;
     }
 
     public boolean getReceiveChat() {
         return receiveChat;
+    }
+
+    public String getReceiveChatFilter() {
+        return receiveChatFilter;
     }
 
     public int getReceiveChatDistance() {

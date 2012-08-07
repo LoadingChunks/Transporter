@@ -12,6 +12,7 @@ restoreOnClose: false
 blockKey:
   X: NONE
   O: { build: OBSIDIAN, open: GLOWSTONE }
+  o: { build: OBSIDIAN }
   P: { build: AIR, portal: true  }
   p: { build: RAILS, portal: true, spawn: FORWARD, insert: true }
   S: { build: { type: WALL_SIGN, facing: NORTH }, screen: true, trigger: true, switch: true }
@@ -27,7 +28,7 @@ blocks:
     - "OOO"
     - "OPO"
     - "OpO"
-    - "OOO"
+    - "OoO"
   -
     - "XsX"
     - "XXX"

@@ -164,6 +164,7 @@ public final class JSON {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private static List decodeArray(StringBuilder sb, int[] pos) {
         List list = new ArrayList();
         stripChars(sb, pos, 1);

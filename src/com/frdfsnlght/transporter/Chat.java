@@ -60,14 +60,14 @@ public final class Chat {
 
         // add all servers that relay all chat
         for (Server server : Servers.getAll())
-            if (server.getSendChat())
+            if (server.canSendChat(message))
                 servers.put(server, null);
 
         Location loc = player.getLocation();
         RemoteGateImpl destGate;
         Server destServer;
         for (LocalGateImpl gate : Gates.getLocalGates()) {
-            if (gate.isOpen() && gate.getSendChat() && gate.isInChatSendProximity(loc)) {
+            if (gate.isOpen() && gate.canSendChat(message) && gate.isInChatSendProximity(loc)) {
                 try {
                     GateImpl dg = gate.getDestinationGate();
                     if (! (dg instanceof RemoteGateImpl)) continue;
@@ -87,20 +87,17 @@ public final class Chat {
     }
 
     public static void receive(RemotePlayerImpl player, String message, List<String> toGates) {
-        RemotePlayerChatEvent event = new RemotePlayerChatEvent(player, message);
-        Global.plugin.getServer().getPluginManager().callEvent(event);
-
         Player[] players = Global.plugin.getServer().getOnlinePlayers();
 
         final Set<Player> playersToReceive = new HashSet<Player>();
-        if ((toGates == null) && ((Server)player.getRemoteServer()).getReceiveChat())
+        if ((toGates == null) && ((Server)player.getRemoteServer()).canReceiveChat(message))
             Collections.addAll(playersToReceive, players);
         else if ((toGates != null) && (! toGates.isEmpty())) {
             for (String gateName : toGates) {
                 GateImpl g = Gates.get(gateName);
                 if ((g == null) || (! (g instanceof LocalGateImpl))) continue;
                 LocalGateImpl gate = (LocalGateImpl)g;
-                if (! gate.getReceiveChat()) continue;
+                if (! gate.canReceiveChat(message)) continue;
                 for (Player p : players) {
                     if (gate.isInChatReceiveProximity(p.getLocation()))
                         playersToReceive.add(p);
@@ -109,6 +106,9 @@ public final class Chat {
         }
 
         if (playersToReceive.isEmpty()) return;
+
+        RemotePlayerChatEvent event = new RemotePlayerChatEvent(player, message);
+        Global.plugin.getServer().getPluginManager().callEvent(event);
 
         String format = player.format(Config.getServerChatFormat());
         format = format.replace("%message%", message);
