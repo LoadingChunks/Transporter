@@ -491,6 +491,20 @@ public interface LocalGate extends Gate {
     public void setSendChatFilter(String s);
 
     /**
+     * Returns the value of the "sendChatFormatFilter" option.
+     *
+     * @return the option value
+     */
+    public String getSendChatFormatFilter();
+
+    /**
+     * Sets the "sendChatFormatFilter" option.
+     *
+     * @param s the option value
+     */
+    public void setSendChatFormatFilter(String s);
+
+    /**
      * Returns the value of the "sendChatDistance" option.
      *
      * @return      the option value

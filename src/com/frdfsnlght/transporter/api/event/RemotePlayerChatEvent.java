@@ -39,6 +39,7 @@ public final class RemotePlayerChatEvent extends Event {
 
     private RemotePlayer player;
     private String message;
+    private String format;
 
     /**
      * Creates the event.
@@ -46,9 +47,10 @@ public final class RemotePlayerChatEvent extends Event {
      * @param player    the player
      * @param message   the message
      */
-    public RemotePlayerChatEvent(RemotePlayer player, String message) {
+    public RemotePlayerChatEvent(RemotePlayer player, String message, String format) {
         this.player = player;
         this.message = message;
+        this.format = format;
     }
 
     /**
@@ -67,6 +69,15 @@ public final class RemotePlayerChatEvent extends Event {
      */
     public String getMessage() {
         return message;
+    }
+
+    /**
+     * Returns the format of the message.
+     *
+     * @return the format
+     */
+    public String getFormat() {
+        return format;
     }
 
     /**

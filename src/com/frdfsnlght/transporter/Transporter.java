@@ -21,6 +21,7 @@ import com.frdfsnlght.transporter.command.CommandException;
 import com.frdfsnlght.transporter.command.CommandProcessor;
 import com.frdfsnlght.transporter.net.Network;
 import java.io.File;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -56,13 +57,6 @@ public class Transporter extends JavaPlugin {
         Global.pluginName = pdf.getName();
         Global.pluginVersion = pdf.getVersion();
         Global.started = false;
-
-        serverListener = new ServerListenerImpl();
-        blockListener = new BlockListenerImpl();
-        playerListener = new PlayerListenerImpl();
-        vehicleListener = new VehicleListenerImpl();
-        worldListener = new WorldListenerImpl();
-        entityListener = new EntityListenerImpl();
 
         final Context ctx = new Context();
 
@@ -105,6 +99,13 @@ public class Transporter extends JavaPlugin {
 
         Utils.checkVersion();
 
+        serverListener = new ServerListenerImpl();
+        blockListener = new BlockListenerImpl();
+        playerListener = new PlayerListenerImpl();
+        vehicleListener = new VehicleListenerImpl();
+        worldListener = new WorldListenerImpl();
+        entityListener = new EntityListenerImpl();
+
         Designs.load(ctx);
         Network.start(ctx);
         Realm.start(ctx);
@@ -136,7 +137,12 @@ public class Transporter extends JavaPlugin {
 
         Global.started = true;
 
-        Utils.updatePluginCount();
+        try {
+            Metrics metrics = new Metrics(this);
+            metrics.start();
+        } catch (IOException e) {
+            ctx.warn("unable to start metrics: %s", e.getMessage());
+        }
 
         ctx.sendLog("ready on server '%s'", getServer().getServerName());
 

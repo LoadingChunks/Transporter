@@ -47,8 +47,8 @@ public final class RemotePlayerImpl implements RemotePlayer {
     public String format(String f) {
         if (f == null) return "";
         f = f.replace("%player%", getDisplayName());
-        f = f.replace("%world%", getRemoteWorld().getName());
-        f = f.replace("%server%", getRemoteServer().getName());
+        f = f.replace("%world%", (getRemoteWorld() == null) ? "unknown" : getRemoteWorld().getName());
+        f = f.replace("%server%", (getRemoteServer() == null) ? "unknown" : getRemoteServer().getName());
         return f;
     }
 

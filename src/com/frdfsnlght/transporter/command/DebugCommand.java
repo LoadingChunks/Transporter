@@ -16,6 +16,7 @@
 package com.frdfsnlght.transporter.command;
 
 import com.frdfsnlght.transporter.Context;
+import com.frdfsnlght.transporter.PlayerListenerImpl;
 import com.frdfsnlght.transporter.Utils;
 import com.frdfsnlght.transporter.api.TransporterException;
 import java.util.ArrayList;
@@ -42,6 +43,8 @@ public class DebugCommand extends TrpCommandProcessor {
         List<String> cmds = new ArrayList<String>();
         if (ctx.isConsole())
             cmds.add(getPrefix(ctx) + GROUP + "submit <id>");
+        if (ctx.isPlayer())
+            cmds.add(getPrefix(ctx) + GROUP + "interact");
         return cmds;
     }
 
@@ -64,6 +67,19 @@ public class DebugCommand extends TrpCommandProcessor {
             }
             ctx.send("requested submission of debug data");
             Utils.submitDebug(id);
+            return;
+        }
+
+        if ("interact".startsWith(subCmd)) {
+            if (! ctx.isPlayer())
+                throw new CommandException("this command is only available to players");
+            if (PlayerListenerImpl.testPlayer != ctx.getPlayer()) {
+                PlayerListenerImpl.testPlayer = ctx.getPlayer();
+                ctx.send("player interaction debug is on");
+            } else {
+                PlayerListenerImpl.testPlayer = null;
+                ctx.send("player interaction debug is off");
+            }
             return;
         }
 

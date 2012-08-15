@@ -40,31 +40,42 @@ public final class NBT {
 
     private static Method NBTTCCollection = null;
 
-    static {
-        for (String methodName : new String[] { "c", "d" }) {
-            try {
-                NBTTCCollection = NBTTagCompound.class.getMethod(methodName, (Class<?>)null);
-                if (NBTTCCollection.getReturnType() == Collection.class) break;
-                NBTTCCollection = null;
-            } catch (NoSuchMethodException e) {}
+    private static Method getCollectionMethod() {
+        if (NBTTCCollection != null) return NBTTCCollection;
+        Utils.debug("looking for NBTTagCompound collection method...");
+        for (Method method : NBTTagCompound.class.getMethods()) {
+            if (method.getParameterTypes().length != 0) {
+                Utils.debug("rejected NBTTagCompound.%s: too many parameters", method.getName());
+                continue;
+            }
+            if (method.getReturnType() != Collection.class) {
+                Utils.debug("rejected NBTTagCompound.%s: wrong return type", method.getName());
+                continue;
+            }
+            if (NBTTCCollection == null) {
+                NBTTCCollection = method;
+                Utils.debug("found NBTTagCompound.%s", method.getName());
+            } else
+                Utils.warning("found additional NBTTagCompound.%s", method.getName());
         }
+        if (NBTTCCollection == null)
+            throw new UnsupportedOperationException("Unable to find collection method in NBTTagCompound!!!");
+        return NBTTCCollection;
     }
 
     public static TypeMap encodeNBT(NBTTagCompound tag) {
+        Method method = getCollectionMethod();
+
         if (tag == null) return null;
 
         TypeMap map = new TypeMap();
-
-        if (NBTTCCollection == null)
-            throw new UnsupportedOperationException("Unable to find collection method in NBTTagCompound!!!");
-
         Collection col = null;
         try {
-            col = (Collection)NBTTCCollection.invoke(tag, (Object)null);
+            col = (Collection)method.invoke(tag, new Object[] {});
+            Utils.debug("successfully called NBTTagCompound.%s", method.getName());
         } catch (IllegalAccessException e) {
         } catch (InvocationTargetException e) {}
 
-        // Next line
         for (Object object : col) {
             if (object instanceof NBTBase) {
                 if (object instanceof NBTTagCompound) {

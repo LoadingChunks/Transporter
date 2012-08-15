@@ -55,19 +55,23 @@ public final class Chat {
         return b.toString();
     }
 
-    public static void send(Player player, String message) {
+    public static void send(Player player, String message, String format) {
+        Utils.debug("player '%s' sent message '%s' with format '%s'", player.getName(), message, format);
+
         Map<Server,Set<RemoteGateImpl>> servers = new HashMap<Server,Set<RemoteGateImpl>>();
 
         // add all servers that relay all chat
         for (Server server : Servers.getAll())
-            if (server.canSendChat(message))
+            if (server.canSendChat(message, format)) {
                 servers.put(server, null);
+                Utils.debug("can send chat message to server %s", server.getName());
+            }
 
         Location loc = player.getLocation();
         RemoteGateImpl destGate;
         Server destServer;
         for (LocalGateImpl gate : Gates.getLocalGates()) {
-            if (gate.isOpen() && gate.canSendChat(message) && gate.isInChatSendProximity(loc)) {
+            if (gate.isOpen() && gate.canSendChat(message, format) && gate.isInChatSendProximity(loc)) {
                 try {
                     GateImpl dg = gate.getDestinationGate();
                     if (! (dg instanceof RemoteGateImpl)) continue;
@@ -78,19 +82,25 @@ public final class Chat {
                     } else
                         servers.put(destServer, new HashSet<RemoteGateImpl>());
                     servers.get(destServer).add(destGate);
+                    Utils.debug("can send chat message to server %s through gate %s", destServer.getName(), destGate.getFullName());
                 } catch (GateException e) {}
             }
+        }
+
+        if (servers.isEmpty()) {
+            Utils.debug("no servers to send chat message to");
+            return;
         }
         for (Server server : servers.keySet()) {
             server.sendChat(player, message, servers.get(server));
         }
     }
 
-    public static void receive(RemotePlayerImpl player, String message, List<String> toGates) {
+    public static void receive(Server fromServer, RemotePlayerImpl player, String message, List<String> toGates) {
         Player[] players = Global.plugin.getServer().getOnlinePlayers();
 
-        final Set<Player> playersToReceive = new HashSet<Player>();
-        if ((toGates == null) && ((Server)player.getRemoteServer()).canReceiveChat(message))
+        Set<Player> playersToReceive = new HashSet<Player>();
+        if ((toGates == null) && fromServer.canReceiveChat(message))
             Collections.addAll(playersToReceive, players);
         else if ((toGates != null) && (! toGates.isEmpty())) {
             for (String gateName : toGates) {
@@ -103,32 +113,44 @@ public final class Chat {
                         playersToReceive.add(p);
                 }
             }
+        } else {
+            Utils.debug("chat message ignored");
+            return;
         }
 
-        if (playersToReceive.isEmpty()) return;
+        if (playersToReceive.isEmpty()) {
+            Utils.debug("no players to send chat message to");
+            return;
+        }
 
-        RemotePlayerChatEvent event = new RemotePlayerChatEvent(player, message);
+        String format = fromServer.getChatFormat();
+        if (format == null)
+            format = Config.getServerChatFormat();
+
+        RemotePlayerChatEvent event = new RemotePlayerChatEvent(player, message, format);
         Global.plugin.getServer().getPluginManager().callEvent(event);
 
-        String format = player.format(Config.getServerChatFormat());
+        format = player.format(format);
         format = format.replace("%message%", message);
         format = colorize(format);
         for (Player p : playersToReceive)
             p.sendMessage(format);
     }
 
-    public static void receivePrivateMessage(RemotePlayerImpl remotePlayer, String localPlayerName, String message) {
+    public static void receivePrivateMessage(Server fromServer, RemotePlayerImpl remotePlayer, String localPlayerName, String message) {
         Player localPlayer = Global.plugin.getServer().getPlayer(localPlayerName);
         if (localPlayer == null) return;
         RemotePlayerPMEvent event = new RemotePlayerPMEvent(remotePlayer, localPlayer, message);
         Global.plugin.getServer().getPluginManager().callEvent(event);
         if (event.isCancelled()) return;
 
-        String format = Config.getServerPMFormat();
+        String format = fromServer.getPmFormat();
+        if (format == null)
+            format = Config.getServerPMFormat();
         if (format == null) return;
         format = format.replaceAll("%fromPlayer%", remotePlayer.getDisplayName());
         format = format.replaceAll("%fromWorld%", remotePlayer.getRemoteWorld().getName());
-        format = format.replaceAll("%fromServer%", remotePlayer.getRemoteServer().getName());
+        format = format.replaceAll("%fromServer%", fromServer.getName());
         format = format.replaceAll("%toPlayer%", localPlayer.getDisplayName());
         format = format.replaceAll("%toWorld%", localPlayer.getWorld().getName());
         format = format.replaceAll("%message%", message);

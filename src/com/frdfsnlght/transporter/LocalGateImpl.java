@@ -93,6 +93,7 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
         BASEOPTIONS.add("invalidPinDamage");
         BASEOPTIONS.add("sendChat");
         BASEOPTIONS.add("sendChatFilter");
+        BASEOPTIONS.add("sendChatFormatFilter");
         BASEOPTIONS.add("sendChatDistance");
         BASEOPTIONS.add("receiveChat");
         BASEOPTIONS.add("receiveChatFilter");
@@ -151,6 +152,7 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
     protected boolean protect;
     protected boolean sendChat;
     protected String sendChatFilter;
+    protected String sendChatFormatFilter;
     protected int sendChatDistance;
     protected boolean receiveChat;
     protected String receiveChatFilter;
@@ -307,6 +309,7 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
         protect = conf.getBoolean("protect", false);
         sendChat = conf.getBoolean("sendChat", false);
         sendChatFilter = conf.getString("sendChatFilter");
+        sendChatFormatFilter = conf.getString("sendChatFormatFilter");
         sendChatDistance = conf.getInt("sendChatDistance", 1000);
         receiveChat = conf.getBoolean("receiveChat", false);
         receiveChatFilter = conf.getString("receiveChatFilter");
@@ -368,6 +371,7 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
         setProtect(false);
         setSendChat(false);
         setSendChatFilter(null);
+        setSendChatFormatFilter(null);
         setSendChatDistance(1000);
         setReceiveChat(false);
         setReceiveChatFilter(null);
@@ -678,6 +682,7 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
         conf.set("protect", protect);
         conf.set("sendChat", sendChat);
         conf.set("sendChatFilter", sendChatFilter);
+        conf.set("sendChatFormatFilter", sendChatFormatFilter);
         conf.set("sendChatDistance", sendChatDistance);
         conf.set("receiveChat", receiveChat);
         conf.set("receiveChatFilter", receiveChatFilter);
@@ -978,6 +983,25 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
                 }
         }
         sendChatFilter = s;
+    }
+
+    @Override
+    public String getSendChatFormatFilter() {
+        return sendChatFormatFilter;
+    }
+
+    @Override
+    public void setSendChatFormatFilter(String s) {
+        if (s != null) {
+            if (s.isEmpty() || s.equals("-")) s = null;
+            else
+                try {
+                    Pattern.compile(s);
+                } catch (PatternSyntaxException e) {
+                    throw new IllegalArgumentException("invalid regular expression");
+                }
+        }
+        sendChatFormatFilter = s;
     }
 
     @Override
@@ -1448,17 +1472,23 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
 
     /* End options */
 
-    public boolean canSendChat(String message) {
+    public boolean canSendChat(String message, String format) {
         if ((! sendChat) || (message == null)) return false;
-        if (sendChatFilter == null) return true;
-        return message.matches(sendChatFilter);
+        if (sendChatFilter != null)
+            if (! Pattern.compile(sendChatFilter).matcher(message).find()) return false;
+        if (sendChatFormatFilter != null) {
+            if (format == null) return false;
+            if (! Pattern.compile(sendChatFormatFilter).matcher(format).find()) return false;
+        }
+        return true;
     }
 
     public boolean canReceiveChat(String message) {
         if ((! receiveChat) || (message == null)) return false;
         if (receiveChatFilter == null) return true;
-        return message.matches(receiveChatFilter);
+        return Pattern.compile(receiveChatFilter).matcher(message).find();
     }
+
 
     public double getSendCost(GateImpl toGate) {
         if (toGate == null) return 0;

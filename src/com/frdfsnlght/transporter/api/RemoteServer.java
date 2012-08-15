@@ -205,6 +205,34 @@ public interface RemoteServer {
     public void setPrivateAddress(String address);
 
     /**
+     * Returns the value of the "chatFormat" option.
+     *
+     * @return the option value
+     */
+    public String getChatFormat();
+
+    /**
+     * Sets the "chatFormat" option.
+     *
+     * @param s the option value
+     */
+    public void setChatFormat(String s);
+
+    /**
+     * Returns the value of the "pmFormat" option.
+     *
+     * @return the option value
+     */
+    public String getPmFormat();
+
+    /**
+     * Sets the "pmFormat" option.
+     *
+     * @param s the option value
+     */
+    public void setPmFormat(String s);
+
+    /**
      * Returns the value of the "sendChat" option.
      *
      * @return the option value
@@ -231,6 +259,20 @@ public interface RemoteServer {
      * @param s the option value
      */
     public void setSendChatFilter(String s);
+
+    /**
+     * Returns the value of the "sendChatFormatFilter" option.
+     *
+     * @return the option value
+     */
+    public String getSendChatFormatFilter();
+
+    /**
+     * Sets the "sendChatFormatFilter" option.
+     *
+     * @param s the option value
+     */
+    public void setSendChatFormatFilter(String s);
 
     /**
      * Returns the value of the "receiveChat" option.

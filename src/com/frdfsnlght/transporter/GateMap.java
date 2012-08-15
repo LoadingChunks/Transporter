@@ -73,6 +73,29 @@ public final class GateMap {
         return count;
     }
 
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("GateMap[");
+        sb.append(worlds.size()).append(" worlds: ");
+        for (World world : worlds.keySet()) {
+            sb.append(worlds.get(world).toString());
+            sb.append(",");
+        }
+        sb.append("]");
+        return sb.toString();
+    }
+
+    public String toString(World world) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("GateMap.").append(world.getName()).append("[");
+        WorldMap wmap = worlds.get(world);
+        if (wmap != null)
+            sb.append(wmap.toString());
+        sb.append("]");
+        return sb.toString();
+    }
+
     public static final class Point {
         int x, y, z;
         public Point() {}
@@ -207,6 +230,19 @@ public final class GateMap {
             if (root != null) root.destroy();
             if ((volumes == null) || volumes.isEmpty()) return;
             root = new VolumeNode(null, volumes);
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            sb.append("WorldMap[");
+            sb.append(volumes.size()).append(" volumes:\n");
+            for (Volume volume : volumes) {
+                sb.append(volume.toString());
+                sb.append(",\n");
+            }
+            sb.append("]");
+            return sb.toString();
         }
 
     }

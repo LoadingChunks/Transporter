@@ -679,6 +679,7 @@ public class Utils {
         if (count > maxPlayers) maxPlayers = count;
     }
 
+    /*
     public static void updatePluginCount() {
         try {
             String urlStr = String.format("http://www.frdfsnlght.com/mc-active-plugins.php?submit=1&server=%s&plugin=%s&version=%s&players=%s",
@@ -707,7 +708,8 @@ public class Utils {
             }
         }, 86400 * 1000);
     }
-
+    */
+    
     public static void checkVersion() {
         try {
             String urlStr = Global.plugin.getDescription().getWebsite() + "pages/version";

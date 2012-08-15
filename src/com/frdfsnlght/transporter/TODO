@@ -8,17 +8,20 @@ Ideas:
 TODO:
 * Add world gates that only accept arrivals and no outbound links. Lets server place player in the world?
 * Add commands to extract part of a world into a design file.
-* Add "trp server exec <server> <cmd> [<args>] ... to run commands on remote servers
+
 
 Testing:
 * Test stairs with facing option
 
 Wiki Updates:
 * Add FAQ: added servers but they won't connect
-* Document new realm options, server naming requirements
-* Document server gates
+* Add server and gate option "sendChatFormatFilter".
+* Add server options "chatFormat", and "pmFormat".
 
 Changelog:
-* Works with both 1.2.5 and 1.3.1 builds through the use of magic.
-* Added server and gate options "sendChatFilter" and "receiveChatFilter".
-* Fixed bug concerning realm transports to "last server".
+* Fixed bug: NoClassDefFoundError when creating a server gate.
+* Fixed bug (hopefully): NBT tag support for multiple server versions.
+* Added server and gate option "sendChatFormatFilter".
+* Added server options "chatFormat", and "pmFormat".
+* Added realm option "respawn".
+

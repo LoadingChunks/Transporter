@@ -273,7 +273,7 @@ public class ServerCommand extends TrpCommandProcessor {
                 throw new CommandException("unknown server '%s'", serverName);
             if (args.isEmpty())
                 throw new CommandException("remote command required");
-            String remoteCmd = args.get(0);
+            String remoteCmd = args.remove(0);
             Permissions.require(ctx.getPlayer(), "trp.server.exec." + remoteCmd);
             StringBuilder remoteArgs = new StringBuilder();
             for (String arg : args) {

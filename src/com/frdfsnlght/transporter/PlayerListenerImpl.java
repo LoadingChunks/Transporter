@@ -155,7 +155,7 @@ public final class PlayerListenerImpl implements Listener {
         // This funkyness allows the code to work for both 1.2.5 and 1.3.1 releases of Bukkit
         // TODO: once Bukkit has a 1.3.1 RB, all this can be removed along with the synchronous player chat handler.
         try {
-            Class.forName("import org.bukkit.event.player.AsyncPlayerChatEvent");
+            Class.forName("org.bukkit.event.player.AsyncPlayerChatEvent");
             AsyncPlayerChatEvent.getHandlerList().register(new RegisteredListener(
                     this,
                     new EventExecutor() {
@@ -168,6 +168,7 @@ public final class PlayerListenerImpl implements Listener {
                     Global.plugin,
                     true)
                     );
+            Utils.debug("registered as listener for Asynchronous chat events");
         } catch (ClassNotFoundException e) {
             PlayerChatEvent.getHandlerList().register(new RegisteredListener(
                     this,
@@ -181,21 +182,38 @@ public final class PlayerListenerImpl implements Listener {
                     Global.plugin,
                     true)
                     );
+            Utils.debug("registered as listener for Synchronous chat events");
         }
     }
 
 
     //private Map<Player,Location> playerLocations = new HashMap<Player,Location>();
 
+    public static Player testPlayer = null;
+
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onPlayerInteract(PlayerInteractEvent event) {
         Block block = event.getClickedBlock();
-        if (block == null) return;
+        if (block == null) {
+            Utils.debug("no block was interacted with?");
+            return;
+        }
         Location location = block.getLocation();
         Context ctx = new Context(event.getPlayer());
 
         LocalGateImpl triggerGate = Gates.findGateForTrigger(location);
         LocalGateImpl switchGate = Gates.findGateForSwitch(location);
+        if (event.getPlayer() == testPlayer) {
+            Utils.debug("-Interaction-----------------------------------------");
+            Utils.debug("location: %s", Utils.blockCoords(location));
+            Utils.debug("triggerGate: %s", (triggerGate == null) ? "none" : triggerGate.getFullName());
+            Utils.debug("switchGate: %s", (switchGate == null) ? "none" : switchGate.getFullName());
+            if ((triggerGate == null) && (switchGate == null)) {
+                Utils.debug("triggerMap: %s", Gates.triggerMap.toString(testPlayer.getWorld()));
+                Utils.debug("switchMap: %s", Gates.switchMap.toString(testPlayer.getWorld()));
+            }
+        }
+
         if ((triggerGate == null) && (switchGate == null)) return;
         if ((triggerGate != null) && (switchGate != null) && (triggerGate != switchGate)) switchGate = null;
 
@@ -370,16 +388,16 @@ public final class PlayerListenerImpl implements Listener {
             Utils.fire(new Runnable() {
                 @Override
                 public void run() {
-                    Chat.send(event.getPlayer(), event.getMessage());
+                    Chat.send(event.getPlayer(), event.getMessage(), event.getFormat());
                 }
             });
         else
-            Chat.send(event.getPlayer(), event.getMessage());
+            Chat.send(event.getPlayer(), event.getMessage(), event.getFormat());
     }
 
     // TODO: remove this when Bukkit goes to a 1.3.1 RB
     public void onPlayerChatSync(PlayerChatEvent event) {
-        Chat.send(event.getPlayer(), event.getMessage());
+        Chat.send(event.getPlayer(), event.getMessage(), event.getFormat());
     }
 
     /*

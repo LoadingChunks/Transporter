@@ -48,6 +48,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import org.bukkit.GameMode;
@@ -76,9 +77,12 @@ public final class Server implements OptionsListener, RemoteServer {
         OPTIONS.add("key");
         OPTIONS.add("publicAddress");
         OPTIONS.add("privateAddress");
+        OPTIONS.add("chatFormat");
+        OPTIONS.add("pmFormat");
         OPTIONS.add("sendChat");
         OPTIONS.add("receiveChat");
         OPTIONS.add("sendChatFilter");
+        OPTIONS.add("sendChatFormatFilter");
         OPTIONS.add("receiveChatFilter");
         OPTIONS.add("announcePlayers");
 
@@ -161,6 +165,9 @@ public final class Server implements OptionsListener, RemoteServer {
     private String privateAddress = null;
     private InetSocketAddress normalizedPrivateAddress = null;
 
+    private String chatFormat = null;
+    private String pmFormat = null;
+
     // Should all chat messages on the local server be sent to the remote server?
     private boolean sendChat = false;
 
@@ -169,6 +176,7 @@ public final class Server implements OptionsListener, RemoteServer {
 
     // Regular expressions that must match chat messages in order to send or receive
     private String sendChatFilter = null;
+    private String sendChatFormatFilter = null;
     private String receiveChatFilter = null;
 
     // Should all player join/quit/kick messages from the remote server be echoed to local users?
@@ -220,8 +228,10 @@ public final class Server implements OptionsListener, RemoteServer {
             setPublicAddress(map.getString("publicAddress", "*"));
             setPrivateAddress(map.getString("privateAddress", "*"));
             setSendChat(map.getBoolean("sendChat", false));
+            setChatFormat(map.getString("chatFormat"));
             setReceiveChat(map.getBoolean("receiveChat", false));
             setSendChatFilter(map.getString("sendChatFilter"));
+            setSendChatFormatFilter(map.getString("sendChatFormatFilter"));
             setReceiveChatFilter(map.getString("receiveChatFilter"));
             setAnnouncePlayers(map.getBoolean("announcePlayers", false));
         } catch (IllegalArgumentException e) {
@@ -455,6 +465,32 @@ public final class Server implements OptionsListener, RemoteServer {
     }
 
     @Override
+    public String getChatFormat() {
+        return chatFormat;
+    }
+
+    @Override
+    public void setChatFormat(String s) {
+        if (s != null) {
+            if (s.isEmpty() || s.equals("-")) s = null;
+        }
+        chatFormat = s;
+    }
+
+    @Override
+    public String getPmFormat() {
+        return pmFormat;
+    }
+
+    @Override
+    public void setPmFormat(String s) {
+        if (s != null) {
+            if (s.isEmpty() || s.equals("-")) s = null;
+        }
+        pmFormat = s;
+    }
+
+    @Override
     public boolean getSendChat() {
         return sendChat;
     }
@@ -481,6 +517,25 @@ public final class Server implements OptionsListener, RemoteServer {
                 }
         }
         sendChatFilter = s;
+    }
+
+    @Override
+    public String getSendChatFormatFilter() {
+        return sendChatFormatFilter;
+    }
+
+    @Override
+    public void setSendChatFormatFilter(String s) {
+        if (s != null) {
+            if (s.isEmpty() || s.equals("-")) s = null;
+            else
+                try {
+                    Pattern.compile(s);
+                } catch (PatternSyntaxException e) {
+                    throw new IllegalArgumentException("invalid regular expression");
+                }
+        }
+        sendChatFormatFilter = s;
     }
 
     @Override
@@ -668,9 +723,12 @@ public final class Server implements OptionsListener, RemoteServer {
         node.put("enabled", enabled);
         node.put("publicAddress", publicAddress);
         node.put("privateAddress", privateAddress);
+        node.put("chatFormat", chatFormat);
+        node.put("pmFormat", pmFormat);
         node.put("sendChat", sendChat);
         node.put("receiveChat", receiveChat);
         node.put("sendChatFilter", sendChatFilter);
+        node.put("sendChatFormatFilter", sendChatFormatFilter);
         node.put("receiveChatFilter", receiveChatFilter);
         node.put("announcePlayers", announcePlayers);
         return node;
@@ -833,16 +891,21 @@ public final class Server implements OptionsListener, RemoteServer {
         });
     }
 
-    public boolean canSendChat(String message) {
+    public boolean canSendChat(String message, String format) {
         if ((! sendChat) || (message == null)) return false;
-        if (sendChatFilter == null) return true;
-        return message.matches(sendChatFilter);
+        if (sendChatFilter != null)
+            if (! Pattern.compile(sendChatFilter).matcher(message).find()) return false;
+        if (sendChatFormatFilter != null) {
+            if (format == null) return false;
+            if (! Pattern.compile(sendChatFormatFilter).matcher(format).find()) return false;
+        }
+        return true;
     }
 
     public boolean canReceiveChat(String message) {
         if ((! receiveChat) || (message == null)) return false;
         if (receiveChatFilter == null) return true;
-        return message.matches(receiveChatFilter);
+        return Pattern.compile(receiveChatFilter).matcher(message).find();
     }
 
     // Remote commands
@@ -1644,7 +1707,7 @@ public final class Server implements OptionsListener, RemoteServer {
         List<String> toGates = message.getStringList("toGates");
         RemotePlayerImpl player = remotePlayers.get(playerName);
         if (player == null) return;
-        Chat.receive(player, msg, toGates);
+        Chat.receive(this, player, msg, toGates);
     }
 
     private void receivePrivateMessage(TypeMap message) throws ServerException {
@@ -1660,7 +1723,7 @@ public final class Server implements OptionsListener, RemoteServer {
             fromPlayer = remotePlayers.get(fromPlayerName);
             if (fromPlayer == null) return;
         }
-        Chat.receivePrivateMessage(fromPlayer, toPlayerName, msg);
+        Chat.receivePrivateMessage(this, fromPlayer, toPlayerName, msg);
     }
 
     private void receiveApiRequest(TypeMap message) throws ServerException {

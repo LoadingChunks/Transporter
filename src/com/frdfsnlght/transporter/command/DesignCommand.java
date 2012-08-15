@@ -15,7 +15,6 @@
  */
 package com.frdfsnlght.transporter.command;
 
-import com.frdfsnlght.inquisitor.Global;
 import com.frdfsnlght.transporter.Config;
 import com.frdfsnlght.transporter.Context;
 import com.frdfsnlght.transporter.Design;
@@ -23,6 +22,7 @@ import com.frdfsnlght.transporter.Designs;
 import com.frdfsnlght.transporter.Economy;
 import com.frdfsnlght.transporter.EconomyException;
 import com.frdfsnlght.transporter.Gates;
+import com.frdfsnlght.transporter.Global;
 import com.frdfsnlght.transporter.Inventory;
 import com.frdfsnlght.transporter.LocalAreaGateImpl;
 import com.frdfsnlght.transporter.LocalGateImpl;

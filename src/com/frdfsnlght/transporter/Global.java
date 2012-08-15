@@ -15,8 +15,6 @@
  */
 package com.frdfsnlght.transporter;
 
-import java.util.ArrayList;
-import java.util.List;
 import com.frdfsnlght.transporter.command.APICommand;
 import com.frdfsnlght.transporter.command.CommandProcessor;
 import com.frdfsnlght.transporter.command.DebugCommand;
@@ -32,6 +30,8 @@ import com.frdfsnlght.transporter.command.SaveCommand;
 import com.frdfsnlght.transporter.command.ServerCommand;
 import com.frdfsnlght.transporter.command.WorldCommand;
 import com.frdfsnlght.transporter.test.TestCommand;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  *

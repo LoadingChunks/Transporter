@@ -69,6 +69,7 @@ public class Design {
     private boolean protect;
     private boolean sendChat;
     private String sendChatFilter;
+    private String sendChatFormatFilter;
     private int sendChatDistance;
     private boolean receiveChat;
     private String receiveChatFilter;
@@ -150,6 +151,7 @@ public class Design {
         protect = conf.getBoolean("protect", false);
         sendChat = conf.getBoolean("sendChat", false);
         sendChatFilter = conf.getString("sendChatFilter");
+        sendChatFormatFilter = conf.getString("sendChatFormatFilter");
         sendChatDistance = conf.getInt("sendChatDistance", 1000);
         receiveChat = conf.getBoolean("receiveChat", false);
         receiveChatFilter = conf.getString("receiveChatFilter");
@@ -456,6 +458,10 @@ public class Design {
 
     public String getSendChatFilter() {
         return sendChatFilter;
+    }
+
+    public String getSendChatFormatFilter() {
+        return sendChatFormatFilter;
     }
 
     public int getSendChatDistance() {

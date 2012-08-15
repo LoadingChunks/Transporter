@@ -112,6 +112,7 @@ public final class LocalBlockGateImpl extends LocalGateImpl implements LocalBloc
         protect = design.getProtect();
         sendChat = design.getSendChat();
         setSendChatFilter(design.getSendChatFilter());
+        setSendChatFormatFilter(design.getSendChatFormatFilter());
         sendChatDistance = design.getSendChatDistance();
         receiveChat = design.getReceiveChat();
         setReceiveChatFilter(design.getReceiveChatFilter());

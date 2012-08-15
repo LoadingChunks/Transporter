@@ -15,17 +15,17 @@
  */
 package com.frdfsnlght.transporter;
 
+import com.frdfsnlght.transporter.GateMap.Volume;
+import com.frdfsnlght.transporter.api.GateException;
+import com.frdfsnlght.transporter.api.TransporterException;
+import com.frdfsnlght.transporter.api.event.LocalGateCreateEvent;
+import com.frdfsnlght.transporter.api.event.LocalGateDestroyEvent;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import com.frdfsnlght.transporter.GateMap.Volume;
-import com.frdfsnlght.transporter.api.GateException;
-import com.frdfsnlght.transporter.api.TransporterException;
-import com.frdfsnlght.transporter.api.event.LocalGateCreateEvent;
-import com.frdfsnlght.transporter.api.event.LocalGateDestroyEvent;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -47,10 +47,10 @@ public final class Gates {
     private static final GateMap screenMap = new GateMap();
 
     // Gate switches for local gates
-    private static final GateMap switchMap = new GateMap();
+    public static final GateMap switchMap = new GateMap();
 
     // Gate triggers for local gates
-    private static final GateMap triggerMap = new GateMap();
+    public static final GateMap triggerMap = new GateMap();
 
     // Indexed by full name
     private static final Map<String,GateImpl> gates = new HashMap<String,GateImpl>();

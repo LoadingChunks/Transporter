@@ -42,6 +42,7 @@ public final class Realm {
         OPTIONS.add("defaultServer");
         OPTIONS.add("defaultWorld");
         OPTIONS.add("defaultGate");
+        OPTIONS.add("respawn");
         OPTIONS.add("respawnGate");
         OPTIONS.add("serverOfflineFormat");
         OPTIONS.add("restoreWhenServerOffline");
@@ -110,6 +111,7 @@ public final class Realm {
         if (redirectedPlayers.contains(player.getName())) return;
         if (! respawningPlayers.remove(player.getName())) return;
         Utils.debug("realm respawn '%s'", player.getName());
+        if (! getRespawn()) return;
         GateImpl respawnGate = getRespawnGateImpl();
         if (respawnGate != null)
             sendPlayerToGate(player, respawnGate);
@@ -367,6 +369,14 @@ public final class Realm {
         Config.setPropertyDirect("realm.defaultGate", s);
     }
 
+    public static boolean getRespawn() {
+        return Config.getBooleanDirect("realm.respawn", true);
+    }
+
+    public static void setRespawn(boolean b) {
+        Config.setPropertyDirect("realm.respawn", b);
+    }
+    
     public static String getRespawnGate() {
         return Config.getStringDirect("realm.respawnGate", null);
     }

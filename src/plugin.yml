@@ -1,6 +1,6 @@
 name: Transporter
 main: com.frdfsnlght.transporter.Transporter
-version: "8.2beta2"
+version: "8.4"
 authors:
   - frdfsnlght
 website: http://dev.bukkit.org/server-mods/transporter/
