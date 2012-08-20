@@ -316,6 +316,20 @@ public interface RemoteServer {
      */
     public void setAnnouncePlayers(boolean b);
 
+    /**
+     * Returns the value of the "playerListFormat" option.
+     *
+     * @return the option value
+     */
+    public String getPlayerListFormat();
+
+    /**
+     * Sets the "playerListFormat" option.
+     *
+     * @param s the option value
+     */
+    public void setPlayerListFormat(String s);
+
     /* End Options */
 
 }

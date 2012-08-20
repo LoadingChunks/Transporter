@@ -31,7 +31,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
-import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerChatEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -41,6 +40,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.plugin.EventExecutor;
+import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.RegisteredListener;
 
 /**
@@ -152,10 +152,14 @@ public final class PlayerListenerImpl implements Listener {
 
     public PlayerListenerImpl() {
 
-        // This funkyness allows the code to work for both 1.2.5 and 1.3.1 releases of Bukkit
-        // TODO: once Bukkit has a 1.3.1 RB, all this can be removed along with the synchronous player chat handler.
+        // This funkyness allows the code to work for both 1.2.5 and 1.3.1 releases of Bukkit/Tekkit
+        // TODO: once Tekkit is based on 1.3.1, all this can be removed along with the synchronous player chat handler.
         try {
             Class.forName("org.bukkit.event.player.AsyncPlayerChatEvent");
+            PlayerAsyncChatListenerImpl l = new PlayerAsyncChatListenerImpl();
+            PluginManager pm = Global.plugin.getServer().getPluginManager();
+            pm.registerEvents(l, Global.plugin);
+            /*
             AsyncPlayerChatEvent.getHandlerList().register(new RegisteredListener(
                     this,
                     new EventExecutor() {
@@ -168,6 +172,7 @@ public final class PlayerListenerImpl implements Listener {
                     Global.plugin,
                     true)
                     );
+            */
             Utils.debug("registered as listener for Asynchronous chat events");
         } catch (ClassNotFoundException e) {
             PlayerChatEvent.getHandlerList().register(new RegisteredListener(
@@ -319,11 +324,10 @@ public final class PlayerListenerImpl implements Listener {
     @EventHandler(priority = EventPriority.NORMAL)
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
+
         ReservationImpl r = ReservationImpl.get(player);
 
         if ((r == null) && Realm.onJoin(player)) return;
-
-        Utils.updatePlayerCount();
 
         Context ctx = new Context(player);
 
@@ -381,8 +385,9 @@ public final class PlayerListenerImpl implements Listener {
         Realm.onRespawn(player);
     }
 
-    // TODO: uncomment this when Bukkit goes to a 1.3.1 RB
-//    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    // TODO: uncomment this when Tekkit goes to a 1.3.1, also remove PlayerAsyncChatListenerImpl
+    /*
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerChatAsync(final AsyncPlayerChatEvent event) {
         if (event.isAsynchronous())
             Utils.fire(new Runnable() {
@@ -394,8 +399,9 @@ public final class PlayerListenerImpl implements Listener {
         else
             Chat.send(event.getPlayer(), event.getMessage(), event.getFormat());
     }
+    */
 
-    // TODO: remove this when Bukkit goes to a 1.3.1 RB
+    // TODO: remove this when Tekkit goes to a 1.3.1 RB
     public void onPlayerChatSync(PlayerChatEvent event) {
         Chat.send(event.getPlayer(), event.getMessage(), event.getFormat());
     }

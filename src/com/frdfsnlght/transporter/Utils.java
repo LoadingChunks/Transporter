@@ -344,9 +344,9 @@ public class Utils {
         s = s.toLowerCase();
         T theOne = null;
         for (T value : cls.getEnumConstants()) {
-            if (value.toString().toLowerCase().equals(s))
+            if (value.name().toLowerCase().equals(s))
                 return value;
-            if (value.toString().toLowerCase().startsWith(s)) {
+            if (value.name().toLowerCase().startsWith(s)) {
                 if (theOne == null)
                     theOne = value;
                 else
@@ -674,42 +674,6 @@ public class Utils {
         return out;
     }
 
-    public static void updatePlayerCount() {
-        int count = Global.plugin.getServer().getOnlinePlayers().length;
-        if (count > maxPlayers) maxPlayers = count;
-    }
-
-    /*
-    public static void updatePluginCount() {
-        try {
-            String urlStr = String.format("http://www.frdfsnlght.com/mc-active-plugins.php?submit=1&server=%s&plugin=%s&version=%s&players=%s",
-                                      URLEncoder.encode(Global.plugin.getServer().getServerName(), "US-ASCII"),
-                                      URLEncoder.encode(Global.pluginName, "US-ASCII"),
-                                      URLEncoder.encode(Global.pluginVersion, "US-ASCII"),
-                                      maxPlayers
-                );
-            maxPlayers = 0;
-            URL url = new URL(urlStr);
-            HttpURLConnection http = (HttpURLConnection)url.openConnection();
-            int statusCode = http.getResponseCode();
-            if (statusCode != 200)
-                Utils.debug("got status %s during plugin count update");
-            else
-                Utils.debug("successfully updated plugin count");
-        } catch (UnsupportedEncodingException uee) {
-        } catch (MalformedURLException mue) {
-        } catch (IOException ioe) {
-        }
-
-        workerDelayed(new Runnable() {
-            @Override
-            public void run() {
-                updatePluginCount();
-            }
-        }, 86400 * 1000);
-    }
-    */
-    
     public static void checkVersion() {
         try {
             String urlStr = Global.plugin.getDescription().getWebsite() + "pages/version";

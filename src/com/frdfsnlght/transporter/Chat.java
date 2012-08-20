@@ -29,6 +29,8 @@ import java.util.regex.Pattern;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.RegisteredServiceProvider;
 
 /**
  *
@@ -36,7 +38,36 @@ import org.bukkit.entity.Player;
  */
 public final class Chat {
 
+    private static net.milkbowl.vault.chat.Chat vaultPlugin = null;
+
     private static Pattern colorPattern = Pattern.compile("%(\\w+)%");
+
+    public static boolean vaultAvailable() {
+        if (! Config.getUseVaultChat()) return false;
+        Plugin p = Global.plugin.getServer().getPluginManager().getPlugin("Vault");
+        if (p == null) {
+            Utils.warning("Vault is not installed!");
+            return false;
+        }
+        if (! p.isEnabled()) {
+            Utils.warning("Vault is not enabled!");
+            return false;
+        }
+        if (vaultPlugin != null) return true;
+        RegisteredServiceProvider<net.milkbowl.vault.chat.Chat> rsp =
+                Global.plugin.getServer().getServicesManager().getRegistration(net.milkbowl.vault.chat.Chat.class);
+        if (rsp == null) {
+            Utils.warning("Vault didn't return a service provider!");
+            return false;
+        }
+        vaultPlugin = rsp.getProvider();
+        if (vaultPlugin == null) {
+            Utils.warning("Vault didn't return a chat provider!");
+            return false;
+        }
+        Utils.info("Initialized Vault for Chat");
+        return true;
+    }
 
     public static String colorize(String msg) {
         if (msg == null) return null;
@@ -148,15 +179,35 @@ public final class Chat {
         if (format == null)
             format = Config.getServerPMFormat();
         if (format == null) return;
-        format = format.replaceAll("%fromPlayer%", remotePlayer.getDisplayName());
-        format = format.replaceAll("%fromWorld%", remotePlayer.getRemoteWorld().getName());
-        format = format.replaceAll("%fromServer%", fromServer.getName());
-        format = format.replaceAll("%toPlayer%", localPlayer.getDisplayName());
-        format = format.replaceAll("%toWorld%", localPlayer.getWorld().getName());
-        format = format.replaceAll("%message%", message);
+        format = format.replace("%fromPlayerPrefix%", remotePlayer.getPrefix());
+        format = format.replace("%fromPlayerSuffix", remotePlayer.getSuffix());
+        format = format.replace("%fromPlayer%", remotePlayer.getDisplayName());
+        format = format.replace("%fromWorld%", remotePlayer.getRemoteWorld().getName());
+        format = format.replace("%fromServer%", fromServer.getName());
+        String prefix = getPrefix(localPlayer);
+        if (prefix == null) prefix = "";
+        String suffix = getSuffix(localPlayer);
+        if (suffix == null) suffix = "";
+        format = format.replace("%toPlayerPrefix%", prefix);
+        format = format.replace("%toPlayerSuffix", suffix);
+        format = format.replace("%toPlayer%", localPlayer.getDisplayName());
+        format = format.replace("%toWorld%", localPlayer.getWorld().getName());
+        format = format.replace("%message%", message);
         format = colorize(format);
         if (! format.isEmpty())
             localPlayer.sendMessage(format);
+    }
+
+    public static String getPrefix(Player player) {
+        if (vaultAvailable())
+            return vaultPlugin.getPlayerPrefix(player);
+        return null;
+    }
+
+    public static String getSuffix(Player player) {
+        if (vaultAvailable())
+            return vaultPlugin.getPlayerSuffix(player);
+        return null;
     }
 
 }

@@ -33,8 +33,10 @@ public final class RemotePlayerImpl implements RemotePlayer {
     private String name;
     private String displayName;
     private String worldName;
+    private String prefix;
+    private String suffix;
 
-    public RemotePlayerImpl(Server server, String name, String displayName, String worldName) {
+    public RemotePlayerImpl(Server server, String name, String displayName, String worldName, String prefix, String suffix) {
         this.server = server;
         if (name == null) throw new IllegalArgumentException("name is required");
         this.name = name;
@@ -42,10 +44,14 @@ public final class RemotePlayerImpl implements RemotePlayer {
         this.displayName = displayName;
         setWorld(worldName);
         this.worldName = worldName;
+        this.prefix = prefix;
+        this.suffix = suffix;
     }
 
     public String format(String f) {
         if (f == null) return "";
+        f = f.replace("%prefix%", (prefix == null) ? "" : prefix);
+        f = f.replace("%suffix%", (suffix == null) ? "" : suffix);
         f = f.replace("%player%", getDisplayName());
         f = f.replace("%world%", (getRemoteWorld() == null) ? "unknown" : getRemoteWorld().getName());
         f = f.replace("%server%", (getRemoteServer() == null) ? "unknown" : getRemoteServer().getName());
@@ -65,6 +71,24 @@ public final class RemotePlayerImpl implements RemotePlayer {
     @Override
     public RemoteWorld getRemoteWorld() {
         return server.getRemoteWorld(worldName);
+    }
+
+    @Override
+    public String getPrefix() {
+        return prefix;
+    }
+
+    public void setPrefix(String prefix) {
+        this.prefix = prefix;
+    }
+
+    @Override
+    public String getSuffix() {
+        return suffix;
+    }
+
+    public void setSuffix(String suffix) {
+        this.suffix = suffix;
     }
 
     public void setWorld(String worldName) {

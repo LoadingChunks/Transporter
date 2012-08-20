@@ -62,6 +62,7 @@ public final class Config {
         OPTIONS.add("useVaultPermissions");
         OPTIONS.add("usePermissions");
         OPTIONS.add("usePermissionsEx");
+        OPTIONS.add("useVaultChat");
         OPTIONS.add("dynmapMarkerSetLabel");
         OPTIONS.add("exportedGatesFile");
         OPTIONS.add("worldLoadDelay");
@@ -452,6 +453,14 @@ public final class Config {
 
     public static void setUsePermissionsEx(boolean b) {
         config.set("global.usePermissionsEx", b);
+    }
+
+    public static boolean getUseVaultChat() {
+        return config.getBoolean("global.useVaultChat", false);
+    }
+
+    public static void setUseVaultChat(boolean b) {
+        config.set("global.useVaultChat", b);
     }
 
     public static String getDynmapMarkerSetLabel() {

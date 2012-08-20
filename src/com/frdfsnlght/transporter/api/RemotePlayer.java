@@ -53,6 +53,20 @@ public interface RemotePlayer {
     public RemoteServer getRemoteServer();
 
     /**
+     * Returns the player's prefix on the remote server.
+     *
+     * @return the player's prefix
+     */
+    public String getPrefix();
+
+    /**
+     * Returns the player's suffix on the remote server.
+     *
+     * @return the player's suffix
+     */
+    public String getSuffix();
+
+    /**
      * Returns the location where the player is located.
      *
      * @param cb    the callback to use when the call completes

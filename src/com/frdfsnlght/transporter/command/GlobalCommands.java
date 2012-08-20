@@ -203,13 +203,16 @@ public final class GlobalCommands extends TrpCommandProcessor {
                 }
                 format = format.replaceAll("%message%", message);
                 format = Chat.colorize(format);
-                if (! format.isEmpty())
+                if (! format.isEmpty()) {
                     localPlayer.sendMessage(format);
+                    ctx.send(ctx.getSender().getName() + " -> " + localPlayer.getName() + ": " + message);
+                }
                 return;
             }
             RemotePlayerImpl remotePlayer = Players.findRemote(playerName);
             if (remotePlayer != null) {
                 ((Server)remotePlayer.getRemoteServer()).sendPrivateMessage(ctx.getPlayer(), remotePlayer, message);
+                ctx.send(ctx.getSender().getName() + " -> " + remotePlayer.getRemoteServer().getName() + "@" + remotePlayer.getName() + ": " + message);
                 return;
             }
             throw new CommandException("unknown or ambiguous player name");

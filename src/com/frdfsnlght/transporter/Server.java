@@ -48,14 +48,18 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import net.minecraft.server.NetServerHandler;
+import net.minecraft.server.Packet201PlayerInfo;
+import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.command.RemoteConsoleCommandSender;
+import org.bukkit.craftbukkit.CraftServer;
+import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 
 /**
@@ -85,6 +89,7 @@ public final class Server implements OptionsListener, RemoteServer {
         OPTIONS.add("sendChatFormatFilter");
         OPTIONS.add("receiveChatFilter");
         OPTIONS.add("announcePlayers");
+        OPTIONS.add("playerListFormat");
 
         MESSAGE_HANDLERS.put("nop", null);
         MESSAGE_HANDLERS.put("error", null);
@@ -182,6 +187,8 @@ public final class Server implements OptionsListener, RemoteServer {
     // Should all player join/quit/kick messages from the remote server be echoed to local users?
     private boolean announcePlayers = false;
 
+    private String playerListFormat = null;
+
     private Connection connection = null;
     private boolean allowReconnect = true;
     private int reconnectTask = -1;
@@ -234,6 +241,7 @@ public final class Server implements OptionsListener, RemoteServer {
             setSendChatFormatFilter(map.getString("sendChatFormatFilter"));
             setReceiveChatFilter(map.getString("receiveChatFilter"));
             setAnnouncePlayers(map.getBoolean("announcePlayers", false));
+            setPlayerListFormat(map.getString("playerListFormat", "%italic%%player%"));
         } catch (IllegalArgumentException e) {
             throw new ServerException(e.getMessage());
         }
@@ -577,6 +585,20 @@ public final class Server implements OptionsListener, RemoteServer {
         announcePlayers = b;
     }
 
+    @Override
+    public String getPlayerListFormat() {
+        return playerListFormat;
+    }
+
+    @Override
+    public void setPlayerListFormat(String s) {
+        if (s != null) {
+            if (s.isEmpty() || (s.equals("-"))) s = "";
+        }
+        if ((s == null) || s.equals("*")) s = "%italic%%player%";
+        playerListFormat = s;
+    }
+
     public void getOptions(Context ctx, String name) throws OptionsException, PermissionsException {
         options.getOptions(ctx, name);
     }
@@ -731,6 +753,7 @@ public final class Server implements OptionsListener, RemoteServer {
         node.put("sendChatFormatFilter", sendChatFormatFilter);
         node.put("receiveChatFilter", receiveChatFilter);
         node.put("announcePlayers", announcePlayers);
+        node.put("playerListFormat", playerListFormat);
         return node;
     }
 
@@ -850,7 +873,7 @@ public final class Server implements OptionsListener, RemoteServer {
         connection = null;
         if (Network.isStopped()) {
             Gates.removeGatesForServer(this);
-            remotePlayers.clear();
+            clearRemotePlayers();
             remoteGates.clear();
             remoteWorlds.clear();
         } else {
@@ -862,7 +885,7 @@ public final class Server implements OptionsListener, RemoteServer {
                     RemoteServerDisconnectEvent event = new RemoteServerDisconnectEvent(me);
                     Global.plugin.getServer().getPluginManager().callEvent(event);
                     Gates.removeGatesForServer(me);
-                    remotePlayers.clear();
+                    clearRemotePlayers();
                     remoteGates.clear();
                     remoteWorlds.clear();
                 }
@@ -1082,6 +1105,8 @@ public final class Server implements OptionsListener, RemoteServer {
         TypeMap message = createMessage("playerChangeWorld");
         message.put("player", player.getName());
         message.put("world", player.getWorld().getName());
+        message.put("prefix", Chat.getPrefix(player));
+        message.put("suffix", Chat.getSuffix(player));
         sendMessage(message);
     }
 
@@ -1092,7 +1117,11 @@ public final class Server implements OptionsListener, RemoteServer {
         message.put("displayName", player.getDisplayName());
         message.put("world", player.getWorld().getName());
         message.put("hasReservation", hasReservation);
+        message.put("prefix", Chat.getPrefix(player));
+        message.put("suffix", Chat.getSuffix(player));
         sendMessage(message);
+
+        sendRemotePlayers(player);
     }
 
     public void sendPlayerQuit(Player player, boolean hasReservation) {
@@ -1236,6 +1265,8 @@ public final class Server implements OptionsListener, RemoteServer {
             msg.put("name", player.getName());
             msg.put("displayName", player.getDisplayName());
             msg.put("worldName", player.getWorld().getName());
+            msg.put("prefix", Chat.getPrefix(player));
+            msg.put("suffix", Chat.getSuffix(player));
             players.add(msg);
         }
         out.put("players", players);
@@ -1292,11 +1323,11 @@ public final class Server implements OptionsListener, RemoteServer {
         Collection<TypeMap> players = message.getMapList("players");
         if (players == null)
             throw new ServerException("player list required");
-        remotePlayers.clear();
+        clearRemotePlayers();
         for (TypeMap msg : players) {
             try {
-                RemotePlayerImpl player = new RemotePlayerImpl(this, msg.getString("name"), msg.getString("displayName"), msg.getString("worldName"));
-                remotePlayers.put(player.getName(), player);
+                RemotePlayerImpl player = new RemotePlayerImpl(this, msg.getString("name"), msg.getString("displayName"), msg.getString("worldName"), msg.getString("prefix"), msg.getString("suffix"));
+                addRemotePlayer(player);
             } catch (IllegalArgumentException iae) {
                 Utils.warning("received bad player from '%s'", getName());
             }
@@ -1627,6 +1658,8 @@ public final class Server implements OptionsListener, RemoteServer {
         RemotePlayerImpl player = remotePlayers.get(playerName);
         if (player == null) return;
         player.setWorld(worldName);
+        player.setPrefix(message.getString("prefix"));
+        player.setSuffix(message.getString("suffix"));
         RemotePlayerChangeWorldEvent event = new RemotePlayerChangeWorldEvent(player);
         Global.plugin.getServer().getPluginManager().callEvent(event);
     }
@@ -1642,8 +1675,8 @@ public final class Server implements OptionsListener, RemoteServer {
         if (worldName == null)
             throw new ServerException("missing world");
         boolean hasReservation = message.getBoolean("hasReservation");
-        RemotePlayerImpl player = new RemotePlayerImpl(this, playerName, displayName, worldName);
-        remotePlayers.put(playerName, player);
+        RemotePlayerImpl player = new RemotePlayerImpl(this, playerName, displayName, worldName, message.getString("prefix"), message.getString("suffix"));
+        addRemotePlayer(player);
         if (! hasReservation) {
             RemotePlayerJoinEvent event = new RemotePlayerJoinEvent(player);
             Global.plugin.getServer().getPluginManager().callEvent(event);
@@ -1660,7 +1693,7 @@ public final class Server implements OptionsListener, RemoteServer {
         RemotePlayerImpl player = remotePlayers.get(playerName);
         if (player == null) return;
             //throw new ServerException("unknown player '%s'", playerName);
-        remotePlayers.remove(playerName);
+        removeRemotePlayer(playerName);
         if (! hasReservation) {
             RemotePlayerQuitEvent event = new RemotePlayerQuitEvent(player);
             Global.plugin.getServer().getPluginManager().callEvent(event);
@@ -1676,7 +1709,7 @@ public final class Server implements OptionsListener, RemoteServer {
         boolean hasReservation = message.getBoolean("hasReservation");
         RemotePlayerImpl player = remotePlayers.get(playerName);
         if (player == null) return;
-        remotePlayers.remove(playerName);
+        removeRemotePlayer(playerName);
         if (! hasReservation) {
             RemotePlayerKickEvent event = new RemotePlayerKickEvent(player);
             Global.plugin.getServer().getPluginManager().callEvent(event);
@@ -1897,6 +1930,50 @@ public final class Server implements OptionsListener, RemoteServer {
         remotePublicAddress = sb.toString().trim();
     }
 
+    private void clearRemotePlayers() {
+        for (String playerName : new HashSet<String>(remotePlayers.keySet()))
+            removeRemotePlayer(playerName);
+        remotePlayers.clear();
+    }
+
+    private void addRemotePlayer(RemotePlayerImpl player) {
+        String playerName = player.getName();
+        remotePlayers.put(playerName, player);
+        playerName = formatPlayerListName(player);
+        if (playerName == null) return;
+        ((CraftServer)Global.plugin.getServer()).getHandle().sendAll(new Packet201PlayerInfo(playerName, true, 9999));
+    }
+
+    private void removeRemotePlayer(String playerName) {
+        RemotePlayerImpl player = remotePlayers.remove(playerName);
+        if (player == null) return;
+        playerName = formatPlayerListName(player);
+        if (playerName == null) return;
+        ((CraftServer)Global.plugin.getServer()).getHandle().sendAll(new Packet201PlayerInfo(playerName, false, 9999));
+    }
+
+    private void sendRemotePlayers(Player player) {
+        Utils.debug("sending %s remote players from %s to %s", remotePlayers.size(), name, player.getName());
+        for (RemotePlayerImpl remotePlayer : remotePlayers.values()) {
+            String playerName = formatPlayerListName(remotePlayer);
+            if (playerName == null) continue;
+            NetServerHandler nsh = ((CraftPlayer)player).getHandle().netServerHandler;
+            if (nsh == null) continue;
+            nsh.sendPacket(new Packet201PlayerInfo(playerName, true, 9999));
+        }
+    }
+
+    private String formatPlayerListName(RemotePlayerImpl player) {
+        String format = getPlayerListFormat();
+        if ((format == null) || format.isEmpty()) return null;
+        format = format.replace("%player%", ChatColor.stripColor(player.getName()));
+        format = format.replace("%world%", player.getRemoteWorld().getName());
+        format = format.replace("%server%", name);
+        format = Chat.colorize(format);
+        if (format.length() > 16)
+            format = format.substring(0, 16);
+        return format;
+    }
 
     @Override
     public String toString() {
