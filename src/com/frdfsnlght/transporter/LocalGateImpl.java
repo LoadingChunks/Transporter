@@ -1537,15 +1537,15 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
 
         if (toGate.isSameServer()) {
             LocalGateImpl toGateLocal = (LocalGateImpl)toGate;
-            if (isSameWorld(toGateLocal.getWorld()) && (! Config.getAllowLinkLocal()))
-                throw new CommandException("linking to on-world gates is not permitted");
-            else if (! Config.getAllowLinkWorld())
-                throw new CommandException("linking to off-world gates is not permitted");
-            if (isSameWorld(toGateLocal.getWorld()))
+            if (isSameWorld(toGateLocal.getWorld())) {
+                if (! Config.getAllowLinkLocal())
+                    throw new CommandException("linking to on-world gates is not permitted");
                 Economy.requireFunds(ctx.getPlayer(), getLinkLocalCost());
-            else
+            } else {
+                if (! Config.getAllowLinkWorld())
+                    throw new CommandException("linking to off-world gates is not permitted");
                 Economy.requireFunds(ctx.getPlayer(), getLinkWorldCost());
-
+            }
         } else {
             if (! Config.getAllowLinkServer())
                 throw new CommandException("linking to remote gates is not permitted");
@@ -1560,10 +1560,13 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
         try {
             if (toGate.isSameServer()) {
                 LocalGateImpl toGateLocal = (LocalGateImpl)toGate;
-                if (isSameWorld(toGateLocal.getWorld()) && Economy.deductFunds(ctx.getPlayer(), getLinkLocalCost()))
-                    ctx.sendLog("debited %s for on-world linking", Economy.format(getLinkLocalCost()));
-                else if (Economy.deductFunds(ctx.getPlayer(), getLinkWorldCost()))
-                    ctx.sendLog("debited %s for off-world linking", Economy.format(getLinkWorldCost()));
+                if (isSameWorld(toGateLocal.getWorld())) {
+                    if (Economy.deductFunds(ctx.getPlayer(), getLinkLocalCost()))
+                        ctx.sendLog("debited %s for on-world linking", Economy.format(getLinkLocalCost()));
+                } else {
+                    if (Economy.deductFunds(ctx.getPlayer(), getLinkWorldCost()))
+                        ctx.sendLog("debited %s for off-world linking", Economy.format(getLinkWorldCost()));
+                }
             } else {
                 if (Economy.deductFunds(ctx.getPlayer(), getLinkServerCost()))
                     ctx.sendLog("debited %s for off-server linking", Economy.format(getLinkServerCost()));

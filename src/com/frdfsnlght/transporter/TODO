@@ -19,10 +19,6 @@ Wiki Updates:
 * Add server options "chatFormat", and "pmFormat".
 
 Changelog:
-* Added patcher support for 1.3.2 client.
-* Fixed player events not working correctly for Tekkit servers.
-* Added feedback when PM's are sent.
-* Added global option "useVaultChat".
-* Added prefix and suffix replacement tokens to inter-server chat formats (only if useVaultChat is true and a Vault supported permissions system is in use).
-* Added remote server players to client player list with custom per-server format.
-* Fixed bug with enumeration value detection (effects lots of things).
+* Fixed NPE during player join event.
+* Fixed bug concerning "allowLinkWorld" and "linkWorldCost" options not being applied correctly.
+* Added server command "mexec" to execute a command across multiple servers.

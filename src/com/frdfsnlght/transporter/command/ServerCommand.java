@@ -54,6 +54,7 @@ public class ServerCommand extends TrpCommandProcessor {
         cmds.add(getPrefix(ctx) + GROUP + "refresh <server>");
         cmds.add(getPrefix(ctx) + GROUP + "remove <server>");
         cmds.add(getPrefix(ctx) + GROUP + "exec <server> <cmd> [<args>]");
+        cmds.add(getPrefix(ctx) + GROUP + "mexec <cmd> [<args>]");
         cmds.add(getPrefix(ctx) + GROUP + "get <server> <option>|*");
         cmds.add(getPrefix(ctx) + GROUP + "set <server> <option> <value>");
         return cmds;
@@ -285,6 +286,27 @@ public class ServerCommand extends TrpCommandProcessor {
             }
             server.dispatchCommand(null, ctx.getSender(), remoteCmd + remoteArgs.toString());
             ctx.sendLog("sent remote command to server '%s'", server.getName());
+            return;
+        }
+
+        if ("mexec".startsWith(subCmd)) {
+            if (args.isEmpty())
+                throw new CommandException("remote command required");
+            String remoteCmd = args.remove(0);
+            Permissions.require(ctx.getPlayer(), "trp.server.mexec." + remoteCmd);
+            StringBuilder remoteArgs = new StringBuilder();
+            for (String arg : args) {
+                boolean quote = arg.contains(" ");
+                remoteArgs.append(' ');
+                if (quote) remoteArgs.append('"');
+                remoteArgs.append(arg);
+                if (quote) remoteArgs.append('"');
+            }
+            for (Server server : Servers.getAll()) {
+                if (! server.getMExecTarget()) continue;
+                server.dispatchCommand(null, ctx.getSender(), remoteCmd + remoteArgs.toString());
+                ctx.sendLog("sent remote command to server '%s'", server.getName());
+            }
             return;
         }
 

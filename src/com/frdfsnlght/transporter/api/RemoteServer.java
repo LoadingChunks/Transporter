@@ -330,6 +330,20 @@ public interface RemoteServer {
      */
     public void setPlayerListFormat(String s);
 
+    /**
+     * Returns the value of the "mExecTarget" option.
+     *
+     * @return the option value
+     */
+    public boolean getMExecTarget();
+
+    /**
+     * Sets the "mExecTarget" option.
+     *
+     * @param s the option value
+     */
+    public void setMExecTarget(boolean b);
+
     /* End Options */
 
 }

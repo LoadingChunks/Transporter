@@ -90,6 +90,7 @@ public final class Server implements OptionsListener, RemoteServer {
         OPTIONS.add("receiveChatFilter");
         OPTIONS.add("announcePlayers");
         OPTIONS.add("playerListFormat");
+        OPTIONS.add("mExecTarget");
 
         MESSAGE_HANDLERS.put("nop", null);
         MESSAGE_HANDLERS.put("error", null);
@@ -188,6 +189,7 @@ public final class Server implements OptionsListener, RemoteServer {
     private boolean announcePlayers = false;
 
     private String playerListFormat = null;
+    private boolean mExecTarget = true;
 
     private Connection connection = null;
     private boolean allowReconnect = true;
@@ -242,6 +244,7 @@ public final class Server implements OptionsListener, RemoteServer {
             setReceiveChatFilter(map.getString("receiveChatFilter"));
             setAnnouncePlayers(map.getBoolean("announcePlayers", false));
             setPlayerListFormat(map.getString("playerListFormat", "%italic%%player%"));
+            setMExecTarget(map.getBoolean("mExecTarget", true));
         } catch (IllegalArgumentException e) {
             throw new ServerException(e.getMessage());
         }
@@ -599,6 +602,14 @@ public final class Server implements OptionsListener, RemoteServer {
         playerListFormat = s;
     }
 
+    public boolean getMExecTarget() {
+        return mExecTarget;
+    }
+
+    public void setMExecTarget(boolean b) {
+        mExecTarget = b;
+    }
+
     public void getOptions(Context ctx, String name) throws OptionsException, PermissionsException {
         options.getOptions(ctx, name);
     }
@@ -754,6 +765,7 @@ public final class Server implements OptionsListener, RemoteServer {
         node.put("receiveChatFilter", receiveChatFilter);
         node.put("announcePlayers", announcePlayers);
         node.put("playerListFormat", playerListFormat);
+        node.put("mExecTarget", mExecTarget);
         return node;
     }
 
@@ -1967,7 +1979,7 @@ public final class Server implements OptionsListener, RemoteServer {
         String format = getPlayerListFormat();
         if ((format == null) || format.isEmpty()) return null;
         format = format.replace("%player%", ChatColor.stripColor(player.getName()));
-        format = format.replace("%world%", player.getRemoteWorld().getName());
+        format = format.replace("%world%", (player.getRemoteWorld() == null) ? "unknown" : player.getRemoteWorld().getName());
         format = format.replace("%server%", name);
         format = Chat.colorize(format);
         if (format.length() > 16)
