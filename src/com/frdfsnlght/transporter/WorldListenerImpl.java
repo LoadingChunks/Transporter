@@ -31,12 +31,16 @@ public class WorldListenerImpl implements Listener {
     public void onWorldLoad(WorldLoadEvent event) {
         Utils.debug("world '%s' loaded", event.getWorld().getName());
         Gates.loadGatesForWorld(new Context(), event.getWorld());
+        for (Server server : Servers.getAll())
+            server.sendWorldLoad(event.getWorld());
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onWorldUnload(WorldUnloadEvent event) {
         Utils.debug("world '%s' unloaded", event.getWorld().getName());
         Gates.removeGatesForWorld(event.getWorld());
+        for (Server server : Servers.getAll())
+            server.sendWorldUnload(event.getWorld());
     }
 
 }

@@ -123,6 +123,8 @@ public final class Server implements OptionsListener, RemoteServer {
         addMessageHandler("privateMessage");
         addMessageHandler("apiRequest");
         addMessageHandler("apiResult");
+        addMessageHandler("worldLoad");
+        addMessageHandler("worldUnload");
     }
 
     private static void addMessageHandler(String name) {
@@ -602,10 +604,12 @@ public final class Server implements OptionsListener, RemoteServer {
         playerListFormat = s;
     }
 
+    @Override
     public boolean getMExecTarget() {
         return mExecTarget;
     }
 
+    @Override
     public void setMExecTarget(boolean b) {
         mExecTarget = b;
     }
@@ -1197,6 +1201,20 @@ public final class Server implements OptionsListener, RemoteServer {
             }
         }, APIBackend.getTimeout());
 
+    }
+
+    public void sendWorldLoad(World world) {
+        if (! isConnectionConnected()) return;
+        TypeMap message = createMessage("worldLoad");
+        message.put("name", world.getName());
+        sendMessage(message);
+    }
+
+    public void sendWorldUnload(World world) {
+        if (! isConnectionConnected()) return;
+        TypeMap message = createMessage("worldUnload");
+        message.put("name", world.getName());
+        sendMessage(message);
     }
 
     // End remote commands
@@ -1803,6 +1821,21 @@ public final class Server implements OptionsListener, RemoteServer {
             cb.onFailure(new RemoteException(failure));
         else
             cb.onSuccess(message);
+    }
+
+    private void receiveWorldLoad(TypeMap message) throws ServerException {
+        String worldName = message.getString("name");
+        try {
+            RemoteWorldImpl world = new RemoteWorldImpl(this, worldName);
+            remoteWorlds.put(world.getName(), world);
+        } catch (IllegalArgumentException iae) {
+            Utils.warning("received bad world from '%s'", getName());
+        }
+    }
+
+    private void receiveWorldUnload(TypeMap message) throws ServerException {
+        String worldName = message.getString("name");
+        remoteWorlds.remove(worldName);
     }
 
     // Utility methods

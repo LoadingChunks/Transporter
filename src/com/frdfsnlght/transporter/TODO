@@ -19,6 +19,7 @@ Wiki Updates:
 * Add server options "chatFormat", and "pmFormat".
 
 Changelog:
-* Fixed NPE during player join event.
+* Fixed another NPE during player join event.
 * Fixed bug concerning "allowLinkWorld" and "linkWorldCost" options not being applied correctly.
 * Added server command "mexec" to execute a command across multiple servers.
+* Fixed world syncing between servers.
