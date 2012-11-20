@@ -5,21 +5,27 @@ Ideas:
 * Per-world inventories?
 * Add API options like allow*
 
+Another proxy? http://forums.spout.org/threads/smproxy-a-minecraft-1-2-3-server-proxy.1755/
+
 TODO:
 * Add world gates that only accept arrivals and no outbound links. Lets server place player in the world?
 * Add commands to extract part of a world into a design file.
+* Add feedback output when server connect command is given (http://dev.bukkit.org/server-mods/transporter/?comment=1012).
+
+* Fix gate item filtering? http://dev.bukkit.org/server-mods/transporter/tickets/142-gate-item-filter-not-working/
+* Add patcher for 1.4.4 and 1.4.5
 
 
 Testing:
 * Test stairs with facing option
 
 Wiki Updates:
-* Add FAQ: added servers but they won't connect
-* Add server and gate option "sendChatFormatFilter".
-* Add server options "chatFormat", and "pmFormat".
 
 Changelog:
-* Fixed another NPE during player join event.
-* Fixed bug concerning "allowLinkWorld" and "linkWorldCost" options not being applied correctly.
-* Added server command "mexec" to execute a command across multiple servers.
-* Fixed world syncing between servers.
+* Client patcher supports 1.4.4 and 1.4.5.
+* Now honors Bukkit's world-container setting.
+* Added gate option "requireLevel" to prevent noob's from teleporting.
+* Fixed banned item list support for "*" (thanks Bluffer17).
+
+
+

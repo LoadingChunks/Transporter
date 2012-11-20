@@ -223,6 +223,7 @@ public final class Realm {
             if (getKickWhenServerOffline()) {
                 String msg = getKickWhenServerOfflineFormat();
                 msg = msg.replace("%server%", toServer);
+                inquisitor.ignorePlayerJoin(player.getName());
                 Utils.schedulePlayerKick(player, msg);
                 return true;
             }
@@ -376,7 +377,7 @@ public final class Realm {
     public static void setRespawn(boolean b) {
         Config.setPropertyDirect("realm.respawn", b);
     }
-    
+
     public static String getRespawnGate() {
         return Config.getStringDirect("realm.respawnGate", null);
     }

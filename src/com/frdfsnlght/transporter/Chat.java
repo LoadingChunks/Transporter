@@ -179,8 +179,8 @@ public final class Chat {
         if (format == null)
             format = Config.getServerPMFormat();
         if (format == null) return;
-        format = format.replace("%fromPlayerPrefix%", remotePlayer.getPrefix());
-        format = format.replace("%fromPlayerSuffix", remotePlayer.getSuffix());
+        format = format.replace("%fromPlayerPrefix%", (remotePlayer.getPrefix() == null) ? "" : remotePlayer.getPrefix());
+        format = format.replace("%fromPlayerSuffix", (remotePlayer.getSuffix() == null) ? "" : remotePlayer.getSuffix());
         format = format.replace("%fromPlayer%", remotePlayer.getDisplayName());
         format = format.replace("%fromWorld%", remotePlayer.getRemoteWorld().getName());
         format = format.replace("%fromServer%", fromServer.getName());

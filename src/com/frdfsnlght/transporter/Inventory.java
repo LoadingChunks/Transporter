@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Set;
 import org.bukkit.Material;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
@@ -62,10 +61,13 @@ public final class Inventory {
         net.minecraft.server.ItemStack mcStack = (net.minecraft.server.ItemStack)((CraftItemStack)stack).getHandle();
         if (mcStack != null)
             s.put("tag", NBT.encodeNBT(mcStack.getTag()));
+        /*
+         * Enchantments are included in the tags above.
         TypeMap ench = new TypeMap();
         for (Enchantment e : stack.getEnchantments().keySet())
             ench.put(e.getName(), stack.getEnchantments().get(e));
         s.put("enchantments", ench);
+        */
         return s;
     }
 
@@ -83,10 +85,13 @@ public final class Inventory {
         net.minecraft.server.ItemStack mcStack = (net.minecraft.server.ItemStack)((CraftItemStack)stack).getHandle();
         if (mcStack != null)
             mcStack.setTag(NBT.decodeNBT(s.getMap("tag")));
+        /*
+         * Enchantments are included in the tags above.
         TypeMap ench = s.getMap("enchantments");
         if (ench != null)
             for (String name : ench.keySet())
                 stack.addEnchantment(Enchantment.getByName(name), ench.getInt(name));
+        */
         return stack;
     }
 
@@ -140,7 +145,8 @@ public final class Inventory {
     public static boolean itemListContains(Set<String> items, String item) {
         if (item.equals("*")) return true;
         String parts[] = item.split(":");
-        return items.contains(parts[0]) ||
+        return items.contains("*") ||
+               items.contains(parts[0]) ||
                items.contains(item);
     }
 

@@ -65,6 +65,7 @@ public class Design {
     private boolean restoreOnClose;
     private boolean requirePin;
     private boolean requireValidPin;
+    private int requireLevel;
     private int invalidPinDamage;
     private boolean protect;
     private boolean sendChat;
@@ -147,6 +148,7 @@ public class Design {
         restoreOnClose = conf.getBoolean("restoreOnClose", false);
         requirePin = conf.getBoolean("requirePin", false);
         requireValidPin = conf.getBoolean("requireValidPin", true);
+        requireLevel = conf.getInt("requireLevel", 0);
         invalidPinDamage = conf.getInt("invalidPinDamage", 0);
         protect = conf.getBoolean("protect", false);
         sendChat = conf.getBoolean("sendChat", false);
@@ -446,6 +448,10 @@ public class Design {
 
     public int getInvalidPinDamage() {
         return invalidPinDamage;
+    }
+
+    public int getRequireLevel() {
+        return requireLevel;
     }
 
     public boolean getProtect() {

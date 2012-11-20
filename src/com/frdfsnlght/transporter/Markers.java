@@ -74,6 +74,7 @@ public final class Markers {
             for (Iterator<LocalGateImpl> i = Gates.getLocalGates().iterator(); i.hasNext();) {
                 LocalGateImpl gate = i.next();
                 Vector center = gate.getCenter();
+                if (center == null) continue;
                 Marker marker = currentMarkers.remove(gate.getFullName());
 
                 String format = gate.getMarkerFormat();

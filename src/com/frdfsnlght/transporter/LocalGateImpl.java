@@ -90,6 +90,7 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
         BASEOPTIONS.add("protect");
         BASEOPTIONS.add("requirePin");
         BASEOPTIONS.add("requireValidPin");
+        BASEOPTIONS.add("requireLevel");
         BASEOPTIONS.add("invalidPinDamage");
         BASEOPTIONS.add("sendChat");
         BASEOPTIONS.add("sendChatFilter");
@@ -148,6 +149,7 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
     protected boolean multiLink;
     protected boolean requirePin;
     protected boolean requireValidPin;
+    protected int requireLevel;
     protected int invalidPinDamage;
     protected boolean protect;
     protected boolean sendChat;
@@ -305,6 +307,7 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
 
         requirePin = conf.getBoolean("requirePin", false);
         requireValidPin = conf.getBoolean("requireValidPin", true);
+        requireLevel = conf.getInt("requireLevel", 0);
         invalidPinDamage = conf.getInt("invalidPinDamage", 0);
         protect = conf.getBoolean("protect", false);
         sendChat = conf.getBoolean("sendChat", false);
@@ -367,6 +370,7 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
         setMultiLink(true);
         setRequirePin(false);
         setRequireValidPin(true);
+        setRequireLevel(0);
         setInvalidPinDamage(0);
         setProtect(false);
         setSendChat(false);
@@ -678,6 +682,7 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
         conf.set("replaceItems", replaceItems);
         conf.set("requirePin", requirePin);
         conf.set("requireValidPin", requireValidPin);
+        conf.set("requireLevel", requireLevel);
         conf.set("invalidPinDamage", invalidPinDamage);
         conf.set("protect", protect);
         conf.set("sendChat", sendChat);
@@ -939,6 +944,17 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
     @Override
     public void setRequireValidPin(boolean b) {
         requireValidPin = b;
+        dirty = true;
+    }
+
+    @Override
+    public int getRequireLevel() {
+        return requireLevel;
+    }
+
+    @Override
+    public void setRequireLevel(int i) {
+        requireLevel = i;
         dirty = true;
     }
 

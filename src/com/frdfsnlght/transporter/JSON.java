@@ -53,8 +53,8 @@ public final class JSON {
 
     private static String encodeString(String s) {
         //s = s.replaceAll("\\", "\\\\");
+        s = s.replace("\"", "\\\"");
         s = s.replaceAll("/", "\\/");
-        s = s.replaceAll("\"", "\\\"");
         s = s.replaceAll("[\b]", "\\b");
         s = s.replaceAll("\f", "\\f");
         s = s.replaceAll("\n", "\\n");

@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.bukkit.Bukkit;
 import org.bukkit.World;
 
 /**
@@ -28,7 +29,7 @@ import org.bukkit.World;
  */
 public final class Worlds {
 
-    public static final File WorldBaseFolder = Utils.BukkitBaseFolder;
+    //public static final File WorldBaseFolder = Utils.BukkitBaseFolder;
     private static final Map<String,LocalWorldImpl> worlds = new HashMap<String,LocalWorldImpl>();
 
     public static void onConfigLoad(Context ctx) {
@@ -121,11 +122,11 @@ public final class Worlds {
     }
 
     public static File worldFolder(String name) {
-        return new File(WorldBaseFolder, name);
+        return new File(Bukkit.getWorldContainer(), name);
     }
 
     public static File worldFolder(World world) {
-        return new File(WorldBaseFolder, world.getName());
+        return new File(Bukkit.getWorldContainer(), world.getName());
     }
 
     public static File worldPluginFolder(World world) {

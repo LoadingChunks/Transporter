@@ -108,6 +108,7 @@ public final class LocalBlockGateImpl extends LocalGateImpl implements LocalBloc
 
         requirePin = design.getRequirePin();
         requireValidPin = design.getRequireValidPin();
+        requireLevel = design.getRequireLevel();
         invalidPinDamage = design.getInvalidPinDamage();
         protect = design.getProtect();
         sendChat = design.getSendChat();

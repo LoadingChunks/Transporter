@@ -449,6 +449,20 @@ public interface LocalGate extends Gate {
     public void setRequireValidPin(boolean b);
 
     /**
+     * Returns the value of the "requireLevel" option.
+     *
+     * @return      the option value
+     */
+    public int getRequireLevel();
+
+    /**
+     * Sets the value of the "requireLevel" option.
+     *
+     * @param i      the option value
+     */
+    public void setRequireLevel(int i);
+
+    /**
      * Returns the value of the "invalidPinDamage" option.
      *
      * @return      the option value

@@ -77,8 +77,6 @@ public class Utils {
     private static final String DEBUG_BOUNDARY = "*****";
     private static final int DEBUG_LOG_BYTES = 20 * 1024;
 
-    private static int maxPlayers = 0;
-
     public static void info(String msg, Object ... args) {
         if (args.length > 0)
             msg = String.format(msg, args);

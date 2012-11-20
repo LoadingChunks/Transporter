@@ -686,6 +686,11 @@ public final class ReservationImpl implements Reservation {
                 if (! fromGateLocal.hasPin(playerPin))
                     throw new ReservationException("this gate rejected your pin");
             }
+            // player level
+            if (fromGateLocal.getRequireLevel() > 0) {
+                if (level < fromGateLocal.getRequireLevel())
+                    throw new ReservationException("this gate requires you to be level %s or above", fromGateLocal.getRequireLevel());
+            }
             // player cost
             double cost = fromGateLocal.getSendCost(toGate);
             if (cost > 0)
@@ -731,6 +736,11 @@ public final class ReservationImpl implements Reservation {
                     throw new ReservationException("remote gate requires a pin");
                 if ((! toGateLocal.hasPin(playerPin)) && toGateLocal.getRequireValidPin())
                     throw new ReservationException("remote gate rejected your pin");
+            }
+            // player level
+            if (toGateLocal.getRequireLevel() > 0) {
+                if (level < toGateLocal.getRequireLevel())
+                    throw new ReservationException("remote gate requires you to be level %s or above", toGateLocal.getRequireLevel());
             }
             // player game mode
             if (toGateLocal.getReceiveGameMode()) {
