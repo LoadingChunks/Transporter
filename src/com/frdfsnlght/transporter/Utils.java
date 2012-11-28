@@ -61,6 +61,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.messaging.Messenger;
 import org.bukkit.scheduler.BukkitWorker;
 import org.bukkit.util.Vector;
 
@@ -372,6 +373,16 @@ public class Utils {
                 player.kickPlayer(message);
             }
         });
+    }
+
+    public static void sendPluginMessage(Player player, String channel, byte[] payload) {
+        Messenger m = Global.plugin.getServer().getMessenger();
+        if (! m.isOutgoingChannelRegistered(Global.plugin, channel)) {
+            debug("registering for sending messages on the '%s' channel", channel);
+            m.registerOutgoingPluginChannel(Global.plugin, channel);
+        }
+        debug("sending %s bytes to '%s' on the '%s' channel", (payload == null) ? 0 : payload.length, player.getName(), channel);
+        player.sendPluginMessage(Global.plugin, channel, payload);
     }
 
     public static HttpURLConnection openURL(URL url) throws IOException {

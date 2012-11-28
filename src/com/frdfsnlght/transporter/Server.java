@@ -24,6 +24,7 @@ import com.frdfsnlght.transporter.api.RemotePlayer;
 import com.frdfsnlght.transporter.api.RemoteServer;
 import com.frdfsnlght.transporter.api.RemoteWorld;
 import com.frdfsnlght.transporter.api.ReservationException;
+import com.frdfsnlght.transporter.api.TransferMethod;
 import com.frdfsnlght.transporter.api.TransporterException;
 import com.frdfsnlght.transporter.api.event.RemoteGateCreateEvent;
 import com.frdfsnlght.transporter.api.event.RemoteGateDestroyEvent;
@@ -91,6 +92,7 @@ public final class Server implements OptionsListener, RemoteServer {
         OPTIONS.add("announcePlayers");
         OPTIONS.add("playerListFormat");
         OPTIONS.add("mExecTarget");
+        OPTIONS.add("bungeeServer");
 
         MESSAGE_HANDLERS.put("nop", null);
         MESSAGE_HANDLERS.put("error", null);
@@ -192,6 +194,7 @@ public final class Server implements OptionsListener, RemoteServer {
 
     private String playerListFormat = null;
     private boolean mExecTarget = true;
+    private String bungeeServer = null;
 
     private Connection connection = null;
     private boolean allowReconnect = true;
@@ -247,6 +250,7 @@ public final class Server implements OptionsListener, RemoteServer {
             setAnnouncePlayers(map.getBoolean("announcePlayers", false));
             setPlayerListFormat(map.getString("playerListFormat", "%italic%%player%"));
             setMExecTarget(map.getBoolean("mExecTarget", true));
+            setBungeeServer(map.getString("bungeeServer", null));
         } catch (IllegalArgumentException e) {
             throw new ServerException(e.getMessage());
         }
@@ -614,6 +618,19 @@ public final class Server implements OptionsListener, RemoteServer {
         mExecTarget = b;
     }
 
+    @Override
+    public String getBungeeServer() {
+        return bungeeServer;
+    }
+
+    @Override
+    public void setBungeeServer(String s) {
+        if (s != null) {
+            if (s.isEmpty() || (s.equals("-"))) s = null;
+        }
+        bungeeServer = s;
+    }
+
     public void getOptions(Context ctx, String name) throws OptionsException, PermissionsException {
         options.getOptions(ctx, name);
     }
@@ -725,6 +742,13 @@ public final class Server implements OptionsListener, RemoteServer {
     }
 
     @Override
+    public TransferMethod getTransferMethod() {
+        if (getBungeeServer() != null)
+            return TransferMethod.Bungee;
+        return TransferMethod.ClientKick;
+    }
+
+    @Override
     public String getKickMessage(InetSocketAddress clientAddress) {
         // TODO: handle cluster setting
         // if toServer.getCluster().equals(Network.getCluster()) then send Cluster Redirect, otherwise send Client Redirect
@@ -770,6 +794,7 @@ public final class Server implements OptionsListener, RemoteServer {
         node.put("announcePlayers", announcePlayers);
         node.put("playerListFormat", playerListFormat);
         node.put("mExecTarget", mExecTarget);
+        node.put("bungeeServer", bungeeServer);
         return node;
     }
 

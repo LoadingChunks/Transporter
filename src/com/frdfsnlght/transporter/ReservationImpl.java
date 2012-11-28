@@ -605,9 +605,16 @@ public final class ReservationImpl implements Reservation {
 
             completeLocalDepartureGate();
 
-            String kickMessage = toServer.getKickMessage(player.getAddress());
-            if (kickMessage == null) return;
-            Utils.schedulePlayerKick(player, kickMessage);
+            switch (toServer.getTransferMethod()) {
+                case ClientKick:
+                    String kickMessage = toServer.getKickMessage(player.getAddress());
+                    if (kickMessage == null) return;
+                    Utils.schedulePlayerKick(player, kickMessage);
+                    break;
+                case Bungee:
+                    Utils.sendPluginMessage(player, "RubberBand", toServer.getBungeeServer().getBytes());
+                    break;
+            }
         }
         if ((entity != null) && (entity != player))
             entity.remove();

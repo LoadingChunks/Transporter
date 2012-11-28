@@ -237,12 +237,19 @@ public final class Realm {
 
             return false;
         }
-        String kickMessage = server.getKickMessage(player.getAddress());
-        if (kickMessage == null) return false;
+        switch (server.getTransferMethod()) {
+            case ClientKick:
+                String kickMessage = server.getKickMessage(player.getAddress());
+                if (kickMessage == null) return false;
+                Utils.schedulePlayerKick(player, kickMessage);
+                break;
+            case Bungee:
+                Utils.sendPluginMessage(player, "RubberBand", server.getBungeeServer().getBytes());
+                break;
+        }
         redirectedPlayers.add(player.getName());
         if (inquisitorAvailable())
             inquisitor.ignorePlayerJoin(player.getName());
-        Utils.schedulePlayerKick(player, kickMessage);
         return true;
     }
 

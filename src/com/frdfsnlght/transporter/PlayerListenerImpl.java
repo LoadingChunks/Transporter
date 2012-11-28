@@ -279,19 +279,14 @@ public final class PlayerListenerImpl implements Listener {
         if ((event.getFrom().getBlockX() == event.getTo().getBlockX()) &&
             (event.getFrom().getBlockY() == event.getTo().getBlockY()) &&
             (event.getFrom().getBlockZ() == event.getTo().getBlockZ())) return;
-//        Location loc = quantizePlayerLocation(event.getPlayer(), event.getTo());
-//        if (loc == null) return;
 
         Player player = event.getPlayer();
-//        LocalGateImpl fromGate = Gates.findGateForPortal(loc);
         LocalGateImpl fromGate = Gates.findGateForPortal(event.getTo());
         if (fromGate == null) {
             ReservationImpl.removeGateLock(player);
             return;
         }
-        if (ReservationImpl.isGateLocked(player)) {
-            return;
-        }
+        if (ReservationImpl.isGateLocked(player)) return;
 
         Context ctx = new Context(player);
         try {
@@ -317,6 +312,8 @@ public final class PlayerListenerImpl implements Listener {
         // Realm handling
         Realm.onTeleport(player, location);
 
+ Utils.debug("teleported %s", Utils.blockCoords(location));
+
         for (Server server : Servers.getAll())
             server.sendPlayerChangeWorld(player);
     }
@@ -339,7 +336,9 @@ public final class PlayerListenerImpl implements Listener {
         for (Server server : Servers.getAll())
             server.sendPlayerJoin(player, r != null);
         if (r == null) {
-            ReservationImpl.addGateLock(player);
+            LocalGateImpl gate = Gates.findGateForPortal(player.getLocation());
+            if (gate != null)
+                ReservationImpl.addGateLock(player);
             return;
         }
         try {
@@ -405,15 +404,5 @@ public final class PlayerListenerImpl implements Listener {
     public void onPlayerChatSync(PlayerChatEvent event) {
         Chat.send(event.getPlayer(), event.getMessage(), event.getFormat());
     }
-
-    /*
-    private Location quantizePlayerLocation(Player player, Location location) {
-        Location newQLoc = new Location(location.getWorld(), location.getBlockX(), location.getBlockY(), location.getBlockZ());
-        Location qLoc = playerLocations.get(player);
-        if ((qLoc != null) && qLoc.equals(newQLoc)) return null;
-        playerLocations.put(player, newQLoc);
-        return newQLoc;
-    }
-*/
 
 }

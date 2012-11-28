@@ -81,8 +81,15 @@ public interface RemoteServer {
     public RemoteGate getRemoteGate(String gateName);
 
     /**
+     * Returns the method used to transfer players to this server.
+     *
+     * @return              the method of transfer
+     */
+    public TransferMethod getTransferMethod();
+
+    /**
      * Returns the message used to kick the player with the specified address and
-     * reconnect them to this server.
+     * reconnect them to this server when the transfer method is ClientKick.
      *
      * @param clientAddress
      * @return the kick message, or null if there's a problem
@@ -343,6 +350,20 @@ public interface RemoteServer {
      * @param s the option value
      */
     public void setMExecTarget(boolean b);
+
+    /**
+     * Returns the value of the "bungeeServer" option.
+     *
+     * @return the option value
+     */
+    public String getBungeeServer();
+
+    /**
+     * Sets the "bungeeServer" option.
+     *
+     * @param s the option value
+     */
+    public void setBungeeServer(String s);
 
     /* End Options */
 
