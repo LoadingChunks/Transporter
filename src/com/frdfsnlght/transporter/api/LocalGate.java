@@ -829,6 +829,76 @@ public interface LocalGate extends Gate {
     public void setMarkerFormat(String s);
 
     /**
+     * Returns the value of the "countdown" option.
+     *
+     * @return      the option value
+     */
+    public int getCountdown();
+
+    /**
+     * Sets the value of the "countdown" option.
+     *
+     * @param i      the option value
+     */
+    public void setCountdown(int i);
+
+    /**
+     * Returns the value of the "countdownInterval" option.
+     *
+     * @return      the option value
+     */
+    public int getCountdownInterval();
+
+    /**
+     * Sets the value of the "countdownInterval" option.
+     *
+     * @param i      the option value
+     */
+    public void setCountdownInterval(int i);
+
+    /**
+     * Returns the value of the "countdownFormat" option.
+     *
+     * @return      the option value
+     */
+    public String getCountdownFormat();
+
+    /**
+     * Sets the value of the "countdownFormat" option.
+     *
+     * @param s      the option value
+     */
+    public void setCountdownFormat(String s);
+
+    /**
+     * Returns the value of the "countdownIntervalFormat" option.
+     *
+     * @return      the option value
+     */
+    public String getCountdownIntervalFormat();
+
+    /**
+     * Sets the value of the "countdownIntervalFormat" option.
+     *
+     * @param s      the option value
+     */
+    public void setCountdownIntervalFormat(String s);
+
+    /**
+     * Returns the value of the "countdownCancelFormat" option.
+     *
+     * @return      the option value
+     */
+    public String getCountdownCancelFormat();
+
+    /**
+     * Sets the value of the "countdownCancelFormat" option.
+     *
+     * @param s      the option value
+     */
+    public void setCountdownCancelFormat(String s);
+
+    /**
      * Returns the value of the "linkLocalCost" option.
      *
      * @return      the option value

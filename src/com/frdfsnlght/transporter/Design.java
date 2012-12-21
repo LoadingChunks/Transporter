@@ -95,6 +95,11 @@ public class Design {
     private String markerFormat;
     protected boolean hidden;
     protected int linkAddDistance;
+    private int countdown;
+    private int countdownInterval;
+    private String countdownFormat;
+    private String countdownIntervalFormat;
+    private String countdownCancelFormat;
 
     // Economy
     private double buildCost;
@@ -177,6 +182,11 @@ public class Design {
         markerFormat = conf.getString("markerFormat", "%name%");
         hidden = conf.getBoolean("hidden", false);
         linkAddDistance = conf.getInt("linkAddDistance", -1);
+        countdown = conf.getInt("countdown", -1);
+        countdownInterval = conf.getInt("countdownInterval", 1000);
+        countdownFormat = conf.getString("countdownFormat", "%RED%Teleport countdown started...");
+        countdownIntervalFormat = conf.getString("countdownIntervalFormat", "%RED%Teleport in %time% seconds...");
+        countdownCancelFormat = conf.getString("countdownCancelFormat", "%RED%Teleport canceled");
 
         String gameModeStr = conf.getString("gameMode", null);
         if (gameModeStr == null)
@@ -620,6 +630,26 @@ public class Design {
 
     public double getReceiveServerCost() {
         return receiveServerCost;
+    }
+
+    public int getCountdown() {
+        return countdown;
+    }
+
+    public int getCountdownInterval() {
+        return countdownInterval;
+    }
+
+    public String getCountdownFormat() {
+        return countdownFormat;
+    }
+
+    public String getCountdownIntervalFormat() {
+        return countdownIntervalFormat;
+    }
+
+    public String getCountdownCancelFormat() {
+        return countdownCancelFormat;
     }
 
     private Collection<DesignBlock> getScreenBlocks() {

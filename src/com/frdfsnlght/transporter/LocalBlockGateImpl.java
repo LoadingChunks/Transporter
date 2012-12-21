@@ -138,6 +138,11 @@ public final class LocalBlockGateImpl extends LocalGateImpl implements LocalBloc
         markerFormat = design.getMarkerFormat();
         hidden = design.getHidden();
         linkAddDistance = design.getLinkAddDistance();
+        countdown = design.getCountdown();
+        countdownInterval = design.getCountdownInterval();
+        countdownFormat = design.getCountdownFormat();
+        countdownIntervalFormat = design.getCountdownIntervalFormat();
+        countdownCancelFormat = design.getCountdownCancelFormat();
 
         linkLocalCost = design.getLinkLocalCost();
         linkWorldCost = design.getLinkWorldCost();

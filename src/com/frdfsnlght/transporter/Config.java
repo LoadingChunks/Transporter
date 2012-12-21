@@ -146,6 +146,7 @@ public final class Config {
     }
 
     public static void save(Context ctx) {
+        if (config == null) return;
         Network.onConfigSave();
         Realm.onConfigSave();
         Worlds.onConfigSave();
@@ -188,6 +189,7 @@ public final class Config {
     }
 
     public static void setPropertyDirect(String path, Object v) {
+        if (config == null) return;
         if (v == null)
             config.remove(path);
         else

@@ -45,6 +45,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
@@ -77,6 +78,8 @@ public class Utils {
 
     private static final String DEBUG_BOUNDARY = "*****";
     private static final int DEBUG_LOG_BYTES = 20 * 1024;
+
+    private static Pattern tokenPattern = Pattern.compile("%(\\w+)%");
 
     public static void info(String msg, Object ... args) {
         if (args.length > 0)
@@ -117,6 +120,21 @@ public class Utils {
         msg = ChatColor.stripColor(msg);
         if (msg.isEmpty()) return;
         logger.log(Level.INFO, String.format("[%s] (DEBUG) %s", Global.pluginName, msg));
+    }
+
+    public static String expandFormat(String format, Map<String,String> tokens) {
+        if (format == null) return null;
+        Matcher matcher = tokenPattern.matcher(format);
+        StringBuffer b = new StringBuffer();
+        while (matcher.find()) {
+            String name = matcher.group(1);
+            if (tokens.containsKey(name))
+                matcher.appendReplacement(b, tokens.get(name));
+            else
+                matcher.appendReplacement(b, matcher.group());
+        }
+        matcher.appendTail(b);
+        return b.toString();
     }
 
     public static String block(Block b) {

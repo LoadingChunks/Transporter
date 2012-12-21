@@ -12,8 +12,6 @@ TODO:
 * Add commands to extract part of a world into a design file.
 * Add feedback output when server connect command is given (http://dev.bukkit.org/server-mods/transporter/?comment=1012).
 
-* Fix gate item filtering? http://dev.bukkit.org/server-mods/transporter/tickets/142-gate-item-filter-not-working/
-* Add patcher for 1.4.4 and 1.4.5
 
 
 Testing:
@@ -22,10 +20,7 @@ Testing:
 Wiki Updates:
 
 Changelog:
-* Client patcher supports 1.4.4 and 1.4.5.
-* Now honors Bukkit's world-container setting.
-* Added gate option "requireLevel" to prevent noob's from teleporting.
-* Fixed banned item list support for "*" (thanks Bluffer17).
-
-
-
+* Updated to support CB 1.4.5-R1 and and CB 1.4.6-R0.1
+* Added gate countdowns to delay teleporting. New gate options "countdown", "countdownInterval", "countdownFormat", "countdownIntervalFormat", "countdownCancelFormat".
+* Added support for BungeeCord server proxy. See [[BungeeCord]] for more information.
+* Fixed building gates from inventory to handle signs correctly.

@@ -12,6 +12,8 @@ Materials with an Id above 255 are "items" can only be used in gate
 ban/allow/replace lists. The number after the attributes, if any,
 indicates the maximum durability.
 
+The material names are taken from http://jd.bukkit.org/doxygen/d6/d0e/enumorg_1_1bukkit_1_1Material.html
+
 AIR                     0
 STONE                   1
 GRASS                   2
