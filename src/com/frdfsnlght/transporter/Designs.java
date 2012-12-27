@@ -109,4 +109,8 @@ public final class Designs {
         buildUndos.put(playerName, savedBlocks);
     }
 
+    public static void clearBuildUndo(String playerName) {
+        buildUndos.remove(playerName);
+    }
+
 }

@@ -236,7 +236,8 @@ public final class BuildableBlock {
 
         float fromYaw = Utils.directionToYaw(myDir.getFacing());
         float toYaw = Utils.directionToYaw(otherDir.getFacing());
-        float result = toYaw - fromYaw + 90;
+        float result = toYaw - fromYaw + 180;
+//        float result = toYaw - fromYaw + 90;
         return Utils.yawToDirection(result);
     }
 
@@ -250,6 +251,11 @@ public final class BuildableBlock {
         if (md == null) return;
         if (! (md instanceof Directional)) return;
         Directional dir = (Directional)md;
+
+//        Utils.debug("facing=%s", dir.getFacing());
+//        Utils.debug("to=%s", to);
+//        Utils.debug("rotate result=%s", Utils.rotate(dir.getFacing(), to));
+
         dir.setFacingDirection(Utils.rotate(dir.getFacing(), to));
         data = md.getData();
     }

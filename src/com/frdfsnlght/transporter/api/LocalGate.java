@@ -18,6 +18,7 @@ package com.frdfsnlght.transporter.api;
 import java.util.Map;
 import java.util.Set;
 import org.bukkit.GameMode;
+import org.bukkit.block.BlockFace;
 
 /**
  * Represents a local gate on the local server.
@@ -265,6 +266,20 @@ public interface LocalGate extends Gate {
      * @param i      the option value
      */
     public void setDuration(int i);
+
+    /**
+     * Returns the value of the "direction" option.
+     *
+     * @return      the option value
+     */
+    public BlockFace getDirection();
+
+    /**
+     * Sets the value of the "direction" option.
+     *
+     * @param i      the option value
+     */
+    public void setDirection(BlockFace dir);
 
     /**
      * Returns the value of the "linkLocal" option.

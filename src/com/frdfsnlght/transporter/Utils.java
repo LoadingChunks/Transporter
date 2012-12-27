@@ -240,23 +240,40 @@ public class Utils {
     public static float directionToYaw(BlockFace direction) {
         if (direction == null) return 0;
         switch (direction) {
-            case WEST: return 0;
-            case WEST_NORTH_WEST: return 22.5F;
-            case NORTH_WEST: return 45;
-            case NORTH_NORTH_WEST: return 67.5F;
-            case NORTH: return 90;
-            case NORTH_NORTH_EAST: return 112.5F;
-            case NORTH_EAST: return 135;
-            case EAST_NORTH_EAST: return 157.5F;
-            case EAST: return 180;
+            case SOUTH: return 0;
+            case SOUTH_SOUTH_WEST: return 22.5F;
+            case SOUTH_WEST: return 45;
+            case WEST_SOUTH_WEST: return 67.5F;
+            case WEST: return 90;
+            case WEST_NORTH_WEST: return 112.5F;
+            case NORTH_WEST: return 135;
+            case NORTH_NORTH_WEST: return 157.5F;
+            case NORTH: return 180;
+            case NORTH_NORTH_EAST: return -157.5F;
+            case NORTH_EAST: return -135;
+            case EAST_NORTH_EAST: return -112.5F;
+            case EAST: return -90;
+            case EAST_SOUTH_EAST: return -67.5F;
+            case SOUTH_EAST: return -45;
+            case SOUTH_SOUTH_EAST: return -22.5F;
 
-            case WEST_SOUTH_WEST: return -22.5F;
-            case SOUTH_WEST: return -45;
-            case SOUTH_SOUTH_WEST: return -67.5F;
-            case SOUTH: return -90;
-            case SOUTH_SOUTH_EAST: return -112.5F;
-            case SOUTH_EAST: return -135;
-            case EAST_SOUTH_EAST: return -157.5F;
+//            case WEST: return 0;
+//            case WEST_NORTH_WEST: return 22.5F;
+//            case NORTH_WEST: return 45;
+//            case NORTH_NORTH_WEST: return 67.5F;
+//            case NORTH: return 90;
+//            case NORTH_NORTH_EAST: return 112.5F;
+//            case NORTH_EAST: return 135;
+//            case EAST_NORTH_EAST: return 157.5F;
+//            case EAST: return 180;
+//
+//            case WEST_SOUTH_WEST: return -22.5F;
+//            case SOUTH_WEST: return -45;
+//            case SOUTH_SOUTH_WEST: return -67.5F;
+//            case SOUTH: return -90;
+//            case SOUTH_SOUTH_EAST: return -112.5F;
+//            case SOUTH_EAST: return -135;
+//            case EAST_SOUTH_EAST: return -157.5F;
             default: return 0;
         }
     }
@@ -265,25 +282,54 @@ public class Utils {
         while (yaw > 180) yaw -= 360;
         while (yaw <= -180) yaw += 360;
 
-        if (yaw < -168.75) return BlockFace.EAST;
-        if (yaw < -146.25) return BlockFace.EAST_SOUTH_EAST;
-        if (yaw < -123.75) return BlockFace.SOUTH_EAST;
-        if (yaw < -101.25) return BlockFace.SOUTH_SOUTH_EAST;
-        if (yaw < -78.75) return BlockFace.SOUTH;
-        if (yaw < -56.25) return BlockFace.SOUTH_SOUTH_WEST;
-        if (yaw < -33.75) return BlockFace.SOUTH_WEST;
-        if (yaw < -11.25) return BlockFace.WEST_SOUTH_WEST;
+        if (yaw < -168.75) return BlockFace.NORTH;
+        if (yaw < -146.25) return BlockFace.NORTH_NORTH_EAST;
+        if (yaw < -123.75) return BlockFace.NORTH_EAST;
+        if (yaw < -101.25) return BlockFace.EAST_NORTH_EAST;
+        if (yaw < -78.75) return BlockFace.EAST;
+        if (yaw < -56.25) return BlockFace.EAST_SOUTH_EAST;
+        if (yaw < -33.75) return BlockFace.SOUTH_EAST;
+        if (yaw < -11.25) return BlockFace.SOUTH_SOUTH_EAST;
 
-        if (yaw < 11.25) return BlockFace.WEST;
-        if (yaw < 33.75) return BlockFace.WEST_NORTH_WEST;
-        if (yaw < 56.25) return BlockFace.NORTH_WEST;
-        if (yaw < 78.75) return BlockFace.NORTH_NORTH_WEST;
-        if (yaw < 101.25) return BlockFace.NORTH;
-        if (yaw < 123.75) return BlockFace.NORTH_NORTH_EAST;
-        if (yaw < 146.25) return BlockFace.NORTH_EAST;
-        if (yaw < 168.75) return BlockFace.EAST_NORTH_EAST;
+        if (yaw < 11.25) return BlockFace.SOUTH;
+        if (yaw < 33.75) return BlockFace.SOUTH_SOUTH_WEST;
+        if (yaw < 56.25) return BlockFace.SOUTH_WEST;
+        if (yaw < 78.75) return BlockFace.WEST_SOUTH_WEST;
+        if (yaw < 101.25) return BlockFace.WEST;
+        if (yaw < 123.75) return BlockFace.WEST_NORTH_WEST;
+        if (yaw < 146.25) return BlockFace.NORTH_WEST;
+        if (yaw < 168.75) return BlockFace.NORTH_NORTH_WEST;
 
-        return BlockFace.EAST;
+//        if (yaw < -168.75) return BlockFace.EAST;
+//        if (yaw < -146.25) return BlockFace.EAST_SOUTH_EAST;
+//        if (yaw < -123.75) return BlockFace.SOUTH_EAST;
+//        if (yaw < -101.25) return BlockFace.SOUTH_SOUTH_EAST;
+//        if (yaw < -78.75) return BlockFace.SOUTH;
+//        if (yaw < -56.25) return BlockFace.SOUTH_SOUTH_WEST;
+//        if (yaw < -33.75) return BlockFace.SOUTH_WEST;
+//        if (yaw < -11.25) return BlockFace.WEST_SOUTH_WEST;
+//
+//        if (yaw < 11.25) return BlockFace.WEST;
+//        if (yaw < 33.75) return BlockFace.WEST_NORTH_WEST;
+//        if (yaw < 56.25) return BlockFace.NORTH_WEST;
+//        if (yaw < 78.75) return BlockFace.NORTH_NORTH_WEST;
+//        if (yaw < 101.25) return BlockFace.NORTH;
+//        if (yaw < 123.75) return BlockFace.NORTH_NORTH_EAST;
+//        if (yaw < 146.25) return BlockFace.NORTH_EAST;
+//        if (yaw < 168.75) return BlockFace.EAST_NORTH_EAST;
+
+//        return BlockFace.EAST;
+        return BlockFace.NORTH;
+    }
+
+    public static BlockFace yawToCourseDirection(float yaw) {
+        while (yaw > 180) yaw -= 360;
+        while (yaw <= -180) yaw += 360;
+        if (yaw < -135) return BlockFace.NORTH;
+        if (yaw < -45) return BlockFace.EAST;
+        if (yaw < 45) return BlockFace.SOUTH;
+        if (yaw < 135) return BlockFace.WEST;
+        return BlockFace.NORTH;
     }
 
     public static BlockFace rotate(BlockFace from, BlockFace to) {
@@ -291,7 +337,13 @@ public class Utils {
             (from == BlockFace.UP)) return from;
         float fromYaw = directionToYaw(from);
         float toYaw = directionToYaw(to);
-        float result = fromYaw + toYaw - 90;
+        float result = fromYaw + toYaw - 180;
+//        float result = fromYaw + toYaw - 90;
+
+//        Utils.debug("fromYaw=%s", fromYaw);
+//        Utils.debug("toYaw=%s", toYaw);
+//        Utils.debug("result=%s", result);
+
         return yawToDirection(result);
     }
 

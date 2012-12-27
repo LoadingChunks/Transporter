@@ -77,6 +77,7 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
 
     static {
         BASEOPTIONS.add("duration");
+        BASEOPTIONS.add("direction");
         BASEOPTIONS.add("linkLocal");
         BASEOPTIONS.add("linkWorld");
         BASEOPTIONS.add("linkServer");
@@ -120,6 +121,7 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
         BASEOPTIONS.add("countdownInterval");
         BASEOPTIONS.add("countdownFormat");
         BASEOPTIONS.add("countdownIntervalFormat");
+        BASEOPTIONS.add("countdownCancelFormat");
         BASEOPTIONS.add("linkLocalCost");
         BASEOPTIONS.add("linkWorldCost");
         BASEOPTIONS.add("linkServerCost");
@@ -226,6 +228,19 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
         } catch (IllegalArgumentException iae) {
             throw new GateException(iae.getMessage() + " direction");
         }
+
+        // fix for Bukkit direction changes
+//        if (! conf.getBoolean("directionFixed", false)) {
+//            Utils.debug("fixed direction from: %s", direction);
+//            switch (direction) {
+//                case NORTH: direction = BlockFace.WEST; break;
+//                case SOUTH: direction = BlockFace.EAST; break;
+//                case EAST: direction = BlockFace.NORTH; break;
+//                case WEST: direction = BlockFace.SOUTH; break;
+//            }
+//            Utils.debug("to: %s", direction);
+//        }
+
         duration = conf.getInt("duration", -1);
         linkLocal = conf.getBoolean("linkLocal", true);
         linkWorld = conf.getBoolean("linkWorld", true);
@@ -370,7 +385,10 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
         name = gateName;
         this.creatorName = creatorName;
         this.direction = direction;
+        setDefaults();
+    }
 
+    private void setDefaults() {
         setDuration(-1);
         setLinkLocal(true);
         setLinkWorld(true);
@@ -682,6 +700,7 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
         conf.set("type", getType().toString());
         conf.set("creatorName", creatorName);
         conf.set("direction", direction.toString());
+//        conf.set("directionFixed", true);
         conf.set("duration", duration);
         conf.set("linkLocal", linkLocal);
         conf.set("linkWorld", linkWorld);
@@ -782,10 +801,6 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
         return creatorName;
     }
 
-    public BlockFace getDirection() {
-        return direction;
-    }
-
     /* Begin options */
 
     @Override
@@ -797,6 +812,17 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
     public void setDuration(int i) {
         if (i <= 0) i = -1;
         duration = i;
+        dirty = true;
+    }
+
+    @Override
+    public BlockFace getDirection() {
+        return direction;
+    }
+
+    @Override
+    public void setDirection(BlockFace dir) {
+        direction = dir;
         dirty = true;
     }
 

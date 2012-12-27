@@ -291,18 +291,19 @@ public class Design {
         List<Object> blocksMap = conf.getList("blocks");
         if (blocksMap == null)
             throw new DesignException("at least one block slice is required");
-        z = sizeZ = blocksMap.size();
+        sizeZ = blocksMap.size();
+        z = -1;
         for (Object o : blocksMap) {
-            z--;
+            z++;
             if ((! (o instanceof List)) ||
                 ((List)o).isEmpty() ||
                 (! (((List)o).get(0) instanceof String)))
-                throw new DesignException("block slice %d is not a list of strings", sizeZ - z);
+                throw new DesignException("block slice %d is not a list of strings", z);
             List<String> lines = (List<String>)o;
             if (sizeY == -1)
                 sizeY = lines.size();
             else if (sizeY != lines.size())
-                throw new DesignException("block slice %d does not have %d lines", sizeZ - z, sizeY);
+                throw new DesignException("block slice %d does not have %d lines", z, sizeY);
             y = sizeY;
             for (String line : lines) {
                 y--;
@@ -310,12 +311,12 @@ public class Design {
                 if (sizeX == -1)
                     sizeX = line.length();
                 else if (sizeX != line.length())
-                    throw new DesignException("block slice %d, line %d does not have %d blocks", sizeZ - z, sizeY - y, sizeX);
-                x = sizeX;
+                    throw new DesignException("block slice %d, line %d does not have %d blocks", z, sizeY - y, sizeX);
+                x = -1;
                 for (char ch : line.toCharArray()) {
-                    x--;
+                    x++;
                     if (! blockKey.containsKey(ch))
-                        throw new DesignException("block slice %d, line %d, block %d '%s' does not have a mapping in the blockKey", sizeZ - z, sizeY - y, sizeX - x, ch);
+                        throw new DesignException("block slice %d, line %d, block %d '%s' does not have a mapping in the blockKey", z, sizeY - y, x, ch);
                     DesignBlockDetail db = blockKey.get(ch);
                     if (db == null)
                         throw new DesignException("unknown block key '%s'", ch);
@@ -704,27 +705,30 @@ public class Design {
 
         DesignBlock insertBlock = getInsertBlock();
 
-        BlockFace direction;
-        double yaw = location.getYaw();
-        while (yaw < 0) yaw += 360;
-        if ((yaw > 315) || (yaw <= 45)) direction = BlockFace.WEST;
-        else if ((yaw > 45) && (yaw <= 135)) direction = BlockFace.NORTH;
-        else if ((yaw > 135) && (yaw <= 225)) direction = BlockFace.EAST;
-        else direction = BlockFace.SOUTH;
+        BlockFace direction = Utils.yawToCourseDirection(location.getYaw());
+//        while (yaw < 0) yaw += 360;
+//        if ((yaw > 315) || (yaw <= 45)) direction = BlockFace.WEST;
+//        else if ((yaw > 45) && (yaw <= 135)) direction = BlockFace.NORTH;
+//        else if ((yaw > 135) && (yaw <= 225)) direction = BlockFace.EAST;
+//        else direction = BlockFace.SOUTH;
 
         // adjust location to represent 0,0,0 of design blocks
         switch (direction) {
             case NORTH:
-                translate(location, insertBlock.getZ(), -insertBlock.getY(), -insertBlock.getX());
+                translate(location, -insertBlock.getX(), -insertBlock.getY(), insertBlock.getZ());
+//                translate(location, insertBlock.getZ(), -insertBlock.getY(), -insertBlock.getX());
                 break;
             case EAST:
-                translate(location, insertBlock.getX(), -insertBlock.getY(), insertBlock.getZ());
+                translate(location, -insertBlock.getZ(), -insertBlock.getY(), -insertBlock.getX());
+//                translate(location, insertBlock.getX(), -insertBlock.getY(), insertBlock.getZ());
                 break;
             case SOUTH:
-                translate(location, -insertBlock.getZ(), -insertBlock.getY(), insertBlock.getX());
+                translate(location, insertBlock.getX(), -insertBlock.getY(), -insertBlock.getZ());
+//                translate(location, -insertBlock.getZ(), -insertBlock.getY(), insertBlock.getX());
                 break;
             case WEST:
-                translate(location, -insertBlock.getX(), -insertBlock.getY(), -insertBlock.getZ());
+                translate(location, insertBlock.getZ(), -insertBlock.getY(), insertBlock.getX());
+//                translate(location, -insertBlock.getX(), -insertBlock.getY(), -insertBlock.getZ());
                 break;
         }
 
@@ -784,21 +788,26 @@ public class Design {
             // adjust location to represent 0,0,0 of design blocks
             switch (direction) {
                 case NORTH:
-                    translate(location, screenBlock.getZ(), -screenBlock.getY(), -screenBlock.getX());
+                    translate(location, -screenBlock.getX(), -screenBlock.getY(), screenBlock.getZ());
+//                    translate(location, screenBlock.getZ(), -screenBlock.getY(), -screenBlock.getX());
                     break;
                 case EAST:
-                    translate(location, screenBlock.getX(), -screenBlock.getY(), screenBlock.getZ());
+                    translate(location, -screenBlock.getZ(), -screenBlock.getY(), -screenBlock.getX());
+//                    translate(location, screenBlock.getX(), -screenBlock.getY(), screenBlock.getZ());
                     break;
                 case SOUTH:
-                    translate(location, -screenBlock.getZ(), -screenBlock.getY(), screenBlock.getX());
+                    translate(location, screenBlock.getX(), -screenBlock.getY(), -screenBlock.getZ());
+//                    translate(location, -screenBlock.getZ(), -screenBlock.getY(), screenBlock.getX());
                     break;
                 case WEST:
-                    translate(location, -screenBlock.getX(), -screenBlock.getY(), -screenBlock.getZ());
+                    translate(location, screenBlock.getZ(), -screenBlock.getY(), screenBlock.getX());
+//                    translate(location, -screenBlock.getX(), -screenBlock.getY(), -screenBlock.getZ());
                     break;
                 default:
                     continue;
             }
             Utils.debug("matched a screen");
+            Utils.debug("direction=%s", direction);
 
             gateBlocks = generateGateBlocks(location, direction);
 
@@ -864,24 +873,44 @@ public class Design {
         switch (facing) {
             case NORTH:
                 return new Location(loc.getWorld(),
+                        loc.getBlockX() + offX,
+                        loc.getBlockY() + offY,
+                        loc.getBlockZ() + offZ);
+            case EAST:
+                return new Location(loc.getWorld(),
                         loc.getBlockX() - offZ,
                         loc.getBlockY() + offY,
                         loc.getBlockZ() + offX);
-            case EAST:
+            case SOUTH:
                 return new Location(loc.getWorld(),
                         loc.getBlockX() - offX,
                         loc.getBlockY() + offY,
                         loc.getBlockZ() - offZ);
-            case SOUTH:
+            case WEST:
                 return new Location(loc.getWorld(),
                         loc.getBlockX() + offZ,
                         loc.getBlockY() + offY,
                         loc.getBlockZ() - offX);
-            case WEST:
-                return new Location(loc.getWorld(),
-                        loc.getBlockX() + offX,
-                        loc.getBlockY() + offY,
-                        loc.getBlockZ() + offZ);
+//            case NORTH:
+//                return new Location(loc.getWorld(),
+//                        loc.getBlockX() - offZ,
+//                        loc.getBlockY() + offY,
+//                        loc.getBlockZ() + offX);
+//            case EAST:
+//                return new Location(loc.getWorld(),
+//                        loc.getBlockX() - offX,
+//                        loc.getBlockY() + offY,
+//                        loc.getBlockZ() - offZ);
+//            case SOUTH:
+//                return new Location(loc.getWorld(),
+//                        loc.getBlockX() + offZ,
+//                        loc.getBlockY() + offY,
+//                        loc.getBlockZ() - offX);
+//            case WEST:
+//                return new Location(loc.getWorld(),
+//                        loc.getBlockX() + offX,
+//                        loc.getBlockY() + offY,
+//                        loc.getBlockZ() + offZ);
         }
         return null;
     }
