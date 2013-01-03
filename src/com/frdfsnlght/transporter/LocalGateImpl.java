@@ -620,7 +620,10 @@ public abstract class LocalGateImpl extends GateImpl implements LocalGate, Optio
 
     public void destroy(boolean unbuild) {
         close();
-        file.delete();
+        if (! file.delete())
+            Utils.warning("unable to delete gate file %s", file.getAbsolutePath());
+        else
+            Utils.info("deleted gate file %s", file.getAbsolutePath());
         file = null;
         onDestroy(unbuild);
     }

@@ -47,6 +47,7 @@ public class Design {
     }
 
     private String name;
+    private String attribution;
     private boolean enabled;
     private int duration;
     private boolean buildable;
@@ -135,6 +136,7 @@ public class Design {
         conf.load();
 
         name = conf.getString("name");
+        attribution = conf.getString("attribution");
         enabled = conf.getBoolean("enabled", true);
         duration = conf.getInt("duration", -1);
         buildable = conf.getBoolean("buildable", true);
@@ -272,6 +274,8 @@ public class Design {
         for (String key : blockKeys) {
             if (key.length() > 1)
                 throw new DesignException("blockKey keys must be a single character: %s", key);
+            if (blockKey.containsKey(key.charAt(0)))
+                throw new DesignException("blockKey key '%s' is already defined", key);
             DesignBlockDetail db;
             TypeMap blockKeyMap = conf.getMap("blockKey." + key);
             if (blockKeyMap == null) {
@@ -377,8 +381,21 @@ public class Design {
         }
     }
 
+    @Override
+    public String toString() {
+        return name + ((attribution == null) ? "" : (" " + attribution));
+    }
+
+    public List<DesignBlock> getBlocks() {
+        return blocks;
+    }
+
     public String getName() {
         return name;
+    }
+
+    public String getAttribution() {
+        return attribution;
     }
 
     public boolean isEnabled() {
@@ -712,49 +729,57 @@ public class Design {
 //        else if ((yaw > 135) && (yaw <= 225)) direction = BlockFace.EAST;
 //        else direction = BlockFace.SOUTH;
 
+        Utils.debug("location=%s", Utils.blockCoords(location));
+        Utils.debug("direction=%s", direction);
+
         // adjust location to represent 0,0,0 of design blocks
         switch (direction) {
             case NORTH:
-                translate(location, -insertBlock.getX(), -insertBlock.getY(), insertBlock.getZ());
+                translate(location, -insertBlock.getX(), -insertBlock.getY(), -insertBlock.getZ());
 //                translate(location, insertBlock.getZ(), -insertBlock.getY(), -insertBlock.getX());
                 break;
             case EAST:
-                translate(location, -insertBlock.getZ(), -insertBlock.getY(), -insertBlock.getX());
+                translate(location, insertBlock.getZ(), -insertBlock.getY(), insertBlock.getX());
 //                translate(location, insertBlock.getX(), -insertBlock.getY(), insertBlock.getZ());
                 break;
             case SOUTH:
-                translate(location, insertBlock.getX(), -insertBlock.getY(), -insertBlock.getZ());
+                translate(location, insertBlock.getX(), -insertBlock.getY(), insertBlock.getZ());
 //                translate(location, -insertBlock.getZ(), -insertBlock.getY(), insertBlock.getX());
                 break;
             case WEST:
-                translate(location, insertBlock.getZ(), -insertBlock.getY(), insertBlock.getX());
+                translate(location, -insertBlock.getZ(), -insertBlock.getY(), -insertBlock.getX());
 //                translate(location, -insertBlock.getX(), -insertBlock.getY(), -insertBlock.getZ());
                 break;
         }
+
+        Utils.debug("new location=%s", Utils.blockCoords(location));
 
         if ((location.getBlockY() + sizeY) > 255)
             throw new DesignException("insertion point is too high to build");
         if (location.getBlockY() < 0)
             throw new DesignException("insertion point is too low to build");
 
-        List<GateBlock> gateBlocks = generateGateBlocks(location, direction);
+        TransformedDesign tDesign = new TransformedDesign(this, location, direction);
 
         // check blocks that will be replaced (can't build in bedrock)
-        for (GateBlock gb : gateBlocks) {
+        while (tDesign.hasMoreBlocks()) {
+            GateBlock gb = tDesign.nextBlock();
             if (! gb.getDetail().isBuildable()) continue;
             if (gb.getLocation().getBlock().getType() == Material.BEDROCK)
                 throw new DesignException("unable to build in bedrock");
         }
+        tDesign.reset();
 
         // build it!
         List<SavedBlock> savedBlocks = new ArrayList<SavedBlock>();
-        for (GateBlock gb : gateBlocks) {
+        while (tDesign.hasMoreBlocks()) {
+            GateBlock gb = tDesign.nextBlock();
             if (! gb.getDetail().isBuildable()) continue;
             savedBlocks.add(new SavedBlock(gb.getLocation()));
             gb.getDetail().getBuildBlock().build(gb.getLocation());
         }
         Designs.setBuildUndo(playerName, savedBlocks);
-        return new DesignMatch(this, gateBlocks, world, direction);
+        return new DesignMatch(this, tDesign, world, direction);
     }
 
     // Attempts to match the blocks around the given location with this design.
@@ -776,7 +801,7 @@ public class Design {
 
         Block targetBlock = location.getBlock();
         BlockFace direction = null;
-        List<GateBlock> gateBlocks = null;
+        TransformedDesign tDesign = null;
         matched = false;
 
         // iterate over each screen trying to find a match with what's around the targetBlock
@@ -785,22 +810,25 @@ public class Design {
             direction = screenBlock.getDetail().getBuildBlock().matchTypeAndDirection(targetBlock);
             if (direction == null) continue;
 
+            Utils.debug("screen %s,%s,%s", screenBlock.getX(), screenBlock.getY(), screenBlock.getZ());
+            Utils.debug("direction=%s", direction);
+
             // adjust location to represent 0,0,0 of design blocks
             switch (direction) {
                 case NORTH:
-                    translate(location, -screenBlock.getX(), -screenBlock.getY(), screenBlock.getZ());
+                    translate(location, -screenBlock.getX(), -screenBlock.getY(), -screenBlock.getZ());
 //                    translate(location, screenBlock.getZ(), -screenBlock.getY(), -screenBlock.getX());
                     break;
                 case EAST:
-                    translate(location, -screenBlock.getZ(), -screenBlock.getY(), -screenBlock.getX());
+                    translate(location, screenBlock.getZ(), -screenBlock.getY(), screenBlock.getX());
 //                    translate(location, screenBlock.getX(), -screenBlock.getY(), screenBlock.getZ());
                     break;
                 case SOUTH:
-                    translate(location, screenBlock.getX(), -screenBlock.getY(), -screenBlock.getZ());
+                    translate(location, screenBlock.getX(), -screenBlock.getY(), screenBlock.getZ());
 //                    translate(location, -screenBlock.getZ(), -screenBlock.getY(), screenBlock.getX());
                     break;
                 case WEST:
-                    translate(location, screenBlock.getZ(), -screenBlock.getY(), screenBlock.getX());
+                    translate(location, -screenBlock.getZ(), -screenBlock.getY(), -screenBlock.getX());
 //                    translate(location, -screenBlock.getX(), -screenBlock.getY(), -screenBlock.getZ());
                     break;
                 default:
@@ -809,17 +837,19 @@ public class Design {
             Utils.debug("matched a screen");
             Utils.debug("direction=%s", direction);
 
-            gateBlocks = generateGateBlocks(location, direction);
+            tDesign = new TransformedDesign(this, location, direction);
 
             // check the target blocks to make sure they match the design
             matched = true;
-            for (GateBlock gb : gateBlocks) {
+            while (tDesign.hasMoreBlocks()) {
+                GateBlock gb = tDesign.nextBlock();
                 if (gb.getDetail().isMatchable() &&
                     (! gb.getDetail().getBuildBlock().matches(gb.getLocation()))) {
                     matched = false;
                     break;
                 }
             }
+            tDesign.reset();
             if (matched) break;
             Utils.debug("blocks don't match");
         }
@@ -830,12 +860,12 @@ public class Design {
         }
         Utils.debug("matched design!");
 
-        return new DesignMatch(this, gateBlocks, world, direction);
+        return new DesignMatch(this, tDesign, world, direction);
     }
 
     // Returns a new gate if a match in the surrounding blocks is found, otherwise null.
     public LocalBlockGateImpl create(DesignMatch match, String playerName, String gateName) throws GateException {
-        LocalBlockGateImpl gate = new LocalBlockGateImpl(match.world, gateName, playerName, match.direction, this, match.gateBlocks);
+        LocalBlockGateImpl gate = new LocalBlockGateImpl(match.world, gateName, playerName, match.direction, this, match.tDesign);
         return gate;
     }
 
@@ -846,73 +876,11 @@ public class Design {
         return create(match, playerName, gateName);
     }
 
-    private List<GateBlock> generateGateBlocks(Location location, BlockFace direction) {
-        List<GateBlock> gateBlocks = new ArrayList<GateBlock>();
-        Map<DesignBlockDetail,DesignBlockDetail> cache = new HashMap<DesignBlockDetail,DesignBlockDetail>();
-        for (DesignBlock db : blocks) {
-            DesignBlockDetail detail;
-            if (cache.containsKey(db.getDetail())) {
-                detail = cache.get(db.getDetail());
-            } else {
-                detail = new DesignBlockDetail(db.getDetail(), direction);
-                cache.put(db.getDetail(), detail);
-            }
-            gateBlocks.add(new GateBlock(detail, rotate(location, direction, db.getX(), db.getY(), db.getZ())));
-        }
-        return gateBlocks;
-    }
-
     private Location translate(Location loc, int dx, int dy, int dz) {
         loc.setX(loc.getBlockX() + dx);
         loc.setY(loc.getBlockY() + dy);
         loc.setZ(loc.getBlockZ() + dz);
         return loc;
-    }
-
-    private Location rotate(Location loc, BlockFace facing, int offX, int offY, int offZ) {
-        switch (facing) {
-            case NORTH:
-                return new Location(loc.getWorld(),
-                        loc.getBlockX() + offX,
-                        loc.getBlockY() + offY,
-                        loc.getBlockZ() + offZ);
-            case EAST:
-                return new Location(loc.getWorld(),
-                        loc.getBlockX() - offZ,
-                        loc.getBlockY() + offY,
-                        loc.getBlockZ() + offX);
-            case SOUTH:
-                return new Location(loc.getWorld(),
-                        loc.getBlockX() - offX,
-                        loc.getBlockY() + offY,
-                        loc.getBlockZ() - offZ);
-            case WEST:
-                return new Location(loc.getWorld(),
-                        loc.getBlockX() + offZ,
-                        loc.getBlockY() + offY,
-                        loc.getBlockZ() - offX);
-//            case NORTH:
-//                return new Location(loc.getWorld(),
-//                        loc.getBlockX() - offZ,
-//                        loc.getBlockY() + offY,
-//                        loc.getBlockZ() + offX);
-//            case EAST:
-//                return new Location(loc.getWorld(),
-//                        loc.getBlockX() - offX,
-//                        loc.getBlockY() + offY,
-//                        loc.getBlockZ() - offZ);
-//            case SOUTH:
-//                return new Location(loc.getWorld(),
-//                        loc.getBlockX() + offZ,
-//                        loc.getBlockY() + offY,
-//                        loc.getBlockZ() - offX);
-//            case WEST:
-//                return new Location(loc.getWorld(),
-//                        loc.getBlockX() + offX,
-//                        loc.getBlockY() + offY,
-//                        loc.getBlockZ() + offZ);
-        }
-        return null;
     }
 
 }

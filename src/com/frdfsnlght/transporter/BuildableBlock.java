@@ -63,9 +63,7 @@ public final class BuildableBlock {
         physics = map.getBoolean("physics", false);
 
         if (type == -1) return;
-
         String str;
-
         str = map.getString("data");
         if (str != null) {
             try {
@@ -238,6 +236,11 @@ public final class BuildableBlock {
         float toYaw = Utils.directionToYaw(otherDir.getFacing());
         float result = toYaw - fromYaw + 180;
 //        float result = toYaw - fromYaw + 90;
+
+        Utils.debug("fromYaw=%s", fromYaw);
+        Utils.debug("toYaw=%s", toYaw);
+        Utils.debug("result=%s", result);
+
         return Utils.yawToDirection(result);
     }
 

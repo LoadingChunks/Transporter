@@ -104,7 +104,8 @@ public class Transporter extends JavaPlugin {
 
         Config.load(ctx);
 
-        Utils.checkVersion();
+        if (Config.getCheckVersion())
+            Utils.checkVersion();
 
         serverListener = new ServerListenerImpl();
         blockListener = new BlockListenerImpl();
@@ -144,12 +145,13 @@ public class Transporter extends JavaPlugin {
 
         Global.started = true;
 
-        try {
-            Metrics metrics = new Metrics(this);
-            metrics.start();
-        } catch (IOException e) {
-            ctx.warn("unable to start metrics: %s", e.getMessage());
-        }
+        if (Config.getUpdateMetrics())
+            try {
+                Metrics metrics = new Metrics(this);
+                metrics.start();
+            } catch (IOException e) {
+                ctx.warn("unable to start metrics: %s", e.getMessage());
+            }
 
         ctx.sendLog("ready on server '%s'", getServer().getServerName());
 
