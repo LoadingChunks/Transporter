@@ -32,11 +32,7 @@ public abstract class Compatibility {
         String p = Global.plugin.getServer().getClass().getPackage().getName();
         String version = p.substring(p.lastIndexOf('.') + 1);
         try {
-            String classname = null;
-            if (version.contains("craftbukkit"))
-                classname = Compatibility.class.getPackage().getName() + ".VPreClass";
-            else
-                classname = Compatibility.class.getPackage().getName() + ".V" + version.substring(1) + "Class";
+            String classname = Compatibility.class.getPackage().getName() + ".V" + version.substring(1) + "Class";
             Utils.info("loading compatibility class %s", classname);
             Class<?> cls = Class.forName(classname);
             Constructor<?> cons = cls.getDeclaredConstructor();
