@@ -15,8 +15,6 @@
  */
 package com.frdfsnlght.transporter;
 
-import com.frdfsnlght.inquisitor.Inquisitor;
-import com.frdfsnlght.inquisitor.api.API;
 import com.frdfsnlght.transporter.api.ReservationException;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -65,7 +63,6 @@ public final class Realm {
     private static boolean started = false;
     private static Set<String> redirectedPlayers = new HashSet<String>();
     private static Set<String> respawningPlayers = new HashSet<String>();
-    private static API inquisitor = null;
 
     public static boolean isStarted() {
         return started;
@@ -94,7 +91,6 @@ public final class Realm {
     // called from main thread
     public static void stop(Context ctx) {
         if (! started) return;
-        inquisitor = null;
         started = false;
         respawningPlayers.clear();
         ctx.send("realm support stopped");
@@ -115,46 +111,12 @@ public final class Realm {
         GateImpl respawnGate = getRespawnGateImpl();
         if (respawnGate != null)
             sendPlayerToGate(player, respawnGate);
-        else {
-            if (! inquisitorAvailable()) return;
-            com.frdfsnlght.inquisitor.api.Location bedLocation = inquisitor.getPlayerBedLocation(player.getName());
-            if (bedLocation == null) return;
-            sendPlayerToBed(player, bedLocation.getServer(), bedLocation.getWorld(), bedLocation.getCoords());
-        }
     }
 
     public static boolean onJoin(Player player) {
         if (! started) return false;
         Utils.debug("realm join '%s'", player.getName());
         redirectedPlayers.remove(player.getName());
-        if (! inquisitorAvailable()) return false;
-        com.frdfsnlght.inquisitor.api.Location lastLocation = inquisitor.getPlayerLastLocation(player.getName());
-        if (lastLocation != null) {
-            if (! lastLocation.getServer().equals(Global.plugin.getServer().getServerName())) {
-                if (sendPlayerToServer(player, lastLocation.getServer()))
-                    return true;
-            }
-        } else {
-            GateImpl defaultGate = getDefaultGateImpl();
-            if (defaultGate != null) {
-                if (sendPlayerToGate(player, defaultGate))
-                    return true;
-            }
-            String toServer = getDefaultServer();
-            if (toServer != null) {
-                if (! toServer.equals(Global.plugin.getServer().getServerName())) {
-                    if (sendPlayerToServer(player, toServer))
-                        return true;
-                }
-            }
-            String toWorld = getDefaultWorld();
-            if (toWorld != null) {
-                if (! toWorld.equals(player.getWorld().getName())) {
-                    if (sendPlayerToWorld(player, toWorld))
-                        return true;
-                }
-            }
-        }
         return false;
     }
 
@@ -165,28 +127,6 @@ public final class Realm {
 
 
     // End Player events
-
-    private static boolean inquisitorAvailable() {
-        if (inquisitor != null) return true;
-        Plugin p = Global.plugin.getServer().getPluginManager().getPlugin("Inquisitor");
-        if (p == null) {
-            Utils.warning("Inquisitor plugin is not installed!");
-            return false;
-        }
-        Utils.info("Inquisitor plugin found");
-        if (! p.isEnabled()) {
-            Utils.warning("Inquisitor plugin is not enabled!");
-            return false;
-        }
-        inquisitor = ((Inquisitor)p).getAPI();
-        if (! inquisitor.isPlayerStatsStarted()) {
-            inquisitor = null;
-            Utils.warning("Inquisitor player stats is not started!");
-            return false;
-        }
-        Utils.info("Inquisitor plugin is ready to go");
-        return true;
-    }
 
     // toServer is either the name of a configured server, or the name of a connected remote server
     private static boolean sendPlayerToServer(Player player, String toServer) {
@@ -203,27 +143,11 @@ public final class Realm {
         if ((server == null) || (! server.isConnected())) {
             Utils.warning("Unknown or offline realm server '%s' for player '%s'", toServer, player.getName());
 
-            if (getRestoreWhenServerOffline()) {
-                Map<String,Object> playerData = inquisitor.getPlayerStats(player.getName());
-                if (playerData == null)
-                    Utils.warning("Realm player stats for '%s' not found", player.getName());
-                else {
-                    TypeMap data = new TypeMap(playerData);
-                    Players.restore(player, data);
-                    Utils.debug("restored '%s' from realm data", player.getName());
-                    String msg = getRestoreWhenServerOfflineFormat();
-                    if (msg != null)
-                        msg = msg.replace("%server%", toServer);
-                     Chat.colorize(msg);
-                     if ((msg != null) && (! msg.isEmpty()))
-                        player.sendMessage(msg);
-                    return false;
-                }
-            }
+            if (getRestoreWhenServerOffline())
+                Utils.warning("Realm player stats for '%s' not found", player.getName());
             if (getKickWhenServerOffline()) {
                 String msg = getKickWhenServerOfflineFormat();
                 msg = msg.replace("%server%", toServer);
-                inquisitor.ignorePlayerJoin(player.getName());
                 Utils.schedulePlayerKick(player, msg);
                 return true;
             }
@@ -248,8 +172,6 @@ public final class Realm {
                 break;
         }
         redirectedPlayers.add(player.getName());
-        if (inquisitorAvailable())
-            inquisitor.ignorePlayerJoin(player.getName());
         return true;
     }
 
