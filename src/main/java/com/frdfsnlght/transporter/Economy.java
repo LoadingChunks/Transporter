@@ -15,8 +15,6 @@
  */
 package com.frdfsnlght.transporter;
 
-import com.nijikokun.register.payment.Methods;
-import com.nijikokun.register.payment.Method;
 import net.milkbowl.vault.economy.EconomyResponse;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -29,12 +27,10 @@ import org.bukkit.plugin.RegisteredServiceProvider;
 public final class Economy {
 
     private static net.milkbowl.vault.economy.Economy vaultPlugin = null;
-    private static Method registerPlugin = null;
 //    private static BOSEconomy boseconomyPlugin = null;
 
     public static boolean isAvailable() {
-        return vaultAvailable() ||
-               registerAvailable();
+        return vaultAvailable();
 
 //        return  boseconomyAvailable();
     }
@@ -53,16 +49,6 @@ public final class Economy {
         return true;
     }
 
-    public static boolean registerAvailable() {
-        if (! Config.getUseRegisterEconomy()) return false;
-        Plugin p = Global.plugin.getServer().getPluginManager().getPlugin("Register");
-        if ((p == null) || (! p.isEnabled())) return false;
-        if (registerPlugin != null) return true;
-        registerPlugin = Methods.getMethod();
-        Utils.info("Initialized Register for Economy");
-        return true;
-    }
-
     /*
     public static boolean boseconomyAvailable() {
         if (! Config.getUseBOSEconomy()) return false;
@@ -78,8 +64,6 @@ public final class Economy {
     public static String format(double funds) {
         if (vaultAvailable())
             return vaultPlugin.format(funds);
-        if (registerAvailable())
-            return registerPlugin.format(funds);
 //        if (boseconomyAvailable())
 //            return boseconomyPlugin.getMoneyFormatted(funds);
 
@@ -98,12 +82,6 @@ public final class Economy {
         if (vaultAvailable()) {
             double balance = vaultPlugin.getBalance(accountName);
             if (balance < amount)
-                throw new EconomyException("insufficient funds");
-            return true;
-        }
-        if (registerAvailable()) {
-            Method.MethodAccount account = registerPlugin.getAccount(accountName);
-            if (! account.hasEnough(amount))
                 throw new EconomyException("insufficient funds");
             return true;
         }
@@ -136,13 +114,6 @@ public final class Economy {
             EconomyResponse r = vaultPlugin.withdrawPlayer(accountName, amount);
             if (r.transactionSuccess()) return true;
             throw new EconomyException("economy error: %s", r.errorMessage);
-        }
-        if (registerAvailable()) {
-            Method.MethodAccount account = registerPlugin.getAccount(accountName);
-            if (! account.hasEnough(amount))
-                throw new EconomyException("insufficient funds");
-            if (account.subtract(amount)) return true;
-            throw new EconomyException("economy error");
         }
         /*
         if (boseconomyAvailable()) {

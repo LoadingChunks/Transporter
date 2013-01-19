@@ -119,17 +119,6 @@
             <artifactId>Inquisitor</artifactId>
             <version>2.16</version>
         </dependency>
-
-        <!--
-        mvn install:install-file \
-          -Dfile=Register-1.5.jar -DgroupId=com.nijikokun.register \
-          -DartifactId=Register -Dversion=1.5 -Dpackaging=jar
-        -->
-        <dependency>
-            <groupId>com.nijikokun.register</groupId>
-            <artifactId>Register</artifactId>
-            <version>1.5</version>
-        </dependency>
     </dependencies>
 
     <build>
