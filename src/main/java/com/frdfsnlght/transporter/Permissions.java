@@ -15,7 +15,6 @@
  */
 package com.frdfsnlght.transporter;
 
-import com.nijiko.permissions.PermissionHandler;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -49,7 +48,6 @@ public final class Permissions {
 
     private static boolean basicPermsInitted = false;
     private static net.milkbowl.vault.permission.Permission vaultPlugin = null;
-    private static PermissionHandler permissionsPlugin = null;
     private static PermissionManager permissionsExPlugin = null;
 
     public static boolean basicPermsAvailable() {
@@ -83,27 +81,6 @@ public final class Permissions {
             return false;
         }
         Utils.info("Initialized Vault for Permissions");
-        return true;
-    }
-
-    public static boolean permissionsAvailable() {
-        if (! Config.getUsePermissions()) return false;
-        Plugin p = Global.plugin.getServer().getPluginManager().getPlugin("Permissions");
-        if (p == null) {
-            Utils.warning("Permissions is not installed!");
-            return false;
-        }
-        if (! p.isEnabled()) {
-            Utils.warning("Permissions is not enabled!");
-            return false;
-        }
-        if (permissionsPlugin != null) return true;
-        permissionsPlugin = ((com.nijikokun.bukkit.Permissions.Permissions)p).getHandler();
-        if (permissionsPlugin == null) {
-            Utils.warning("Permissions didn't return a handler!");
-            return false;
-        }
-        Utils.info("Initialized Permissions for Permissions");
         return true;
     }
 
@@ -215,20 +192,6 @@ public final class Permissions {
                         throw new PermissionsException("not permitted");
                 } else {
                     if (vaultPlugin.has(worldName, playerName, perm)) return;
-                }
-            }
-            if ((! requireAll) && (perms.length > 0))
-                throw new PermissionsException("not permitted");
-            return;
-        }
-
-        if (permissionsAvailable()) {
-            for (String perm : perms) {
-                if (requireAll) {
-                    if (! permissionsPlugin.permission(worldName, playerName, perm))
-                        throw new PermissionsException("not permitted");
-                } else {
-                    if (permissionsPlugin.permission(worldName, playerName, perm)) return;
                 }
             }
             if ((! requireAll) && (perms.length > 0))

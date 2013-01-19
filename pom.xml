@@ -99,11 +99,6 @@
             <version>1.19.5</version>
         </dependency>
         <dependency>
-            <groupId>ru.tehkode</groupId>
-            <artifactId>PermissionsCompat</artifactId>
-            <version>1.15</version>
-        </dependency>
-        <dependency>
             <groupId>net.milkbowl.vault</groupId>
             <artifactId>Vault</artifactId>
             <version>1.2.23-SNAPSHOT</version>
