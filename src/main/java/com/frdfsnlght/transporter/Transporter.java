@@ -126,7 +126,6 @@ public class Transporter extends JavaPlugin {
             @Override
             public void run() {
                 Worlds.autoLoad(ctx);
-                Markers.update();
             }
         };
 
